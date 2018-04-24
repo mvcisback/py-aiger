@@ -17,6 +17,11 @@ Installing py-aiger should install two commandline scripts:
 - aigcompose
 - aigcount
 
+These are meant to augment the [aiger](fmv.jku.at/aiger/aiger-1.9.9.tar.gz) library. Ideally, we would like
+feature parity.
+
+
+Library usage
 
 ```python
 from aiger import parser
@@ -85,3 +90,6 @@ aig4 = aig3.unroll(steps=10, init=True)
 - [ ] Document.
 - [ ] Publish on pypi.
 - [ ] Setup continuous integration
+- [ ] Support parser full the new aiger features 1.9.3.
+  - [X] Latch Initialization
+  - [ ] TODO: fill out with other feaures.
