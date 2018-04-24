@@ -93,3 +93,4 @@ aig4 = aig3.unroll(steps=10, init=True)
 - [ ] Support parser full the new aiger features 1.9.3.
   - [X] Latch Initialization
   - [ ] TODO: fill out with other feaures.
+- [ ] Symbolic circuits: Composition returns a function that composes using the rules defined.
