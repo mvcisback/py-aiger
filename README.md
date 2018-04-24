@@ -12,14 +12,25 @@ TODO: Fall by to python dd engine if dd not available.
 
 # Usage
 
+Installing py-aiger should install two commandline scripts:
+
+- aigcompose
+- aigcount
+
+
 ```python
 from aiger import parser
+from aiger import utils
 
 aag1 = parser.load(path_to_aag1_file)
 aag2 = parser.load(path_to_aag2_file)
 
 # Sequential composition
 aag3 = aag1 >> aag2
+
+# Count solutions
+# Assume 1 output. This could be passed as an argument in the future.
+print(utils.count(aag3))
 
 # Parallel composition
 # TODO: not implemented
