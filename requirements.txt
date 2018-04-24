@@ -1,0 +1,7 @@
+dd==0.5.3
+toposort==1.5
+parsimonious==0.8.0
+blessings==1.6
+click==6.7
+lenses==0.4.0
+bidict==0.14.0
