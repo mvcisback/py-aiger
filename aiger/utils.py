@@ -2,7 +2,11 @@ from itertools import chain
 from math import log2, exp
 
 import click
-from dd.cudd import BDD
+try:
+    from dd.cudd import BDD
+except:
+    from dd.autoref import BDD
+
 from toposort import toposort
 
 from aiger import parser

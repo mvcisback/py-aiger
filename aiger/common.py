@@ -98,21 +98,19 @@ def seq_compose(aag1, aag2):
         len(outputs3),
         len(gates3))
     
-    try:
-        symbols3 = SymbolTable(
-            fn.merge(aag1.symbols.inputs,
-                     {n: inputs3.index(update_lit(input2_lits.inv[n])) for 
-                      n in  inputs2 - outputs1}
-            ),
-            fn.merge(aag2.symbols.outputs,
-                     {n: outputs3.index(signed_output[n]) for 
-                      n in outputs1 - inputs2}
-            ),
-            fn.merge(aag1.symbols.latches, 
-                     bidict({k: v + len(aag1.symbols.latches)
-                         for k, v in aag2.symbols.latches.items()})),
-        )
-    except:
-        import pdb; pdb.set_trace()
+    symbols3 = SymbolTable(
+        fn.merge(aag1.symbols.inputs,
+                 {n: inputs3.index(update_lit(input2_lits.inv[n])) for 
+                  n in  inputs2 - outputs1}
+        ),
+        fn.merge(aag2.symbols.outputs,
+                 {n: outputs3.index(signed_output[n]) for 
+                  n in outputs1 - inputs2}
+        ),
+        fn.merge(aag1.symbols.latches, 
+                 bidict({k: v + len(aag1.symbols.latches)
+                     for k, v in aag2.symbols.latches.items()})),
+    )
+
     # TODO: propogate comments
     return AAG(header3, inputs3, outputs3, latches3, gates3, symbols3, [''])
