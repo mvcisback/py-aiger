@@ -12,6 +12,7 @@ setup(
         'console_scripts': [
             'aigcompose = aiger.utils:parse_and_compose',
             'aigcount = aiger.utils:parse_and_count',
+            'aigparcompose = aiger.utils:parse_and_parcompose',
         ],
     },
     install_requires=[

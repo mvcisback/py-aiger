@@ -28,8 +28,8 @@ class AAG(NamedTuple):
     def __rshift__(self, other):
         return seq_compose(self, other)
 
-    def __matmul__(self, other):
-        return par_compose([self, other])
+    def __or__(self, other):
+        return par_compose(self, other)
 
     def dump(self):
         if self.inputs:
@@ -66,6 +66,7 @@ class AAG(NamedTuple):
         with open(location, "w") as f:
             f.write(self.dump())
 
+
 def seq_compose(aag1, aag2, check_precondition=True):
     output1_names = set(aag1.outputs.keys())
     input2_names = set(aag2.inputs.keys())
@@ -79,9 +80,8 @@ def seq_compose(aag1, aag2, check_precondition=True):
         assert len((output1_names - interface) & output2_names) == 0
         assert len(set(aag1.latches.keys()) & set(aag2.latches.keys())) == 0
 
-    _inputs2 = fn.project(aag2.inputs, interface)
-
-    idx_to_name = {to_idx(lit): n for n, lit in _inputs2.items()}
+    idx_to_name = {to_idx(lit): n for n, lit in aag2.inputs.items() 
+                   if n in interface}
     n = aag1.header.max_var_index
     def new_lit(lit):
         if lit in (0, 1):
@@ -106,10 +106,7 @@ def seq_compose(aag1, aag2, check_precondition=True):
         fn.omit(aag1.outputs, interface),
         fn.walk_values(new_lit, aag2.outputs)
     )
-    latches3 = fn.merge(
-        aag1.latches,
-        fn.walk_values(new_lits, aag2.latches),
-    )
+    latches3 = fn.merge(aag1.latches, fn.walk_values(new_lits, aag2.latches))
     gates3 = aag1.gates + fn.lmap(new_lits, aag2.gates)
 
     lits = fn.flatten(fn.concat(inputs3.values(), outputs3.values(),
@@ -121,88 +118,45 @@ def seq_compose(aag1, aag2, check_precondition=True):
     return AAG(header3, inputs3, outputs3, latches3, gates3, [''])
 
 
-def lit_type(aag, lit):
-    """
-    Computes the kind of object the literal lit represents in aag
-    """
-    in_thresh = 2*(aag.header.num_inputs)+2
-    in_lat_thresh = in_thresh + 2*(aag.header.num_latches)
-    in_lat_and_thresh = in_lat_thresh + 2*(aag.header.num_ands)
-    max_var_thresh = 2*(aag.header.max_var_index) +2
-    if (lit >= 0 and lit < 2): # constant
-        return "c"
-    elif (lit >= 2) and (lit < in_thresh): #input
-        return "i"
-    elif (lit >= in_thresh) and (lit < in_lat_thresh): #latch
-        return "l"
-    elif (lit >= in_lat_thresh) and (lit < max_var_thresh): #and
-        return "a"
-    else:
-        raise ValueError("Literal is too big")
+def par_compose(aag1, aag2, check_precondition=True):
+    input1_names = set(aag1.inputs.keys())
+    input2_names = set(aag2.inputs.keys())
+    interface = input1_names & input2_names
 
-def par_compose(aagcollection):
-    """
-    Parallel composition of a collection of aiger circuits. Inputs are shared and all other attributes are not.
-    FIXME: Shared inputs are by aiger index and not by symbol name
-    """
+    if check_precondition:
+        assert len(set(aag1.outputs.keys()) & set(aag2.outputs.keys())) == 0
+        assert len(set(aag1.latches.keys()) & set(aag2.latches.keys())) == 0
 
-    def new_index(aag, lit, par_header, prev_gates, prev_latches):
-        """
-        Computes a new index for literal lit from aag.
-        This new index takes into account the header of the parallel
-        composition and offsets from gates and latches from other aags
-        """
-        lit_kind = lit_type(aag, lit)
-        if lit_kind in ["c", "i"]:
+    
+    idx_to_name = {to_idx(lit): n for n, lit in aag2.inputs.items() 
+                   if n in interface}
+    n = aag1.header.max_var_index
+    def new_lit(lit):
+        if lit in (0, 1):
             return lit
-        elif lit_kind == "l":
-            par_offset = 2*(par_header.num_inputs)
-            aag_offset = 2*(aag.header.num_inputs)
-            return lit + par_offset - aag_offset + 2*prev_latches
-        elif lit_kind == "a":
-            par_offset = 2*(par_header.num_inputs+par_header.num_latches)
-            aag_offset = 2*(aag.header.num_inputs+aag.header.num_latches)
-            return lit + par_offset - aag_offset + 2*prev_gates
 
-    par_inputs = list(reduce(lambda x,y: x.union(y), [set(aag.inputs) for aag in aagcollection]))
-    par_inputs.sort()
+        key = to_idx(lit)
+        if key not in idx_to_name:
+            return lit + 2*n
 
-    num_inputs  = len(par_inputs)
-    num_latches = sum([len(aag.latches) for aag in aagcollection])
-    num_outputs = sum([len(aag.outputs) for aag in aagcollection])
-    num_gates   = sum([len(aag.gates) for aag in aagcollection])
-    max_var_index = len(par_inputs) + num_latches + num_gates
+        lit2 = aag1.inputs[idx_to_name[key]]
+        return (lit2 & -2) + ((lit2 & 1) ^ (lit & 1))
 
-    par_header = Header(max_var_index, num_inputs, num_latches, num_outputs, num_gates)
 
-    par_outputs = []
-    par_latches = []
-    par_gates = []
-    # FIXME: Need to have a nontrivial symbol table. What to do with duplicate output, latch names?
-    par_symbols = SymbolTable(fn.join([aag.symbols.inputs for aag in aagcollection]),
-                              [],
-                              [])
+    def new_lits(lits):
+        return fn.lmap(new_lit, lits)
 
-    prev_gates = 0
-    prev_latches = 0
-    for aag in aagcollection:
-        # Generate index map. Uncomment to construct the index map explicitly 
-        # index_kind = {i: lit_type(aag,i) for i in range(aag.header.max_var_index*2 + 2)}
-        # index_map = { i: new_index(aag, i, par_header, prev_gates, prev_latches) 
-        #               for i in range(aag.header.max_var_index*2+2)
-        #           }
+    inputs3 = fn.merge(
+        aag1.inputs, 
+        fn.walk_values(new_lit, fn.omit(aag2.inputs, interface)))
+    outputs3 = fn.merge(aag1.outputs, fn.walk_values(new_lit, aag2.outputs))
+    latches3 = fn.merge(aag1.latches, fn.walk_values(new_lits, aag2.latches))
+    gates3 = aag1.gates + fn.lmap(new_lits, aag2.gates)
 
-        # Bind circuit aag and prev_gates, prev_latches parameters to function 
-        newi = lambda x: new_index(aag, x, par_header, prev_gates, prev_latches)
+    lits = fn.flatten(fn.concat(inputs3.values(), outputs3.values(),
+                                latches3.values(), gates3))
+    header3 = Header(max(map(to_idx, lits)), len(inputs3), 
+                         len(latches3), len(outputs3),
+                         len(gates3))
 
-        # Add latches, gates, and outputs 
-        par_latches += [[newi(i[0]), newi(i[1])] for i in aag.latches]
-        par_gates += [[newi(i[0]), newi(i[1]), newi(i[2])] for i in aag.gates]
-        par_outputs += [newi(i) for i in aag.outputs]
-
-        # Increment offset from adding gates and latches 
-        prev_gates += len(aag.gates)
-        prev_latches += len(aag.latches)
-
-    return AAG(par_header, par_inputs, par_outputs, par_latches, par_gates, par_symbols, [''])
-
+    return AAG(header3, inputs3, outputs3, latches3, gates3, [''])
