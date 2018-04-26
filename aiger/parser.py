@@ -60,7 +60,12 @@ class AAGVisitor(NodeVisitor):
         inputs, outputs = ios[:header.num_inputs], ios[header.num_inputs:]
         assert len(lgs) == header.num_ands + header.num_latches
         latches, gates = lgs[:header.num_latches], lgs[header.num_latches:]
-        return AAG(header, inputs, outputs, latches, gates, symbols, comments)
+
+        inputs = {n: inputs[i] for n, i in symbols.inputs.items()}
+        outputs = {n: outputs[i] for n, i in symbols.outputs.items()}
+        latches = {n: latches[i] for n, i in symbols.latches.items()}
+
+        return AAG(header, inputs, outputs, latches, gates, comments)
 
     def visit_symbols(self, node, children):
         children = {(k, int(i), n) for k,i,n in children}

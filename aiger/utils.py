@@ -20,11 +20,13 @@ def to_bdd(aag: AAG):
     gate_lookup = {a & -2: (a, b, c) for a,b,c in aag.gates}
     eval_order = list(toposort(gate_deps))
 
-    assert eval_order[0] <= set(aag.inputs) | {0, 1}
+    import pdb; pdb.set_trace()
+    inputs = aag.inputs.values()
+    assert eval_order[0] <= set(inputs) | {0, 1}
 
     bdd = BDD()
-    bdd.declare(*(f'x{i}' for i in aag.inputs))
-    gate_nodes = {i: bdd.add_expr(f'x{i}') for i in aag.inputs}
+    bdd.declare(*(f'x{i}' for i in inputs))
+    gate_nodes = {i: bdd.add_expr(f'x{i}') for i in inputs}
     gate_nodes[0] = bdd.add_expr('False')
     gate_nodes[1] = bdd.add_expr('True')
     for gate in chain(*eval_order[1:]):
