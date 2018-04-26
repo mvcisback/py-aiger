@@ -2,6 +2,7 @@ from itertools import chain
 from math import log2, exp
 
 import click
+import funcy as fn
 try:
     from dd.cudd import BDD
 except:
@@ -20,7 +21,6 @@ def to_bdd(aag: AAG):
     gate_lookup = {a & -2: (a, b, c) for a,b,c in aag.gates}
     eval_order = list(toposort(gate_deps))
 
-    import pdb; pdb.set_trace()
     inputs = aag.inputs.values()
     assert eval_order[0] <= set(inputs) | {0, 1}
 
@@ -35,7 +35,7 @@ def to_bdd(aag: AAG):
         f2 = ~gate_nodes[i2 & -2] if i2 & 1 else gate_nodes[i2 & -2]
         gate_nodes[out] = f1 & f2
 
-    out = aag.outputs[0]
+    out = fn.first(aag.outputs.values())
     return (~gate_nodes[out & -2] if out & 1 else gate_nodes[out & -2]), bdd
 
 
