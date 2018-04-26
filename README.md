@@ -14,14 +14,16 @@ TODO: Fall by to python dd engine if dd not available.
 
 Installing py-aiger should install two commandline scripts:
 
-- aigcompose
+- aigseqcompose
+- aigparcompose
 - aigcount
 
-These are meant to augment the [aiger](fmv.jku.at/aiger/aiger-1.9.9.tar.gz) library. Ideally, we would like
-feature parity.
+These are meant to augment the
+[aiger](fmv.jku.at/aiger/aiger-1.9.9.tar.gz) library. Ideally, we
+would someday like feature parity.
 
 
-Library usage
+## Implemented API
 
 ```python
 from aiger import parser
@@ -33,22 +35,20 @@ aag2 = parser.load(path_to_aag2_file)
 # Sequential composition
 aag3 = aag1 >> aag2
 
+# Parallel composition
+aig4 = aag1 | aag2
+
+# Evaluation
+aig3(inputs={x:True, y:False})
+
 # Count solutions
 # Assume 1 output. This could be passed as an argument in the future.
 print(utils.count(aag3))
+```
 
-# Parallel composition
-# TODO: not implemented
-aig4 = aag1 @ aag2
+## Proposed API
 
-# Conjunction of outputs.
-# Assumes only one output each.
-aig_and = aag1 & aag2
-
-# Inverts all outputs
-# TODO
-aig_neg = ~aag1
-
+```
 # Useful compositions.
 # TODO
 aig1 >> aiger.and_gate(aag1.outputs)
@@ -58,16 +58,9 @@ aig1 >> aiger.or_gate(aag1.outputs)
 # TODO
 aig1[{'x': 'z', 'o1': 'out1'}]
 
-# Evaluation
-# TODO: not implemented
-# Circuit has inputs x, y and latches l1 and l2
-# Circuit has outputs o1 and o2
-# latches default to 0 if aiger doesn't specify.
-aig3(x=2, y=2)
-
 # Partial evaluation
 # TODO
-aig3(x=2) # New aiger circuit
+aig3({x=True}) # New aiger circuit
 
 # Simulate
 # TODO

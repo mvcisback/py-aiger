@@ -1,3 +1,5 @@
+# TODO: factor out common parts of seq_compose and par_compose
+
 from collections import namedtuple
 from typing import NamedTuple, List, Tuple, Mapping
 from functools import lru_cache
@@ -5,6 +7,8 @@ from functools import lru_cache
 import funcy as fn
 from bidict import bidict
 from functools import reduce
+
+from toposort import toposort
 
 Header = namedtuple('Header', ['max_var_index', 'num_inputs',
                                'num_latches', 'num_outputs',
@@ -65,6 +69,37 @@ class AAG(NamedTuple):
     def write(self, location):
         with open(location, "w") as f:
             f.write(self.dump())
+
+    def __call__(self, inputs, latches=None):
+        # TODO: implement partial evaluation.
+        # TODO: implement setting latch values
+        eval_order, gate_lookup = self.eval_order_and_gate_lookup
+        latches = dict() if latches is None else latches
+        
+        def latch_init(latch):
+            return False if len(latch) < 3 else bool(latch[2])
+
+        gate_nodes = fn.merge(
+            {v: inputs[k]  for k, v in self.inputs.items()},
+            {v[0]: latches.get(k, latch_init(v)) for k, v in self.latches.items()},
+            {0: False, 1: True},
+        )
+        def gate_output(lit):
+            return (not gate_nodes[lit & -2]) if lit & 1 else gate_nodes[lit & -2]
+
+        for gate in fn.cat(eval_order[1:]):
+            out, i1, i2 = gate_lookup[gate]
+            gate_nodes[out] = gate_output(i1) and gate_output(i2)
+
+        return {k: gate_output(v) for k, v in self.outputs.items()}
+
+
+    @property
+    def eval_order_and_gate_lookup(self):
+        gate_deps = {a & -2: {b & -2, c & -2} for a,b,c in self.gates}
+        gate_lookup = {a & -2: (a, b, c) for a,b,c in self.gates}
+        return list(toposort(gate_deps)), gate_lookup
+
 
 
 def seq_compose(aag1, aag2, check_precondition=True):

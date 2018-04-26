@@ -8,18 +8,15 @@ try:
 except:
     from dd.autoref import BDD
 
-from toposort import toposort
-
 from aiger import parser
 from aiger.common import AAG
+
 
 def to_bdd(aag: AAG):
     assert len(aag.outputs) == 1
     assert len(aag.latches) == 0
 
-    gate_deps = {a & -2: {b & -2, c & -2} for a,b,c in aag.gates}
-    gate_lookup = {a & -2: (a, b, c) for a,b,c in aag.gates}
-    eval_order = list(toposort(gate_deps))
+    eval_order, gate_lookup = aag.eval_order_and_gate_lookup
 
     inputs = aag.inputs.values()
     assert eval_order[0] <= set(inputs) | {0, 1}

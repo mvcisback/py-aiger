@@ -10,7 +10,7 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': [
-            'aigcompose = aiger.utils:parse_and_compose',
+            'aigseqcompose = aiger.utils:parse_and_compose',
             'aigcount = aiger.utils:parse_and_count',
             'aigparcompose = aiger.utils:parse_and_parcompose',
         ],
