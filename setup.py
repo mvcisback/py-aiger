@@ -22,6 +22,7 @@ setup(
         'lenses',
         'parsimonious',
         'dd',
+        'toposort'
     ],
     packages=find_packages(),
 )
