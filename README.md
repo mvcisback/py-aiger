@@ -44,6 +44,15 @@ aig3(inputs={x:True, y:False})
 # Count solutions
 # Assume 1 output. This could be passed as an argument in the future.
 print(utils.count(aag3))
+
+# Relabel input 'x' to 'z'.
+aig1['i', {'x': 'z'}]
+
+# Relabel output 'y' to 'w'.
+aig1['o', {'y': 'w'}]
+
+# Relabel latches 'l1' to 'l2'.
+aig1['o', {'l1': 'l2'}]
 ```
 
 ## Proposed API
@@ -54,9 +63,6 @@ print(utils.count(aag3))
 aig1 >> aiger.and_gate(aag1.outputs)
 aig1 >> aiger.or_gate(aag1.outputs)
 
-# Relabel input x to z and output o1 to out1
-# TODO
-aig1[{'x': 'z', 'o1': 'out1'}]
 
 # Partial evaluation
 # TODO

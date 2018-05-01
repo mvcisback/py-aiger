@@ -5,6 +5,7 @@ from typing import NamedTuple, List, Tuple, Mapping
 from functools import lru_cache
 
 import funcy as fn
+from lenses import bind
 from bidict import bidict
 from functools import reduce
 
@@ -21,6 +22,11 @@ def to_idx(lit):
     return lit >> 1
 
 
+@fn.curry
+def _relabel(relabels, syms):
+    return fn.walk_keys(lambda k: relabels.get(k, k), syms)
+
+
 class AAG(NamedTuple):
     header: Header
     inputs: Mapping[str, int]
@@ -34,6 +40,17 @@ class AAG(NamedTuple):
 
     def __or__(self, other):
         return par_compose(self, other)
+
+    def __getitem__(self, others):
+        if not isinstance(others, tuple):
+            return super().__getitem__(others)
+
+        name, relabels = others
+        if name not in {'i', 'o', 'l'}:
+            raise NotImplemented
+
+        name = {'i': 'inputs', 'o': 'outputs', 'l': 'latches'}.get(name)
+        return bind(self).GetAttr(name).modify(_relabel(relabels))
 
     def dump(self):
         if self.inputs:
