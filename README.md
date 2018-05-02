@@ -53,6 +53,18 @@ aig1['o', {'y': 'w'}]
 
 # Relabel latches 'l1' to 'l2'.
 aig1['o', {'l1': 'l2'}]
+
+# Simulator
+sim = aig3.simulator()  # Coroutine
+next(sim)  # Initialize
+print(sim.send({'x': 0, 'y': 0}))
+print(sim.send({'x': 1, 'y': 2}))
+print(sim.send({'x': 3, 'y': 4}))
+
+# Simulate
+sim = aig3.simulate({'x': 0, 'y': 0}, 
+                    {'x': 1, 'y': 2},
+                    {'x': 3, 'y': 4})
 ```
 
 ## Proposed API
@@ -63,18 +75,9 @@ aig1['o', {'l1': 'l2'}]
 aig1 >> aiger.and_gate(aag1.outputs)
 aig1 >> aiger.or_gate(aag1.outputs)
 
-
 # Partial evaluation
 # TODO
 aig3({x=True}) # New aiger circuit
-
-# Simulate
-# TODO
-sim = aig3.simulate()  # Coroutine
-print(next(sim))  # Initialize
-print(sim.send({'x': 0, 'y': 0}))
-print(sim.send({'x': 1, 'y': 2}))
-print(sim.send({'x': 3, 'y': 4}))
 
 
 # Unroll
