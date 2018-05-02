@@ -108,8 +108,10 @@ class AAG(NamedTuple):
             out, i1, i2 = gate_lookup[gate]
             gate_nodes[out] = gate_output(i1) and gate_output(i2)
 
-        return {k: gate_output(v) for k, v in self.outputs.items()}
+        outputs = {k: gate_output(v) for k, v in self.outputs.items()}
 
+        latches = {k: gate_output(v) for k, (_,v,_) in self.latches.items()}
+        return outputs, latches
 
     @property
     def eval_order_and_gate_lookup(self):
@@ -117,6 +119,16 @@ class AAG(NamedTuple):
         gate_lookup = {a & -2: (a, b, c) for a,b,c in self.gates}
         return list(toposort(gate_deps)), gate_lookup
 
+    def simulator(self, latches=None):
+        inputs = yield
+        while True:
+            outputs, latches = self(inputs, latches)
+            inputs = yield outputs, latches
+
+    def simulate(self, input_seq, latches=None):
+        sim = self.simulator()
+        next(sim)
+        return [sim.send(inputs) for inputs in input_seq]
 
 
 def seq_compose(aag1, aag2, check_precondition=True):
