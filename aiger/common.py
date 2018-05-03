@@ -140,19 +140,19 @@ class AAG(NamedTuple):
         def _unroll():
             prev = aag0
             for t in range(1, horizon+1):
-                tmp = prev['i', {k: f"{k}_time_{t-1}" 
+                tmp = prev['i', {k: f"{k}##time_{t-1}" 
                                  for k in aag0.inputs.keys()}]
-                yield tmp['o', {k: f"{k}_time_{t}" 
+                yield tmp['o', {k: f"{k}##time_{t}" 
                                 for k in aag0.outputs.keys()}]
                 
         unrolled = reduce(seq_compose, _unroll())
         if init:
-            latch_source = {f"{k}_time_0": val for k, (_, _, val) in
+            latch_source = {f"{k}##time_0": val for k, (_, _, val) in
                             self.latches.items()}
             unrolled = source(latch_source) >> unrolled
 
         if omit_latches:
-            latch_names = [f"{k}_time_{horizon}" for k in self.latches.keys()]
+            latch_names = [f"{k}##time_{horizon}" for k in self.latches.keys()]
 
             unrolled = unrolled >> sink(latch_names)
 
@@ -303,6 +303,22 @@ def sink(inputs):
         inputs={name: 2*(i+1) for i, name in enumerate(inputs)},
         latches={},
         outputs={},
+        gates=[],
+        comments=['']
+    )
+
+def tee(outputs):
+    outputs = list(outputs)
+    copies = [f"{name}##copy" for name in outputs]
+    num = len(outputs)
+    return AAG(
+        header=Header(num, num, 0, 2*num, 0),
+        inputs={name: 2*(i+1) for i, name in enumerate(outputs)},
+        latches={},
+        outputs=fn.merge(
+            {name: 2*(i+1) for i, name in enumerate(outputs)},
+            {name: 2*(i+1) for i, name in enumerate(copies)},
+        ),
         gates=[],
         comments=['']
     )

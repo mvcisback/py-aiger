@@ -75,6 +75,9 @@ aag4 = common.source({'x': False}) >> aag3
 
 # Remove output. 
 aag4 = aag3 >> common.sink(['y'])
+
+# Duplicate outputs.
+aag4 = aag3 >> common.tee(['y', 'w'])
 ```
 
 ## Proposed API
