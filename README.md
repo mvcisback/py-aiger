@@ -78,25 +78,16 @@ aag4 = aag3 >> common.sink(['y'])
 
 # Duplicate outputs.
 aag4 = aag3 >> common.tee(['y', 'w'])
-```
 
-## Proposed API
+# And outputs.
+aig1 >> common.and_gate(aag1.outputs) # Default output name is #and_output.
 
-```
-# Useful compositions.
-# TODO
-aig1 >> aiger.and_gate(aag1.outputs)
-aig1 >> aiger.or_gate(aag1.outputs)
-
-# Partial evaluation
-# TODO
-aig3({x=True}) # New aiger circuit
+# Or outputs.
+aig1 >> common.or_gate(inputs=aag1.outputs, output='my_output')
 ```
 
 
 # TODO
-
-- [ ] Implement features in demo.
 - [ ] Document.
 - [ ] Publish on pypi.
 - [ ] Setup continuous integration
@@ -105,3 +96,11 @@ aig3({x=True}) # New aiger circuit
   - [ ] TODO: fill out with other feaures.
 - [ ] Symbolic circuits: Composition returns a function that composes using the rules defined.
 - [ ] qaiger
+
+# Proposed API
+
+```
+# Partial evaluation
+# TODO
+aig3({x=True}) # New aiger circuit
+```
