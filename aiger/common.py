@@ -381,3 +381,14 @@ def or_gate(inputs, output=None):
         output = '#or_output'
     
     return _nary_gate(inputs, output, _or_gate, output_polarity=True)
+
+
+def bit_flipper(inputs):
+    return AAG(
+        header=Header(len(inputs), len(inputs), 0, len(inputs), 0),
+        inputs={name: 2*(i+1) for i, name in enumerate(inputs)},
+        latches={},
+        outputs={name: 2*(i+1)+1 for i, name in enumerate(inputs)},
+        gates=[],
+        comments=['']
+    )    

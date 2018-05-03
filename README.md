@@ -84,6 +84,12 @@ aig1 >> common.and_gate(aag1.outputs) # Default output name is #and_output.
 
 # Or outputs.
 aig1 >> common.or_gate(inputs=aag1.outputs, output='my_output')
+
+# Flip outputs.
+aig1 >> common.bit_flipper(inputs=aag1.outputs)
+
+# Flip inputs.
+common.bit_flipper(inputs=aag1.inputs) >> aig1
 ```
 
 
