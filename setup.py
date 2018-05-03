@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='py-aiger',
-    version='0.1',
+    version='0.2',
     description='TODO',
     url='http://github.com/mvcisback/py-aiger',
     author='Marcell Vazquez-Chanlatte',
