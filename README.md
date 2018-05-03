@@ -26,6 +26,7 @@ would someday like feature parity.
 ## Implemented API
 
 ```python
+from aiger import common
 from aiger import parser
 from aiger import utils
 
@@ -65,6 +66,15 @@ print(sim.send({'x': 3, 'y': 4}))
 sim = aig3.simulate({'x': 0, 'y': 0}, 
                     {'x': 1, 'y': 2},
                     {'x': 3, 'y': 4})
+
+# Unroll
+aig4 = aig3.unroll(steps=10, init=True)
+
+# Fix input.
+aag4 = common.source({'x': False}) >> aag3
+
+# Remove output. 
+aag4 = aag3 >> common.sink(['y'])
 ```
 
 ## Proposed API
@@ -78,11 +88,6 @@ aig1 >> aiger.or_gate(aag1.outputs)
 # Partial evaluation
 # TODO
 aig3({x=True}) # New aiger circuit
-
-
-# Unroll
-# TODO
-aig4 = aig3.unroll(steps=10, init=True)
 ```
 
 

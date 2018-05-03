@@ -1,5 +1,5 @@
 # TODO: factor out common parts of seq_compose and par_compose
-
+from operator import itemgetter as ig
 from collections import namedtuple
 from typing import NamedTuple, List, Tuple, Mapping
 from functools import lru_cache
@@ -33,7 +33,7 @@ class AAG(NamedTuple):
     outputs: Mapping[str, int]
     latches: Mapping[str, List[int]]
     gates: List[List[int]]
-    comments: str
+    comments: List[str]
 
     def __rshift__(self, other):
         return seq_compose(self, other)
@@ -130,6 +130,66 @@ class AAG(NamedTuple):
         next(sim)
         return [sim.send(inputs) for inputs in input_seq]
 
+    def unroll(self, horizon, *, init=True, omit_latches=True):
+        # TODO: 
+        # - Check for name collisions.
+        # - Implement Init.
+        # - Implement omit_latches.
+        aag0 = cutlatches(self, self.latches.keys())
+
+        def _unroll():
+            prev = aag0
+            for t in range(1, horizon+1):
+                tmp = prev['i', {k: f"{k}_time_{t-1}" 
+                                 for k in aag0.inputs.keys()}]
+                yield tmp['o', {k: f"{k}_time_{t}" 
+                                for k in aag0.outputs.keys()}]
+                
+        unrolled = reduce(seq_compose, _unroll())
+        if init:
+            latch_source = {f"{k}_time_0": val for k, (_, _, val) in
+                            self.latches.items()}
+            unrolled = source(latch_source) >> unrolled
+
+        if omit_latches:
+            latch_names = [f"{k}_time_{horizon}" for k in self.latches.keys()]
+
+            unrolled = unrolled >> sink(latch_names)
+
+        return unrolled
+
+
+def cutlatches(aag, latches):
+    # TODO: assert relabels won't collide with existing labels.
+
+    # Drop latches from symbol table.
+    out = bind(aag).latches.modify(fn.partial(fn.omit, keys=latches))
+
+    # Make latch an input.
+    new_inputs = fn.merge(
+        aag.inputs,
+        {f"{name}": aag.latches[name][0] for name in latches}
+    )
+
+    # Make latch an output.
+    new_outputs = fn.merge(
+        aag.outputs,
+        {f"{name}": aag.latches[name][1] for name in latches}
+    )
+
+    nlatches = len(latches)
+    return AAG(header=Header(aag.header.max_var_index, 
+                             aag.header.num_inputs + nlatches,
+                             aag.header.num_latches - nlatches,
+                             aag.header.num_outputs + nlatches,
+                             aag.header.num_ands),
+               inputs=new_inputs,
+               outputs=new_outputs,
+               latches=fn.omit(aag.latches, latches),
+               gates= aag.gates,
+               comments=[''],
+    )
+
 
 def seq_compose(aag1, aag2, check_precondition=True):
     output1_names = set(aag1.outputs.keys())
@@ -224,3 +284,25 @@ def par_compose(aag1, aag2, check_precondition=True):
                          len(gates3))
 
     return AAG(header3, inputs3, outputs3, latches3, gates3, [''])
+
+
+def source(outputs):
+    return AAG(
+        header=Header(0, 0, 0, len(outputs), 0),
+        inputs={},
+        latches={},
+        outputs={key: int(value) for key, value in outputs.items()},
+        gates=[],
+        comments=['']
+    )
+
+
+def sink(inputs):
+    return AAG(
+        header=Header(len(inputs), len(inputs), 0, 0, 0),
+        inputs={name: 2*(i+1) for i, name in enumerate(inputs)},
+        latches={},
+        outputs={},
+        gates=[],
+        comments=['']
+    )
