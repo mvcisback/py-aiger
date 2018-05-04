@@ -6,10 +6,6 @@ Note that this currently assumes dd is installed with cudd.
 
 See https://github.com/johnyf/dd#cython-bindings for details.
 
-TODO: make dd an optional dependency.
-TODO: Fall by to python dd engine if dd not available.
-
-
 # Usage
 
 Installing py-aiger should install two commandline scripts:
@@ -102,6 +98,7 @@ common.bit_flipper(inputs=aag1.inputs) >> aig1
   - [ ] TODO: fill out with other feaures.
 - [ ] Symbolic circuits: Composition returns a function that composes using the rules defined.
 - [ ] qaiger
+- [ ] Make dd an optional dependency (maybe move counting stuff out of py-aiger).
 
 # Proposed API
 
