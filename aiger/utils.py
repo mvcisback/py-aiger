@@ -1,5 +1,5 @@
 from itertools import chain
-from math import log2, exp
+from math import log, exp
 
 import click
 import funcy as fn
@@ -40,13 +40,19 @@ def count(aag):
     f, bdd = to_bdd(aag)
 
     n = aag.header.num_inputs
-    return exp(log2(f.count(n)) - n)
+    return f.count(n)
 
 
 @click.command()
 @click.argument('path', type=click.Path(exists=True))
-def parse_and_count(path):
-    print(count(parser.load(path)))
+@click.option('--percent', is_flag=True)
+def parse_and_count(path, percent):
+    aag = parser.load(path)
+    num_models = count(aag)
+    if percent:
+        print(exp(log(num_models) - aag.header.num_inputs))
+    else:
+        print(num_models)
 
 
 @click.command()
