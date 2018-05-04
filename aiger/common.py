@@ -348,16 +348,13 @@ def _make_tree(num, idx=1):
         num = len(indices)
 
 
-def _nary_gate(inputs, output, gate_map, output_polarity=False):
-    gates = fn.lmap(gate_map, _make_tree(len(inputs)))
-    
+def bit_flipper(inputs):
     return AAG(
-        header=Header(len(gates) + len(inputs),
-                      len(inputs), 0, 1, len(gates)),
+        header=Header(len(inputs), len(inputs), 0, len(inputs), 0),
         inputs={name: 2*(i+1) for i, name in enumerate(inputs)},
         latches={},
-        outputs={output: gates[-1][0]+int(output_polarity)},
-        gates=gates,
+        outputs={name: 2*(i+1)+1 for i, name in enumerate(inputs)},
+        gates=[],
         comments=['']
     )
 
@@ -369,26 +366,20 @@ def and_gate(inputs, output=None):
     if output is None:
         output = '#and_output'
 
-    return _nary_gate(inputs, output, _and_gate)
+    gates = fn.lmap(_and_gate, _make_tree(len(inputs)))
+    
+    return AAG(
+        header=Header(len(gates) + len(inputs),
+                      len(inputs), 0, 1, len(gates)),
+        inputs={name: 2*(i+1) for i, name in enumerate(inputs)},
+        latches={},
+        outputs={output: gates[-1][0]},
+        gates=gates,
+        comments=['']
+    )
 
 
 def or_gate(inputs, output=None):
-    def _or_gate(gate):
-        out, left, right = gate
-        return 2*out, 2*left + 1, 2*right + 1
-
-    if output is None:
-        output = '#or_output'
-    
-    return _nary_gate(inputs, output, _or_gate, output_polarity=True)
-
-
-def bit_flipper(inputs):
-    return AAG(
-        header=Header(len(inputs), len(inputs), 0, len(inputs), 0),
-        inputs={name: 2*(i+1) for i, name in enumerate(inputs)},
-        latches={},
-        outputs={name: 2*(i+1)+1 for i, name in enumerate(inputs)},
-        gates=[],
-        comments=['']
-    )    
+    output = '#or_output' if output is None else output
+    aag = and_gate(inputs, output)
+    return bit_flipper(inputs) >> aag >> bit_flipper([output])
