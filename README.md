@@ -1,5 +1,9 @@
 # Installation
 
+`$ pip install py-aiger`
+
+or as a developer:
+
 `$ python setup.py develop`
 
 Note that this currently assumes dd is installed with cudd.
