@@ -11,7 +11,7 @@ header = "aag" _ id _ id _ id _ id _ id EOL
 ios = io*
 io = id EOL
 
-latch_or_gate = id _ id _ id EOL
+latch_or_gate = id _ id _ id EOL?
 
 latches = (latch / latch_or_gate)*
 latch = id _ id EOL
