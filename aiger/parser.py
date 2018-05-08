@@ -67,8 +67,8 @@ class AAGVisitor(NodeVisitor):
         latches = fn.walk_values(lambda l: (l + [0])[:3], latches)
 
         if len(comments) > 0:
-            assert comments[0].startwith('c\n')
-            comments = comments[2:]
+            assert comments[0].startswith('c\n')
+            comments[0] = comments[0][2:]
         return AAG(header, inputs, outputs, latches, gates, comments)
 
     def visit_symbols(self, node, children):
