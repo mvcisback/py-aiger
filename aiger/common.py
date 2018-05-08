@@ -285,6 +285,8 @@ def par_compose(aag1, aag2, check_precondition=True):
 
     return AAG(header3, inputs3, outputs3, latches3, gates3, [''])
 
+def empty():
+    return parser.parse('aag 1 0 0 0 0\n')
 
 def source(outputs):
     return AAG(
