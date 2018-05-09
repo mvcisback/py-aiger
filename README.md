@@ -26,12 +26,12 @@ would someday like feature parity.
 ## Implemented API
 
 ```python
-from aiger import common
-from aiger import parser
+import aiger
 from aiger import utils
 
-aag1 = parser.load(path_to_aag1_file)
-aag2 = parser.load(path_to_aag2_file)
+
+aag1 = aiger.load(path_to_aag1_file)
+aag2 = aiger.load(path_to_aag2_file)
 
 # Sequential composition
 aag3 = aag1 >> aag2
@@ -71,25 +71,25 @@ sim = aig3.simulate({'x': 0, 'y': 0},
 aig4 = aig3.unroll(steps=10, init=True)
 
 # Fix input x to be False.
-aag4 = common.source({'x': False}) >> aag3
+aag4 = aiger.source({'x': False}) >> aag3
 
 # Remove output y. 
-aag4 = aag3 >> common.sink(['y'])
+aag4 = aag3 >> aiger.sink(['y'])
 
 # Create duplicate w of output y.
-aag4 = aag3 >> common.tee(['y', 'w'])
+aag4 = aag3 >> aiger.tee(['y', 'w'])
 
 # And outputs.
-aig1 >> common.and_gate(aag1.outputs) # Default output name is #and_output.
+aig1 >> aiger.and_gate(aag1.outputs) # Default output name is #and_output.
 
 # Or outputs.
-aig1 >> common.or_gate(inputs=aag1.outputs, output='my_output')
+aig1 >> aiger.or_gate(inputs=aag1.outputs, output='my_output')
 
 # Flip outputs.
-aig1 >> common.bit_flipper(inputs=aag1.outputs)
+aig1 >> aiger.bit_flipper(inputs=aag1.outputs)
 
 # Flip inputs.
-common.bit_flipper(inputs=aag1.inputs) >> aig1
+aiger.bit_flipper(inputs=aag1.inputs) >> aig1
 ```
 
 
