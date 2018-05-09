@@ -82,7 +82,7 @@ class AAG(NamedTuple):
         return out
 
     def dump(self):
-        return str(self)
+        return repr(self)
 
     def write(self, location):
         with open(location, "w") as f:
