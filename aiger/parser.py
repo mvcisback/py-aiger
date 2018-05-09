@@ -11,7 +11,7 @@ header = "aag" _ id _ id _ id _ id _ id EOL
 ios = io*
 io = id EOL
 
-latch_or_gate = id _ id _ id EOL
+latch_or_gate = id _ id _ id EOL?
 
 latches = (latch / latch_or_gate)*
 latch = id _ id EOL
@@ -24,7 +24,7 @@ symbol_kind = ("i" / "o" / "l")
 symbol_name = (~r".")+
 
 comments = "c" EOL comment+
-comment = (~r".")+ EOL
+comment = (~r".")+ EOL?
 
 _ = ~r" "+
 id = ~r"\d"+
@@ -66,6 +66,9 @@ class AAGVisitor(NodeVisitor):
         latches = {n: latches[i] for n, i in symbols.latches.items()}
         latches = fn.walk_values(lambda l: (l + [0])[:3], latches)
 
+        if len(comments) > 0:
+            assert comments[0].startswith('c\n')
+            comments[0] = comments[0][2:]
         return AAG(header, inputs, outputs, latches, gates, comments)
 
     def visit_symbols(self, node, children):

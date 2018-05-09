@@ -70,13 +70,13 @@ sim = aig3.simulate({'x': 0, 'y': 0},
 # Unroll
 aig4 = aig3.unroll(steps=10, init=True)
 
-# Fix input.
+# Fix input x to be False.
 aag4 = common.source({'x': False}) >> aag3
 
-# Remove output. 
+# Remove output y. 
 aag4 = aag3 >> common.sink(['y'])
 
-# Duplicate outputs.
+# Create duplicate w of output y.
 aag4 = aag3 >> common.tee(['y', 'w'])
 
 # And outputs.
