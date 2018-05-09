@@ -40,7 +40,7 @@ aag3 = aag1 >> aag2
 aig4 = aag1 | aag2
 
 # Evaluation
-aig3(inputs={x:True, y:False})
+aig3(inputs={'x':True, 'y':False})
 
 # Count solutions
 # Assume 1 output. This could be passed as an argument in the future.

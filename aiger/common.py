@@ -188,7 +188,7 @@ def cutlatches(aag, latches):
                outputs=new_outputs,
                latches=fn.omit(aag.latches, latches),
                gates= aag.gates,
-               comments=[''],
+               comments=aag.comments,
     )
 
 
@@ -240,7 +240,7 @@ def seq_compose(aag1, aag2, check_precondition=True):
                          len(latches3), len(outputs3),
                          len(gates3))
 
-    return AAG(header3, inputs3, outputs3, latches3, gates3, [''])
+    return AAG(header3, inputs3, outputs3, latches3, gates3, aag1.comments+aag2.comments)
 
 
 def par_compose(aag1, aag2, check_precondition=True):
@@ -284,10 +284,10 @@ def par_compose(aag1, aag2, check_precondition=True):
                          len(latches3), len(outputs3),
                          len(gates3))
 
-    return AAG(header3, inputs3, outputs3, latches3, gates3, [''])
+    return AAG(header3, inputs3, outputs3, latches3, gates3, aag1.comments+aag2.comments)
 
 def empty():
-    return parser.parse('aag 1 0 0 0 0\n')
+    return sink([])
 
 def source(outputs):
     return AAG(
@@ -296,7 +296,7 @@ def source(outputs):
         latches={},
         outputs={key: int(value) for key, value in outputs.items()},
         gates=[],
-        comments=['']
+        comments=[]
     )
 
 
@@ -307,9 +307,8 @@ def sink(inputs):
         latches={},
         outputs={},
         gates=[],
-        comments=['']
+        comments=[]
     )
-
 
 def tee(outputs):
     outputs = list(outputs)
@@ -324,7 +323,7 @@ def tee(outputs):
             {name: 2*(i+1) for i, name in enumerate(copies)},
         ),
         gates=[],
-        comments=['']
+        comments=[]
     )
 
 
@@ -358,7 +357,7 @@ def bit_flipper(inputs):
         latches={},
         outputs={name: 2*(i+1)+1 for i, name in enumerate(inputs)},
         gates=[],
-        comments=['']
+        comments=[]
     )
 
 
@@ -376,9 +375,9 @@ def and_gate(inputs, output=None):
                       len(inputs), 0, 1, len(gates)),
         inputs={name: 2*(i+1) for i, name in enumerate(inputs)},
         latches={},
-        outputs={output: gates[-1][0]},
+        outputs={output: gates[-1][0] if len(inputs) > 1 else 2 if len(inputs) == 1 else int(True)},
         gates=gates,
-        comments=['']
+        comments=[]
     )
 
 
