@@ -198,11 +198,6 @@ def seq_compose(aag1, aag2, check_precondition=True):
     interface = output1_names & input2_names
 
     if check_precondition:
-        input1_names = set(aag1.inputs.keys())
-        output2_names = set(aag2.outputs.keys())
-    
-        assert len((input2_names - interface) & input1_names) == 0
-        assert len((output1_names - interface) & output2_names) == 0
         assert len(set(aag1.latches.keys()) & set(aag2.latches.keys())) == 0
 
     idx_to_name = {to_idx(lit): n for n, lit in aag2.inputs.items() 
