@@ -79,6 +79,12 @@ aag4 = aag3 >> aiger.sink(['y'])
 # Create duplicate w of output y.
 aag4 = aag3 >> aiger.tee(['y', 'w'])
 
+# Make an AND gate.
+aiger.and_gate(['x', 'y'], out='name')
+
+# Make an OR gate.
+aiger.or_gate(['x', 'y'])  # Default output name is #or_output.
+
 # And outputs.
 aig1 >> aiger.and_gate(aag1.outputs) # Default output name is #and_output.
 
