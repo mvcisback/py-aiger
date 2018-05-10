@@ -46,7 +46,7 @@ def unsigned_value(expr):
 def value(expr):
     """Assumes that the expression is an AIG that has a single output word"""
     expr = simplify(expr)
-    sign_bit_name = expr.name() + '[{}]'.format(str(expr.size - 1))
+    sign_bit_name = expr.name(expr.size - 1)
     if not _bit_value(expr, sign_bit_name):
         return unsigned_value(expr)  # positive number
     else:

@@ -69,16 +69,24 @@ def _negative_circuit(wordlen, output='-x', input='x'):
 
 
 class BV:
-    def __init__(self, size, kind):
+    def __init__(self, size, kind, name="bv"):
+        """
+        Creates a bitvector expression.
 
+        'kind' can be either an integer, a variable name, or a tuple of variable names and an aiger.
+        'name' allows us to label the outputs of the circuit
+        """
         self.size = size
         self.variables = []
-        
+
+        self._name = name  
+
         if self.size == 0:
             self.aig = common.empty()
             return
 
         if isinstance(kind, int):  # Constant
+            assert kind < 2**size and kind > - 2**size
             self.aig = const(size, abs(kind), output=self.name())
             if kind < 0:
                 neg = - self
@@ -105,14 +113,15 @@ class BV:
 
     def name(self, idx=None):
         if idx is None:
-            return "bv{}".format(self.size)
+            return self._name
         else:
-            return "bv{}[{}]".format(self.size, idx)
+            return self._name + "[{}]".format(idx)
 
     def rename(self, name):
         """Renames the output of the expression; mostly used internally"""
         new_aig = self.aig['o', {self.name(i): name + '[{}]'.format(i) for i in range(self.size)}]
-        return BV(self.size, (self.variables, new_aig))
+        self._name = name
+        return BV(self.size, (self.variables, new_aig), name=name)
 
     def subtitute(self, subst):  # TODO: test this function; does the simultaneous thing work?
         """Simultaniously substitutes one set of input words by another"""
@@ -142,9 +151,9 @@ class BV:
         return BV(self.size, (self.variables, self.aig >> neg))
 
     def __neg__(self):  #-x
-        # aig = self.aig >> _negation_circuit(wordlen, input=self.name(), output=self.name())
-        # return BV(self.size, (self.variables, aig))
         return ~self + BV(self.size, 1)
+    def __pos__(self):  # +x
+        return self
 
     def __sub__(self, other):
         return self + (-other)
@@ -162,7 +171,7 @@ class BV:
         for i in range(self.size):
             if i in out_map:
                 new_idx = out_map[i]
-                rename.update({self.name(i): "bv{}[{}]".format(len(out_idxs), new_idx)})
+                rename.update({self.name(i): self.name(new_idx)})
             else: 
                 outputs_to_remove.append(self.name(i))
         aig = self.aig
@@ -175,28 +184,75 @@ class BV:
         return self[::-1]
 
     def concat(self, other):
-        self_rename = dict()
-        for i in range(self.size):
-            self_rename.update({self.name(i): "bv{}[{}]".format(self.size+other.size, i)})
-
         other_rename = dict()
         for i in range(other.size):
-            other_rename.update({other.name(i): "bv{}[{}]".format(self.size+other.size, self.size + i)})
-        return BV(self.size + other.size, (self.variables + other.variables, self.aig['o', self_rename] | other.aig['o', other_rename])) 
+            other_rename.update({other.name(i): other.name(self.size + i)})
+        return BV(self.size + other.size, (self.variables + other.variables, self.aig | other.aig['o', other_rename])) 
 
     # Bitwise opeators
-    # def __rshift__(self, other):
-    # def __lshift__(self, other):
-    # def __or__(self, other):
-    # def __and__(self, other):
-    # def __xor__(self, other):
+    def unsigned_rightshift(self, k):
+        """Unsigned rightshift by a fixed integer; big endian encoding"""
+        return self[:-k].concat(BV(k, 0))
+    
+    def repeat(self, k):
+        """Repeats the bitvector k times; resulting size is self.size*k"""
+        assert k > 0
+        copies = dict()
+        for i in range(self.size):
+            copies[self.name(i)] = [self.name(i+j) for j in range(0, k*self.size, self.size)]
+        print(copies)
+        quit()  # TODO: wait for implementation of tee
+        return BV(self.size*k, (self.variables, self.aig >> common.tee(copies)))
 
+    def __rshift__(self, k):
+        """Signed rightshift by a fixed integer; big endian encoding"""
+        return self[-k].concat(self[:-1].repeat(k))
+
+    def __lshift__(self, other):
+        """Leftshift by a fixed integer; big endian encoding"""
+        return BV(k, 0).concat(self[k:])
+
+    def __or__(self, other):
+        assert self.size == other.size
+        if self.name == other.name:
+            other = other.rename(self.name + '_other')
+        bitwise_or = common.empty()
+        for i in range(self.size):
+            bitwise_or = bitwise_or | common.or_gate([self.name(i), other.name(i)], output=self.name(i))
+        aig = (self.aig | other.aig) >> bitwise_or
+        return BV(self.size, (self.variables + other.variables, ))
+
+    def __and__(self, other):
+        assert self.size == other.size
+        if self.name == other.name:
+            other = other.rename(self.name + '_other')
+        bitwise_and = common.empty()
+        for i in range(self.size):
+            bitwise_and = bitwise_and | common.and_gate([self.name(i), other.name(i)], output=self.name(i))
+        aig = (self.aig | other.aig) >> bitwise_and
+        return BV(self.size, (self.variables + other.variables, aig))
+
+    # def __xor__(self, other):
+    # assert self.size == other.size
+    #     other = other.rename('other')
+    #     bitwise_and = common.empty()
+    #     for i in range(self.size):
+    #         bitwise_and = bitwise_and | common.and_gate([self.name(i), other.name(i)], output=self.name(i))
+    #     aig = (self.aig | other.aig) >> bitwise_and
+    #     return BV(self.size, (self.variables + other.variables, aig))
+
+
+    def __abs__(self):
+        mask = self >> self.size - 1
+        assert mask.size == self.size
+        return (self + mask) ^ mask
+        sign_bit_name = self.name(self.size - 1)
+        aig = self.aig >> common.sink([sign_bit_name]) | common.source({sign_bit_name: False})
+        aag4 = aiger.source({'x': False}) >> aag3
+        return 
     # TODO
     # Arithmetic operations
-    # def __neg__(self):
-    # def __pos__(self):
-        # return self
-    # def __abs__(self):
+    
 
     # Difficult arithmetic operations
     # def __mul__(self, other):

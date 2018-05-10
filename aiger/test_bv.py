@@ -2,6 +2,10 @@
 from bv import *
 from calc import *
 
+
+print(BV(2,1).repeat(3))
+# print(BV(1,1).repeat(3))
+
 # Items and Slicing
 assert unsigned_value(BV(4, 6)[2]) == 1
 assert unsigned_value(BV(4, 6)[0]) == 0
@@ -28,4 +32,6 @@ assert value(BV(16, 0) - BV(16, 42)) == - value(BV(16, 42))
 assert value(BV(5, 'x').assign({'x': 12})) == 12
 assert value((BV(8, 'x') - BV(8, 'y')).assign({'x': 12, 'y': 2})) == 10
 
-
+# Bitwise operators
+assert value(BV(8, 67) and BV(8, 66)) == 66
+assert value(BV(8, 67) or BV(8, 66)) == 67
