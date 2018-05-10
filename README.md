@@ -77,7 +77,7 @@ aag4 = aiger.source({'x': False}) >> aag3
 aag4 = aag3 >> aiger.sink(['y'])
 
 # Create duplicate w of output y.
-aag4 = aag3 >> aiger.tee(['y', 'w'])
+aag4 = aag3 >> aiger.tee({'y': ['y', 'w']})
 
 # Make an AND gate.
 aiger.and_gate(['x', 'y'], out='name')

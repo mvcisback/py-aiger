@@ -12,9 +12,12 @@ from aiger import parser
 from aiger.common import AAG
 
 
-def to_bdd(aag: AAG):
-    assert len(aag.outputs) == 1
+def to_bdd(aag: AAG, output):
+    assert len(aag.outputs) == 1 or (output is not None)
     assert len(aag.latches) == 0
+
+    if output is None:
+        output = list(aag.outputs.keys())[0]
 
     eval_order, gate_lookup = aag.eval_order_and_gate_lookup
 
@@ -32,12 +35,12 @@ def to_bdd(aag: AAG):
         f2 = ~gate_nodes[i2 & -2] if i2 & 1 else gate_nodes[i2 & -2]
         gate_nodes[out] = f1 & f2
 
-    out = fn.first(aag.outputs.values())
+    out = aag.outputs[output]
     return (~gate_nodes[out & -2] if out & 1 else gate_nodes[out & -2]), bdd
 
 
-def count(aag):
-    f, bdd = to_bdd(aag)
+def count(aag, output=None):
+    f, bdd = to_bdd(aag, output)
 
     n = aag.header.num_inputs
     return f.count(n)
