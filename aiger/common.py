@@ -134,8 +134,6 @@ class AAG(NamedTuple):
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO: 
         # - Check for name collisions.
-        # - Implement Init.
-        # - Implement omit_latches.
         aag0 = cutlatches(self, self.latches.keys())
 
         def _unroll():
@@ -306,16 +304,28 @@ def sink(inputs):
     )
 
 def tee(outputs):
-    outputs = list(outputs)
-    copies = [f"{name}##copy" for name in outputs]
-    num = len(outputs)
+    # TODO: add precondition check.
+
+    def default_name(i, name, key):
+        return f"{key}##copy{i}" if name is None else name
+
+    def fix_names(key_val):
+        key, val = key_val
+        return key, [default_name(i, name, key) for i, name in enumerate(val)]
+
+    outputs = fn.walk(fix_names, outputs)
+
+    num_inputs = len(outputs.keys())
+    num_outputs = sum(map(len, outputs.values())) + num_inputs
+
+    orig = list(outputs.keys())
     return AAG(
-        header=Header(num, num, 0, 2*num, 0),
-        inputs={name: 2*(i+1) for i, name in enumerate(outputs)},
+        header=Header(num_outputs, num_inputs, 0, num_outputs, 0),
+        inputs={name: 2*(i+1) for i, name in enumerate(orig)},
         latches={},
         outputs=fn.merge(
-            {name: 2*(i+1) for i, name in enumerate(outputs)},
-            {name: 2*(i+1) for i, name in enumerate(copies)},
+            *({name: 2*(i+1) for name in outputs[key]} 
+              for i, key in enumerate(orig)),
         ),
         gates=[],
         comments=[]
