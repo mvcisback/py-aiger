@@ -1,6 +1,6 @@
 from aiger import common
 from aiger.common import AAG
-import parser
+from aiger import parser
 
 
 def _bv_andor(wordlen, gate, output='x&y', left='x', right='y'):
