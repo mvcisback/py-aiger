@@ -355,12 +355,17 @@ def _make_tree(num, idx=1):
         num = len(indices)
 
 
-def bit_flipper(inputs):
+def bit_flipper(inputs, outputs=None):
+    if outputs == None:
+        outputs = inputs
+    else:
+        assert len(outputs) == len(inputs)
+
     return AAG(
         header=Header(len(inputs), len(inputs), 0, len(inputs), 0),
         inputs={name: 2*(i+1) for i, name in enumerate(inputs)},
         latches={},
-        outputs={name: 2*(i+1)+1 for i, name in enumerate(inputs)},
+        outputs={outputs[i]: 2*(i+1)+1 for i, name in enumerate(inputs)},
         gates=[],
         comments=[]
     )
