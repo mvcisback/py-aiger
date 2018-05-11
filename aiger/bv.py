@@ -68,7 +68,7 @@ def _negative_circuit(wordlen, output='-x', input='x'):
 
 
 
-class BV:
+class BV(object):
     def __init__(self, size, kind):
 
         self.size = size
