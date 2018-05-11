@@ -365,7 +365,7 @@ def bit_flipper(inputs, outputs=None):
         header=Header(len(inputs), len(inputs), 0, len(inputs), 0),
         inputs={name: 2*(i+1) for i, name in enumerate(inputs)},
         latches={},
-        outputs={outputs[i]: 2*(i+1)+1 for i, name in enumerate(inputs)},
+        outputs={name: 2*(i+1)+1 for i, name in enumerate(outputs)},
         gates=[],
         comments=[]
     )
@@ -374,12 +374,9 @@ def bit_flipper(inputs, outputs=None):
 def and_gate(inputs, output=None):
     def _and_gate(gate):
         return fn.lmap(lambda x: 2*x, gate)
-
-    if output is None:
-        output = '#and_output'
-
+    output = '#and_output' if output is None else output
     gates = fn.lmap(_and_gate, _make_tree(len(inputs)))
-    
+
     return AAG(
         header=Header(len(gates) + len(inputs),
                       len(inputs), 0, 1, len(gates)),

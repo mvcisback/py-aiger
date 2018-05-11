@@ -79,7 +79,8 @@ class BV:
         self.size = size
         self.variables = []
 
-        self._name = name  
+        assert isinstance(name, str)
+        self._name = name  # name of all circuit outputs
 
         if self.size == 0:
             self.aig = common.empty()
@@ -91,16 +92,19 @@ class BV:
             if kind < 0:
                 neg = - self
                 self.aig = neg.aig
+
         if isinstance(kind, str):  # Variable
             self.variables.append(kind)
             self.aig = common.empty()
             for i in range(self.size):
                 self.aig = self.aig | common.and_gate([kind + '[{}]'.format(i)], output=self.name(i))
+
         if isinstance(kind, tuple):  # for internal use only
             assert isinstance(kind[0], list)  # variables
             self.variables.extend(kind[0])
             assert isinstance(kind[1], common.AAG) or isinstance(kind[1], aiger.common.AAG)
             self.aig = kind[1]
+            assert len(self.aig.outputs) == self.size
         
         assert len(self.aig.outputs) == self.size
         # assert len(self.aig.inputs) == self.size*len(self.variables)
@@ -112,6 +116,7 @@ class BV:
         return str(self.aig)
 
     def name(self, idx=None):
+        assert idx == None or idx >= 0
         if idx is None:
             return self._name
         else:
@@ -120,7 +125,6 @@ class BV:
     def rename(self, name):
         """Renames the output of the expression; mostly used internally"""
         new_aig = self.aig['o', {self.name(i): name + '[{}]'.format(i) for i in range(self.size)}]
-        self._name = name
         return BV(self.size, (self.variables, new_aig), name=name)
 
     def subtitute(self, subst):  # TODO: test this function; does the simultaneous thing work?
@@ -140,6 +144,7 @@ class BV:
         variables = list(filter(lambda n: n not in names, self.variables))
         return BV(self.size, (variables, aig))
 
+    # Arithmetic operations
     def __add__(self, other):
         assert self.size == other.size
         other = other.rename('other')
@@ -152,6 +157,7 @@ class BV:
 
     def __neg__(self):  #-x
         return ~self + BV(self.size, 1)
+
     def __pos__(self):  # +x
         return self
 
@@ -200,59 +206,114 @@ class BV:
         copies = dict()
         for i in range(self.size):
             copies[self.name(i)] = [self.name(i+j) for j in range(0, k*self.size, self.size)]
-        print(copies)
-        quit()  # TODO: wait for implementation of tee
         return BV(self.size*k, (self.variables, self.aig >> common.tee(copies)))
 
     def __rshift__(self, k):
-        """Signed rightshift by a fixed integer; big endian encoding"""
-        return self[-k].concat(self[:-1].repeat(k))
+        """Signed rightshift by a fixed integer; big endian encoding; index 0 of bitvector is rightmost"""
+        right_side = self[-1:].repeat(k)
+        assert right_side.size == k
+        return self[k:].concat(right_side)
 
     def __lshift__(self, other):
-        """Leftshift by a fixed integer; big endian encoding"""
-        return BV(k, 0).concat(self[k:])
+        """Leftshift by a fixed integer; big endian encoding; index 0 of bitvector is rightmost"""
+        return BV(k, 0).concat(self[:-k])
 
     def __or__(self, other):
         assert self.size == other.size
-        if self.name == other.name:
-            other = other.rename(self.name + '_other')
+        if self.name() == other.name():
+            other = other.rename(self.name() + '_other')
         bitwise_or = common.empty()
         for i in range(self.size):
             bitwise_or = bitwise_or | common.or_gate([self.name(i), other.name(i)], output=self.name(i))
         aig = (self.aig | other.aig) >> bitwise_or
-        return BV(self.size, (self.variables + other.variables, ))
+        return BV(self.size, (self.variables + other.variables, aig))
 
     def __and__(self, other):
         assert self.size == other.size
-        if self.name == other.name:
-            other = other.rename(self.name + '_other')
+        if self.name() == other.name():
+            other = other.rename(self.name() + '_other')
         bitwise_and = common.empty()
         for i in range(self.size):
             bitwise_and = bitwise_and | common.and_gate([self.name(i), other.name(i)], output=self.name(i))
         aig = (self.aig | other.aig) >> bitwise_and
         return BV(self.size, (self.variables + other.variables, aig))
 
-    # def __xor__(self, other):
-    # assert self.size == other.size
-    #     other = other.rename('other')
-    #     bitwise_and = common.empty()
-    #     for i in range(self.size):
-    #         bitwise_and = bitwise_and | common.and_gate([self.name(i), other.name(i)], output=self.name(i))
-    #     aig = (self.aig | other.aig) >> bitwise_and
-    #     return BV(self.size, (self.variables + other.variables, aig))
+    def __xor__(self, other):
+        assert self.size == other.size
+        if self.name() == other.name():
+            other = other.rename(self.name() + '_other')
+
+        def xor(i):
+            tee = common.tee({self.name(i):[self.name(i), self.name(i) + '_alt'], other.name(i): [other.name(i), other.name(i) + '_alt']})
+            negated_inputs = aiger.bit_flipper([self.name(i) + '_alt', other.name(i) + '_alt'], 
+                                                outputs=[self.name(i) + '_neg', other.name(i) + '_neg'])
+
+            or_gate_pos = common.or_gate([self.name(i), other.name(i)], output=self.name(i) + '_pos')
+            or_gate_neg = common.or_gate([self.name(i) + '_neg', other.name(i) + '_neg'], output=self.name(i) + '_neg')
+
+            and_gate = common.and_gate([self.name(i) + '_pos', self.name(i) + '_neg'], output=self.name(i))
+            aig = (or_gate_pos | or_gate_neg)
+            return tee >> negated_inputs >> (or_gate_pos | or_gate_neg) >> and_gate
+
+        bitwise_xor = common.empty()
+        for i in range(self.size):
+            bitwise_xor = bitwise_xor | xor(i)
+
+        aig = (self.aig | other.aig) >> bitwise_xor
+        return BV(self.size, (self.variables + other.variables, aig))
 
 
     def __abs__(self):
         mask = self >> self.size - 1
         assert mask.size == self.size
         return (self + mask) ^ mask
-        sign_bit_name = self.name(self.size - 1)
-        aig = self.aig >> common.sink([sign_bit_name]) | common.source({sign_bit_name: False})
-        aag4 = aiger.source({'x': False}) >> aag3
-        return 
-    # TODO
-    # Arithmetic operations
+
+    def is_nonzero(self, output='bool'):
+        return BV(1, (self.variables, self.aig >> common.or_gate(self.aig.outputs, output=output + '[0]')), name=output)
+
+    def is_zero(self, output='bool'):
+        check_zero = common.bit_flipper(self.aig.outputs) >> common.and_gate(self.aig.outputs, output=output + '[0]')
+        return BV(1, (self.variables, self.aig >> check_zero), name=output)
+
+    def __eq__(self, other):
+        return (self ^ other).is_zero()
+
+    def __ne__(self, other):
+        return (self ^ other).is_nonzero()
     
+    def __lt__(self, other):
+        """signed comparison"""
+        return (self - other)[-1:]
+
+    def __gt__(self, other):
+        """signed comparison"""
+        return (other - self)[-1:]
+
+    def __le__(self, other):
+        """signed comparison"""
+        return ~(self > other)
+
+    def __ge__(self, other):
+        """signed comparison"""
+        return ~(self < other)
+
+        # assert self.size == other.size
+        # if self.name() == other.name():
+        #     other = other.rename(self.name() + '_other')
+
+        # local_lt =   BV(self.size, self.name())  & ~BV(other.size, other.name())
+        # local_gt =  ~BV(self.size, self.name())  &  BV(other.size, other.name())
+
+        # print(local_cmp)
+        # quit()
+        # lt = BV(1,1)  # proof obligation show that it is less than
+        # for i in range(self.size -1, -1, -1):
+        #     lt = lt 
+
+        # aig = self.aig >> (other.aig >> lt.aig)
+        # print(aig)
+        # return BV(1, (self.variables + other.variables, aig))
+
 
     # Difficult arithmetic operations
     # def __mul__(self, other):
@@ -260,34 +321,5 @@ class BV:
     # def __div__(self, other):
     # def __pow__(self, other):
 
-    # Word-level comparisons
-    # def __lt__(self, other):
-    # def __le__(self, other):
-    # def __eq__(self, other):
-    # def __ne__(self, other):
-    # def __gt__(self, other):
-    # def __ge__(self, other):
-
     # def __hash__(self):  # for use in strash; remember hash with every expression to avoid recomputation; remember global map from hashes to subexpressions
-
-
-
-
-# self += other   __iadd__(self, other)
-# self -= other   __isub__(self, other)
-# self *= other   __imul__(self, other)
-# self /= other   __idiv__(self, other) or __itruediv__(self,other) if __future__.division is in effect.
-# self //= other  __ifloordiv__(self, other)
-# self %= other   __imod__(self, other)
-# self **= other  __ipow__(self, other)
-# self &= other   __iand__(self, other)
-# self ^= other   __ixor__(self, other)
-# self |= other   __ior__(self, other)
-# self <<= other  __ilshift__(self, other)
-# self >>= other  __irshift__(self, other)
-
-
-
-# def exactly_one(wordlen, output='sum(x[i])==1', input='x'):
-
 
