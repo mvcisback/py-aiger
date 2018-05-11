@@ -15,7 +15,13 @@ def simplify(expr):
 
     call(["cp", f.name, f.name + ".aag"])
     call(["aigtoaig", f.name + ".aag", f.name + ".aig"])
-    call(["abc", "-c", "read {}; print_stats; dc2; dc2; dc2; print_stats; write {}".format(f.name + ".aig", f.name + ".aig")], stdout=PIPE)
+    call(
+        [
+            "abc", "-c",
+            "read {}; print_stats; dc2; dc2; dc2; print_stats; write {}".
+            format(f.name + ".aig", f.name + ".aig")
+        ],
+        stdout=PIPE)
     call(["aigtoaig", f.name + ".aig", f.name + ".aag"])
 
     simplified = open(f.name + ".aag")
@@ -29,7 +35,8 @@ def simplify(expr):
 
 def _bit_value(expr, name):
     signal = expr.aig.outputs[name]
-    if signal not in [True, False]:  # relying on the fact that True and False are represented as 1 and 0
+    # Relying on the fact that True and False are represented as 1 and 0
+    if signal not in [True, False]:
         raise ValueError('Value of {} not constant'.format(name))
     return signal
 
@@ -50,6 +57,4 @@ def value(expr):
     if not _bit_value(expr, sign_bit_name):
         return unsigned_value(expr)  # positive number
     else:
-        return - unsigned_value(-expr)
-
-
+        return -unsigned_value(-expr)
