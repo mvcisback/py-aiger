@@ -6,8 +6,8 @@ from aiger import parser
 def _bv_andor(wordlen, gate, output='x&y', left='x', right='y'):
     aig = common.empty()
     for i in range(wordlen):
-        aig |= common.and_gate([f'{left}[{i}]', f'{right}[{i}]'], 
-                              output=f'{output}[{i}]')
+        aig |= common.and_gate(
+            [f'{left}[{i}]', f'{right}[{i}]'], output=f'{output}[{i}]')
     return aig
 
 
@@ -41,11 +41,12 @@ def _adder_circuit(wordlen, output='x+y', left='x', right='y'):
 
     aig = common.source({carry_name: False})
     for i in range(wordlen):
-        aig >>= _full_adder(x=f"{left}[{i}]", 
-                         y=f"{right}[{i}]",
-                         carry_in=carry_name,
-                         result=f'{output}[{i}]',
-                         carry_out=carry_name)
+        aig >>= _full_adder(
+            x=f"{left}[{i}]",
+            y=f"{right}[{i}]",
+            carry_in=carry_name,
+            result=f'{output}[{i}]',
+            carry_out=carry_name)
     return aig
 
 
@@ -58,8 +59,7 @@ def _incrementer_circuit(wordlen, output='x+1', input='x'):
 def _negation_circuit(wordlen, output='not x', input='x'):
     return common.bit_flipper(
         inputs=[f'{input}[{i}]' for i in range(wordlen)],
-        outputs=[f'{output}[{i}]' for i in range(wordlen)]
-    )
+        outputs=[f'{output}[{i}]' for i in range(wordlen)])
 
 
 def _negative_circuit(wordlen, output='-x', input='x'):
@@ -91,8 +91,8 @@ class BV(object):
             self.aig = common.empty()
             return
 
-        if isinstance(kind, int):  # Constant
-            assert kind < 2**size and kind > - 2**size
+        elif isinstance(kind, int):  # Constant
+            assert kind < 2**size and kind > -2**size
             self.aig = const(size, abs(kind), output=self.name())
             if kind < 0:
                 self.aig = (-self).aig
@@ -101,26 +101,24 @@ class BV(object):
             del self.aig.comments[:]
             self.aig.comments.append(f'{kind}')
 
-        if isinstance(kind, str):  # Variable
+        elif isinstance(kind, str):  # Variable
             self.variables.append(kind)
             self.aig = common.empty()
             for i in range(self.size):
-                self.aig = self.aig | common.and_gate([kind + f'[{i}]'], output=self.name(i))
-
+                self.aig = self.aig | common.and_gate(
+                    [kind + f'[{i}]'], output=self.name(i))
+            
             # nice comments
             del self.aig.comments[:]
             self.aig.comments.append(f'{kind}')
 
-        if isinstance(kind, tuple):  # for internal use only
+        elif isinstance(kind, tuple):  # for internal use only
             assert isinstance(kind[0], list)  # variables
             self.variables.extend(kind[0])
             assert isinstance(kind[1], common.AAG) \
                 or isinstance(kind[1], aiger.common.AAG)
             self.aig = kind[1]
             assert len(self.aig.outputs) == self.size
-
-            # del self.aig.comments[:]
-            # self.aig.comments.append('[some circuit]')
 
         assert len(self.aig.outputs) == self.size
 
@@ -132,17 +130,16 @@ class BV(object):
 
     def name(self, idx=None):
         assert idx == None or idx >= 0
-        if idx is None:
-            return self._name
-        else:
-            return self._name + f'[{idx}]'
+        return self._name if idx is None else f'{self._name}[{idx}]'
 
     def rename(self, name):
         """Renames the output of the expression; mostly used internally"""
-        comments = self.aig.comments.copy()
 
-        rename_map = {self.name(i): name + f'[{i}]' for i in range(self.size)}
-        res = BV(self.size, (self.variables, self.aig['o', rename_map]), name=name)
+        comments = self.aig.comments.copy()
+  
+        rename_map = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
+        return BV(
+            self.size, (self.variables, self.aig['o', rename_map]), name=name)
 
         # nice comments
         del res.aig.comments[:]
@@ -155,7 +152,7 @@ class BV(object):
         # TODO: test this function; does the simultaneous thing work?
         d = dict()
         for old, new in subst:
-            d.update({f'{old}[{i}]': f'{new}[{i}]' for i in range(self.size)}) 
+            d.update({f'{old}[{i}]': f'{new}[{i}]' for i in range(self.size)})
 
         return BV(self.size, (self.variables, self.aig['i', d]))
 
@@ -194,6 +191,7 @@ class BV(object):
 
         return res
 
+
     def __neg__(self):  #-x
         res =  ~self + BV(self.size, 1)
 
@@ -231,7 +229,7 @@ class BV(object):
             if i in out_map:
                 new_idx = out_map[i]
                 rename.update({self.name(i): self.name(new_idx)})
-            else: 
+            else:
                 outputs_to_remove.append(self.name(i))
 
         aig = self.aig
@@ -260,6 +258,7 @@ class BV(object):
         other_rename = dict()
         for i in range(other.size):
             other_rename.update({other.name(i): other.name(self.size + i)})
+
         res = BV(self.size + other.size, (self.variables + other.variables, self.aig | other.aig['o', other_rename]))
 
         # nice comments
@@ -278,7 +277,7 @@ class BV(object):
         res.aig.comments.extend([f'>> {k}  (unsigned)'] + _indent(self.aig.comments))
 
         return res
-    
+
     def repeat(self, k):
         """Repeats the bitvector k times; resulting size is self.size*k"""
         assert k > 0
@@ -321,7 +320,8 @@ class BV(object):
             other = other.rename(self.name() + '_other')
         bitwise_or = common.empty()
         for i in range(self.size):
-            bitwise_or = bitwise_or | common.or_gate([self.name(i), other.name(i)], output=self.name(i))
+            bitwise_or = bitwise_or | common.or_gate(
+                [self.name(i), other.name(i)], output=self.name(i))
         aig = (self.aig | other.aig) >> bitwise_or
 
         # nice comments
@@ -336,7 +336,8 @@ class BV(object):
             other = other.rename(self.name() + '_other')
         bitwise_and = common.empty()
         for i in range(self.size):
-            bitwise_and = bitwise_and | common.and_gate([self.name(i), other.name(i)], output=self.name(i))
+            bitwise_and = bitwise_and | common.and_gate(
+                [self.name(i), other.name(i)], output=self.name(i))
         aig = (self.aig | other.aig) >> bitwise_and
 
         # nice comments
@@ -351,16 +352,32 @@ class BV(object):
             other = other.rename(self.name() + '_other')
 
         def xor(i):
-            tee = common.tee({self.name(i):[self.name(i), self.name(i) + '_alt'], other.name(i): [other.name(i), other.name(i) + '_alt']})
-            negated_inputs = common.bit_flipper([self.name(i) + '_alt', other.name(i) + '_alt'], 
-                                                outputs=[self.name(i) + '_neg', other.name(i) + '_neg'])
+            tee = common.tee({
+                self.name(i): [self.name(i),
+                               self.name(i) + '_alt'],
+                other.name(i): [other.name(i),
+                                other.name(i) + '_alt']
+            })
+            negated_inputs = common.bit_flipper(
+                [self.name(i) + '_alt',
+                 other.name(i) + '_alt'],
+                outputs=[self.name(i) + '_neg',
+                         other.name(i) + '_neg'])
 
-            or_gate_pos = common.or_gate([self.name(i), other.name(i)], output=self.name(i) + '_pos')
-            or_gate_neg = common.or_gate([self.name(i) + '_neg', other.name(i) + '_neg'], output=self.name(i) + '_neg')
+            or_gate_pos = common.or_gate(
+                [self.name(i), other.name(i)], output=self.name(i) + '_pos')
+            or_gate_neg = common.or_gate(
+                [self.name(i) + '_neg',
+                 other.name(i) + '_neg'],
+                output=self.name(i) + '_neg')
 
-            and_gate = common.and_gate([self.name(i) + '_pos', self.name(i) + '_neg'], output=self.name(i))
+            and_gate = common.and_gate(
+                [self.name(i) + '_pos',
+                 self.name(i) + '_neg'],
+                output=self.name(i))
             aig = (or_gate_pos | or_gate_neg)
-            return tee >> negated_inputs >> (or_gate_pos | or_gate_neg) >> and_gate
+            return tee >> negated_inputs >> (or_gate_pos
+                                             | or_gate_neg) >> and_gate
 
         bitwise_xor = common.empty()
         for i in range(self.size):
@@ -374,7 +391,6 @@ class BV(object):
 
         return BV(self.size, (self.variables + other.variables, aig))
 
-
     def __abs__(self):
         mask = self >> self.size - 1
         assert mask.size == self.size
@@ -387,10 +403,14 @@ class BV(object):
         return res
 
     def is_nonzero(self, output='bool'):
-        return BV(1, (self.variables, self.aig >> common.or_gate(self.aig.outputs, output=output + '[0]')), name=output)
+        return BV(
+            1, (self.variables, self.aig >> common.or_gate(
+                self.aig.outputs, output=output + '[0]')),
+            name=output)
 
     def is_zero(self, output='bool'):
-        check_zero = common.bit_flipper(self.aig.outputs) >> common.and_gate(self.aig.outputs, output=output + '[0]')
+        check_zero = common.bit_flipper(self.aig.outputs) >> common.and_gate(
+            self.aig.outputs, output=output + '[0]')
         return BV(1, (self.variables, self.aig >> check_zero), name=output)
 
     def __eq__(self, other):
@@ -410,7 +430,7 @@ class BV(object):
         res.aig.comments.extend(['!='] + _indent(self.aig.comments) + _indent(other.aig.comments))
 
         return res
-    
+
     def __lt__(self, other):
         """signed comparison"""
         res = (self - other)[-1:]  # TODO: fix for overflows when using two negative numbers
@@ -460,7 +480,7 @@ class BV(object):
 
         # lt = BV(1,1)  # proof obligation show that it is less than
         # for i in range(self.size -1, -1, -1):
-        #     lt = lt 
+        #     lt = lt
 
         # aig = self.aig >> (other.aig >> lt.aig)
         # print(aig)
@@ -472,8 +492,8 @@ class BV(object):
     # def __div__(self, other):
     # def __pow__(self, other):
 
+
 # TODO:
 # Make iterable
 
-    # def __hash__(self):  # for use in strash; remember hash with every expression to avoid recomputation; remember global map from hashes to subexpressions
-
+# def __hash__(self):  # for use in strash; remember hash with every expression to avoid recomputation; remember global map from hashes to subexpressions

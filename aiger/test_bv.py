@@ -1,9 +1,9 @@
-
 from aiger.bv import *
 from aiger.bv_utils import *
 
+
 def test_bv_class():
-    
+
     # Repeat
     assert unsigned_value(BV(1, 1).repeat(3)) == 7
     assert unsigned_value(BV(2, 1).repeat(3)) == 21
@@ -15,8 +15,8 @@ def test_bv_class():
     assert unsigned_value(BV(4, 6)[::-1]) == unsigned_value(BV(4, 6))
 
     # Concatenation
-    assert unsigned_value((BV(4, 1).concat(BV(3,0)))) == 1
-    assert unsigned_value((BV(4, 0).concat(BV(3,1)))) == 16
+    assert unsigned_value((BV(4, 1).concat(BV(3, 0)))) == 1
+    assert unsigned_value((BV(4, 0).concat(BV(3, 1)))) == 16
 
     # Values
     assert value(BV(4, 6)) == 6
@@ -25,9 +25,9 @@ def test_bv_class():
 
     # Addition
     assert value(BV(16, 6) + BV(16, 3)) == value(BV(16, 9))
-    assert value(- BV(16, -127)) == value(BV(16, 127))
-    assert value(BV(16, -127)) == - value(BV(16, 127))
-    assert value(BV(16, 0) - BV(16, 42)) == - value(BV(16, 42))
+    assert value(-BV(16, -127)) == value(BV(16, 127))
+    assert value(BV(16, -127)) == -value(BV(16, 127))
+    assert value(BV(16, 0) - BV(16, 42)) == -value(BV(16, 42))
 
     # Assignment
     assert value(BV(5, 'x').assign({'x': 12})) == 12
