@@ -69,6 +69,10 @@ def _negative_circuit(wordlen, output='-x', input='x'):
     return neg >> inc
 
 
+def _indent(strings):
+    return list(map(lambda s: '  ' + s, strings))
+
+
 class BV(object):
     def __init__(self, size, kind, name="bv"):
         """
@@ -93,11 +97,19 @@ class BV(object):
             if kind < 0:
                 self.aig = (-self).aig
 
+            # nice comments
+            del self.aig.comments[:]
+            self.aig.comments.append(f'{kind}')
+
         if isinstance(kind, str):  # Variable
             self.variables.append(kind)
             self.aig = common.empty()
             for i in range(self.size):
                 self.aig = self.aig | common.and_gate([kind + f'[{i}]'], output=self.name(i))
+
+            # nice comments
+            del self.aig.comments[:]
+            self.aig.comments.append(f'{kind}')
 
         if isinstance(kind, tuple):  # for internal use only
             assert isinstance(kind[0], list)  # variables
@@ -106,7 +118,10 @@ class BV(object):
                 or isinstance(kind[1], aiger.common.AAG)
             self.aig = kind[1]
             assert len(self.aig.outputs) == self.size
-        
+
+            # del self.aig.comments[:]
+            # self.aig.comments.append('[some circuit]')
+
         assert len(self.aig.outputs) == self.size
 
     def __len__(self):
@@ -124,8 +139,16 @@ class BV(object):
 
     def rename(self, name):
         """Renames the output of the expression; mostly used internally"""
+        comments = self.aig.comments.copy()
+
         rename_map = {self.name(i): name + f'[{i}]' for i in range(self.size)}
-        return BV(self.size, (self.variables, self.aig['o', rename_map]), name=name)
+        res = BV(self.size, (self.variables, self.aig['o', rename_map]), name=name)
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend(comments)
+
+        return res
 
     def subtitute(self, subst):
         """Simultaniously substitutes one set of input words by another."""
@@ -153,23 +176,48 @@ class BV(object):
         adder = _adder_circuit(self.size, output=self.name(),
                                left=self.name(), right='other')
         adder >>=  common.sink([self.name() + '_carry'])
-        return BV(self.size, (self.variables + other.variables,
+        res = BV(self.size, (self.variables + other.variables,
                               self.aig >> (other.aig >> adder)))
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'add'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+
+        return res
 
     def __invert__(self):  # ~x
         neg = _negation_circuit(self.size, output=self.name(), input=self.name())
-        return BV(self.size, (self.variables, self.aig >> neg))
+        res = BV(self.size, (self.variables, self.aig >> neg))
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'invert'] + _indent(self.aig.comments))
+
+        return res
 
     def __neg__(self):  #-x
-        return ~self + BV(self.size, 1)
+        res =  ~self + BV(self.size, 1)
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'unary minus'] + _indent(self.aig.comments))
+
+        return res
 
     def __pos__(self):  # +x
         return self
 
     def __sub__(self, other):
-        return self + (-other)
+        res = self + (-other)
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'subtract'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+
+        return res
 
     def __getitem__(self, k):
+        comments = self.aig.comments.copy()
+
         out_idxs = [k] if isinstance(k, int) else range(self.size)[k]
 
         if len(out_idxs) == 0:
@@ -190,22 +238,46 @@ class BV(object):
         if len(outputs_to_remove) > 0:
             aig >>= common.sink(outputs_to_remove)
 
-        return BV(len(out_idxs), (self.variables, aig['o', rename]))
+        res = BV(len(out_idxs), (self.variables, aig['o', rename]))
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'get({k})'] + _indent(comments))
+
+        return res
 
     def reverse(self):
-        return self[::-1]
+        comments = self.aig.comments.copy()
+        res = self[::-1]
+        
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'reverse'] + _indent(comments))
+        
+        return res
 
     def concat(self, other):
         other_rename = dict()
         for i in range(other.size):
             other_rename.update({other.name(i): other.name(self.size + i)})
-        return BV(self.size + other.size, (self.variables + other.variables, self.aig | other.aig['o', other_rename]))
+        res = BV(self.size + other.size, (self.variables + other.variables, self.aig | other.aig['o', other_rename]))
 
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'concat'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+
+        return res
 
     # Bitwise opeators
     def unsigned_rightshift(self, k):
         """Unsigned rightshift by a fixed integer; big endian encoding"""
-        return self[:-k].concat(BV(k, 0))
+        res = self[:-k].concat(BV(k, 0))
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'>> {k}  (unsigned)'] + _indent(self.aig.comments))
+
+        return res
     
     def repeat(self, k):
         """Repeats the bitvector k times; resulting size is self.size*k"""
@@ -213,17 +285,35 @@ class BV(object):
         copies = dict()
         for i in range(self.size):
             copies[self.name(i)] = [self.name(i+j) for j in range(0, k*self.size, self.size)]
-        return BV(self.size*k, (self.variables, self.aig >> common.tee(copies)))
+        res = BV(self.size*k, (self.variables, self.aig >> common.tee(copies)))
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'repeat({k})'] + _indent(self.aig.comments))
+
+        return res
 
     def __rshift__(self, k):
         """Signed rightshift by a fixed integer; big endian encoding; index 0 of bitvector is rightmost"""
         right_side = self[-1:].repeat(k)
         assert right_side.size == k
-        return self[k:].concat(right_side)
+        res = self[k:].concat(right_side)
 
-    def __lshift__(self, other):
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'>> {k}'] + _indent(self.aig.comments))
+        
+        return res
+
+    def __lshift__(self, k):
         """Leftshift by a fixed integer; big endian encoding; index 0 of bitvector is rightmost"""
-        return BV(k, 0).concat(self[:-k])
+        res = BV(k, 0).concat(self[:-k])
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend([f'<< {k}'] + _indent(self.aig.comments))
+        
+        return res
 
     def __or__(self, other):
         assert self.size == other.size
@@ -233,6 +323,11 @@ class BV(object):
         for i in range(self.size):
             bitwise_or = bitwise_or | common.or_gate([self.name(i), other.name(i)], output=self.name(i))
         aig = (self.aig | other.aig) >> bitwise_or
+
+        # nice comments
+        del aig.comments[:]
+        aig.comments.extend(['or'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        
         return BV(self.size, (self.variables + other.variables, aig))
 
     def __and__(self, other):
@@ -243,6 +338,11 @@ class BV(object):
         for i in range(self.size):
             bitwise_and = bitwise_and | common.and_gate([self.name(i), other.name(i)], output=self.name(i))
         aig = (self.aig | other.aig) >> bitwise_and
+
+        # nice comments
+        del aig.comments[:]
+        aig.comments.extend(['and'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        
         return BV(self.size, (self.variables + other.variables, aig))
 
     def __xor__(self, other):
@@ -267,13 +367,24 @@ class BV(object):
             bitwise_xor = bitwise_xor | xor(i)
 
         aig = (self.aig | other.aig) >> bitwise_xor
+        
+        # nice comments
+        del aig.comments[:]
+        aig.comments.extend(['xor'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+
         return BV(self.size, (self.variables + other.variables, aig))
 
 
     def __abs__(self):
         mask = self >> self.size - 1
         assert mask.size == self.size
-        return (self + mask) ^ mask
+        res = (self + mask) ^ mask
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend(['abs'] + _indent(self.aig.comments))
+
+        return res
 
     def is_nonzero(self, output='bool'):
         return BV(1, (self.variables, self.aig >> common.or_gate(self.aig.outputs, output=output + '[0]')), name=output)
@@ -283,26 +394,62 @@ class BV(object):
         return BV(1, (self.variables, self.aig >> check_zero), name=output)
 
     def __eq__(self, other):
-        return (self ^ other).is_zero()
+        res = (self ^ other).is_zero()
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend(['=='] + _indent(self.aig.comments) + _indent(other.aig.comments))
+
+        return res
 
     def __ne__(self, other):
-        return (self ^ other).is_nonzero()
+        res = (self ^ other).is_nonzero()
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend(['!='] + _indent(self.aig.comments) + _indent(other.aig.comments))
+
+        return res
     
     def __lt__(self, other):
         """signed comparison"""
-        return (self - other)[-1:]
+        res = (self - other)[-1:]  # TODO: fix for overflows when using two negative numbers
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend(['<'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+
+        return res
 
     def __gt__(self, other):
         """signed comparison"""
-        return (other - self)[-1:]
+        res = (other - self)[-1:]  # TODO: fix for overflows when using two negative numbers
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend(['>'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+
+        return res
 
     def __le__(self, other):
         """signed comparison"""
-        return ~(self > other)
+        res = ~(self > other)   # TODO: fix for overflows when using two negative numbers
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend(['<='] + _indent(self.aig.comments) + _indent(other.aig.comments))
+
+        return res
 
     def __ge__(self, other):
         """signed comparison"""
-        return ~(self < other)
+        res = ~(self < other)   # TODO: fix for overflows when using two negative numbers
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend(['>='] + _indent(self.aig.comments) + _indent(other.aig.comments))
+
+        return res
 
         # assert self.size == other.size
         # if self.name() == other.name():
