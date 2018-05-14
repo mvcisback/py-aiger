@@ -44,7 +44,7 @@ class AAGVisitor(NodeVisitor):
 
     def visit_io(self, _, children):
         return int(children[::2][0])
-    
+
     def visit_latches(self, _, children):
         return list(fn.pluck(0, children))
 
@@ -52,9 +52,9 @@ class AAGVisitor(NodeVisitor):
         return list(map(int, children[::2]))
 
     visit_latch = visit_latch_or_gate
-    
+
     def visit_aag(self, _, children):
-        header, ios1, lgs1, ios2, lgs2, symbols, comments  = children
+        header, ios1, lgs1, ios2, lgs2, symbols, comments = children
         ios, lgs = ios1 + ios2, lgs1 + lgs2
         assert len(ios) == header.num_inputs + header.num_outputs
         inputs, outputs = ios[:header.num_inputs], ios[header.num_inputs:]
@@ -72,9 +72,10 @@ class AAGVisitor(NodeVisitor):
         return AAG(header, inputs, outputs, latches, gates, comments)
 
     def visit_symbols(self, node, children):
-        children = {(k, int(i), n) for k,i,n in children}
+        children = {(k, int(i), n) for k, i, n in children}
+
         def to_dict(kind):
-            return bidict({n: i for k,i,n in children if k == kind})
+            return bidict({n: i for k, i, n in children if k == kind})
 
         return SymbolTable(to_dict('i'), to_dict('o'), to_dict('l'))
 

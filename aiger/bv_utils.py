@@ -30,7 +30,7 @@ def simplify(expr):
     f.close()
     aig = parser.parse(simp_aig_string)
     aig.comments.pop()  # remove ABC's comments
-    return bv.BV(expr.size, (expr.variables, aig))
+    return bv.BV(expr.size, (expr.variables, aig), name=expr.name())
 
 
 def _bit_value(expr, name):
@@ -52,8 +52,9 @@ def unsigned_value(expr):
 
 def value(expr):
     """Assumes that the expression is an AIG that has a single output word"""
+    assert expr.size > 1  # signed values with 1 bit don't make sense
     expr = simplify(expr)
-    sign_bit_name = expr.name() + '[{}]'.format(str(expr.size - 1))
+    sign_bit_name = expr.name(expr.size - 1)
     if not _bit_value(expr, sign_bit_name):
         return unsigned_value(expr)  # positive number
     else:
