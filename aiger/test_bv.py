@@ -58,7 +58,3 @@ def test_bv_class():
     assert unsigned_value(BV(4, 2) <= BV(4, 3)) == 1
     assert unsigned_value(BV(4, 3) <= BV(4, 3)) == 1
     assert unsigned_value(BV(4, 4) <= BV(4, 3)) == 0
-
-
-if __name__ == '__main__':
-    test_bv_class()

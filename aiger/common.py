@@ -80,15 +80,12 @@ class AAG(NamedTuple):
             out += '\n'.join(f"l{idx} {name}"
                              for idx, name in enumerate(latch_names)) + '\n'
         if self.comments:
-            out += 'c\n' + '\n'.join(self.comments) + '\n'
+            out += 'c\n' + '\n'.join(self.comments)
         return out
-
-    def dump(self):
-        return repr(self)
 
     def write(self, location):
         with open(location, "w") as f:
-            f.write(self.dump())
+            f.write(repr(self))
 
     def __call__(self, inputs, latches=None):
         # TODO: implement partial evaluation.
