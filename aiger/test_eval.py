@@ -62,7 +62,7 @@ def test_flipper(aag1, data):
     out1, _ = aag1(test_input)
     out2, _ = aag2(test_input)
     out3, _ = aag3(test_input)
-    
+
     v1 = list(out1.values())[0]
     v2 = list(out2.values())[0]
     v3 = list(out3.values())[0]

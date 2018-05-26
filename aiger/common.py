@@ -109,15 +109,13 @@ class AAG(NamedTuple):
                 v[0]: latches.get(k, latch_init(v))
                 for k, v in self.latches.items()
             },
-            {
-                0: False,
-                1: True
-            },
+            {0: False,
+             1: True},
         )
 
         def gate_output(lit):
-            return (
-                not gate_nodes[lit & -2]) if lit & 1 else gate_nodes[lit & -2]
+            return (not gate_nodes[lit & -2]) if lit & 1 else gate_nodes[lit
+                                                                         & -2]
 
         for gate in fn.cat(eval_order[1:]):
             out, i1, i2 = gate_lookup[gate]
@@ -214,7 +212,7 @@ def seq_compose(aag1, aag2, check_precondition=True):
     if check_precondition:
         input1_names = set(aag1.inputs.keys())
         output2_names = set(aag2.outputs.keys())
-    
+
         assert len((input2_names - interface) & input1_names) == 0
         assert len((output1_names - interface) & output2_names) == 0
         assert len(set(aag1.latches.keys()) & set(aag2.latches.keys())) == 0
@@ -249,11 +247,11 @@ def seq_compose(aag1, aag2, check_precondition=True):
     gates3 = aag1.gates + fn.lmap(new_lits, aag2.gates)
 
     lits = fn.flatten(
-        fn.concat(inputs3.values(), outputs3.values(), latches3.values(),
-                  gates3))
+        fn.concat(inputs3.values(),
+                  outputs3.values(), latches3.values(), gates3))
     header3 = Header(
-        max(map(to_idx, lits)), len(inputs3), len(latches3), len(outputs3),
-        len(gates3))
+        max(map(to_idx, lits)),
+        len(inputs3), len(latches3), len(outputs3), len(gates3))
 
     return AAG(header3, inputs3, outputs3, latches3, gates3,
                aag1.comments + aag2.comments)
@@ -267,7 +265,6 @@ def par_compose(aag1, aag2, check_precondition=True):
     if check_precondition:
         assert len(set(aag1.latches.keys()) & set(aag2.latches.keys())) == 0
         assert len(set(aag1.outputs.keys()) & set(aag2.outputs.keys())) == 0
-
 
     idx_to_name = {
         to_idx(lit): n
@@ -297,11 +294,11 @@ def par_compose(aag1, aag2, check_precondition=True):
     gates3 = aag1.gates + fn.lmap(new_lits, aag2.gates)
 
     lits = fn.flatten(
-        fn.concat(inputs3.values(), outputs3.values(), latches3.values(),
-                  gates3))
+        fn.concat(inputs3.values(),
+                  outputs3.values(), latches3.values(), gates3))
     header3 = Header(
-        max(map(to_idx, lits)), len(inputs3), len(latches3), len(outputs3),
-        len(gates3))
+        max(map(to_idx, lits)),
+        len(inputs3), len(latches3), len(outputs3), len(gates3))
 
     return AAG(header3, inputs3, outputs3, latches3, gates3,
                aag1.comments + aag2.comments)

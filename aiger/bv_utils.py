@@ -7,6 +7,7 @@ import tempfile
 from subprocess import call, PIPE
 import re
 
+
 def simplify(expr):
     f = tempfile.NamedTemporaryFile()
     f.write(str(expr).encode())
@@ -20,14 +21,15 @@ def simplify(expr):
             "read {}; print_stats; dc2; dc2; dc2; print_stats; write {}".
             format(f.name + ".aig", f.name + ".aig")
         ],
-        stdout=PIPE)  # this ensures that ABC is not too verbose, but will still print errors
+        stdout=PIPE
+    )  # this ensures that ABC is not too verbose, but will still print errors
     simplified_filename = f.name + ".simp.aag"
     call(["aigtoaig", f.name + ".aig", simplified_filename])
 
     try:
         simplified = open(simplified_filename)
         simp_aig_string = simplified.read()
-        simplified.close()    
+        simplified.close()
     except IOError as e:
         print(f'I/O error({e.errno}): {e.strerror}')
         simp_aig_string = None
@@ -39,7 +41,7 @@ def simplify(expr):
         return None
 
     aig = parser.parse(simp_aig_string)
-    del aig.comments[:] # remove ABC's comments
+    del aig.comments[:]  # remove ABC's comments
     aig.comments.extend([f'simplified'] + bv._indent(expr.aig.comments))
     return bv.BV(expr.size, (expr.variables, aig), name=expr.name())
 

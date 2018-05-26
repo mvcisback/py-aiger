@@ -107,7 +107,7 @@ class BV(object):
             for i in range(self.size):
                 self.aig = self.aig | common.and_gate(
                     [kind + f'[{i}]'], output=self.name(i))
-            
+
             # nice comments
             del self.aig.comments[:]
             self.aig.comments.append(f'{kind}')
@@ -136,7 +136,7 @@ class BV(object):
         """Renames the output of the expression; mostly used internally"""
 
         comments = self.aig.comments.copy()
-  
+
         rename_map = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
         return BV(
             self.size, (self.variables, self.aig['o', rename_map]), name=name)
@@ -170,19 +170,21 @@ class BV(object):
     def __add__(self, other):
         assert self.size == other.size
         other = other.rename('other')
-        adder = _adder_circuit(self.size, output=self.name(),
-                               left=self.name(), right='other')
-        adder >>=  common.sink([self.name() + '_carry'])
-        res = BV(self.size, (self.variables + other.variables,
-                              self.aig >> (other.aig >> adder)))
+        adder = _adder_circuit(
+            self.size, output=self.name(), left=self.name(), right='other')
+        adder >>= common.sink([self.name() + '_carry'])
+        res = BV(self.size, (self.variables + other.variables, self.aig >>
+                             (other.aig >> adder)))
         # nice comments
         del res.aig.comments[:]
-        res.aig.comments.extend([f'add'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        res.aig.comments.extend([f'add'] + _indent(self.aig.comments) +
+                                _indent(other.aig.comments))
 
         return res
 
     def __invert__(self):  # ~x
-        neg = _negation_circuit(self.size, output=self.name(), input=self.name())
+        neg = _negation_circuit(
+            self.size, output=self.name(), input=self.name())
         res = BV(self.size, (self.variables, self.aig >> neg))
 
         # nice comments
@@ -191,9 +193,8 @@ class BV(object):
 
         return res
 
-
     def __neg__(self):  #-x
-        res =  ~self + BV(self.size, 1)
+        res = ~self + BV(self.size, 1)
 
         # nice comments
         del res.aig.comments[:]
@@ -209,7 +210,8 @@ class BV(object):
 
         # nice comments
         del res.aig.comments[:]
-        res.aig.comments.extend([f'subtract'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        res.aig.comments.extend([f'subtract'] + _indent(self.aig.comments) +
+                                _indent(other.aig.comments))
 
         return res
 
@@ -247,11 +249,11 @@ class BV(object):
     def reverse(self):
         comments = self.aig.comments.copy()
         res = self[::-1]
-        
+
         # nice comments
         del res.aig.comments[:]
         res.aig.comments.extend([f'reverse'] + _indent(comments))
-        
+
         return res
 
     def concat(self, other):
@@ -259,11 +261,14 @@ class BV(object):
         for i in range(other.size):
             other_rename.update({other.name(i): other.name(self.size + i)})
 
-        res = BV(self.size + other.size, (self.variables + other.variables, self.aig | other.aig['o', other_rename]))
+        res = BV(self.size + other.size,
+                 (self.variables + other.variables,
+                  self.aig | other.aig['o', other_rename]))
 
         # nice comments
         del res.aig.comments[:]
-        res.aig.comments.extend([f'concat'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        res.aig.comments.extend([f'concat'] + _indent(self.aig.comments) +
+                                _indent(other.aig.comments))
 
         return res
 
@@ -274,7 +279,8 @@ class BV(object):
 
         # nice comments
         del res.aig.comments[:]
-        res.aig.comments.extend([f'>> {k}  (unsigned)'] + _indent(self.aig.comments))
+        res.aig.comments.extend([f'>> {k}  (unsigned)'] + _indent(
+            self.aig.comments))
 
         return res
 
@@ -283,8 +289,11 @@ class BV(object):
         assert k > 0
         copies = dict()
         for i in range(self.size):
-            copies[self.name(i)] = [self.name(i+j) for j in range(0, k*self.size, self.size)]
-        res = BV(self.size*k, (self.variables, self.aig >> common.tee(copies)))
+            copies[self.name(i)] = [
+                self.name(i + j) for j in range(0, k * self.size, self.size)
+            ]
+        res = BV(self.size * k,
+                 (self.variables, self.aig >> common.tee(copies)))
 
         # nice comments
         del res.aig.comments[:]
@@ -301,7 +310,7 @@ class BV(object):
         # nice comments
         del res.aig.comments[:]
         res.aig.comments.extend([f'>> {k}'] + _indent(self.aig.comments))
-        
+
         return res
 
     def __lshift__(self, k):
@@ -311,7 +320,7 @@ class BV(object):
         # nice comments
         del res.aig.comments[:]
         res.aig.comments.extend([f'<< {k}'] + _indent(self.aig.comments))
-        
+
         return res
 
     def __or__(self, other):
@@ -326,8 +335,9 @@ class BV(object):
 
         # nice comments
         del aig.comments[:]
-        aig.comments.extend(['or'] + _indent(self.aig.comments) + _indent(other.aig.comments))
-        
+        aig.comments.extend(['or'] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
+
         return BV(self.size, (self.variables + other.variables, aig))
 
     def __and__(self, other):
@@ -342,8 +352,9 @@ class BV(object):
 
         # nice comments
         del aig.comments[:]
-        aig.comments.extend(['and'] + _indent(self.aig.comments) + _indent(other.aig.comments))
-        
+        aig.comments.extend(['and'] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
+
         return BV(self.size, (self.variables + other.variables, aig))
 
     def __xor__(self, other):
@@ -384,10 +395,11 @@ class BV(object):
             bitwise_xor = bitwise_xor | xor(i)
 
         aig = (self.aig | other.aig) >> bitwise_xor
-        
+
         # nice comments
         del aig.comments[:]
-        aig.comments.extend(['xor'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        aig.comments.extend(['xor'] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
 
         return BV(self.size, (self.variables + other.variables, aig))
 
@@ -418,7 +430,8 @@ class BV(object):
 
         # nice comments
         del res.aig.comments[:]
-        res.aig.comments.extend(['=='] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        res.aig.comments.extend(['=='] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
 
         return res
 
@@ -427,47 +440,56 @@ class BV(object):
 
         # nice comments
         del res.aig.comments[:]
-        res.aig.comments.extend(['!='] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        res.aig.comments.extend(['!='] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
 
         return res
 
     def __lt__(self, other):
         """signed comparison"""
-        res = (self - other)[-1:]  # TODO: fix for overflows when using two negative numbers
+        res = (self - other)[
+            -1:]  # TODO: fix for overflows when using two negative numbers
 
         # nice comments
         del res.aig.comments[:]
-        res.aig.comments.extend(['<'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        res.aig.comments.extend(['<'] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
 
         return res
 
     def __gt__(self, other):
         """signed comparison"""
-        res = (other - self)[-1:]  # TODO: fix for overflows when using two negative numbers
+        res = (other - self)[
+            -1:]  # TODO: fix for overflows when using two negative numbers
 
         # nice comments
         del res.aig.comments[:]
-        res.aig.comments.extend(['>'] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        res.aig.comments.extend(['>'] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
 
         return res
 
     def __le__(self, other):
         """signed comparison"""
-        res = ~(self > other)   # TODO: fix for overflows when using two negative numbers
+        res = ~(self > other
+                )  # TODO: fix for overflows when using two negative numbers
 
         # nice comments
         del res.aig.comments[:]
-        res.aig.comments.extend(['<='] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        res.aig.comments.extend(['<='] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
 
         return res
 
     def __ge__(self, other):
         """signed comparison"""
-        res = ~(self < other)   # TODO: fix for overflows when using two negative numbers
+        res = ~(self < other
+                )  # TODO: fix for overflows when using two negative numbers
 
         # nice comments
         del res.aig.comments[:]
-        res.aig.comments.extend(['>='] + _indent(self.aig.comments) + _indent(other.aig.comments))
+        res.aig.comments.extend(['>='] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
 
         return res
 

@@ -2,8 +2,7 @@ from uuid import uuid1
 
 import funcy as fn
 from lenses import bind
-from aiger.common import (AAG, Header, and_gate, 
-                          or_gate, bit_flipper, sink)
+from aiger.common import (AAG, Header, and_gate, or_gate, bit_flipper, sink)
 from parsimonious import Grammar, NodeVisitor
 import hypothesis.strategies as st
 from hypothesis_cfg import ContextFreeGrammarStrategy
@@ -29,8 +28,7 @@ def atomic_pred(a, out=None):
         outputs={out: 2},
         latches={},
         gates=[],
-        comments=['']
-    )
+        comments=[''])
 
 
 class CircVisitor(NodeVisitor):
@@ -58,20 +56,29 @@ def parse(circ_str: str):
 
 
 GRAMMAR = {
-    'psi': (
-        ('(', 'psi', ' & ', 'psi', ')'),
-        ('~ ', 'psi'), ('AP',)
+    'psi': (('(', 'psi', ' & ', 'psi', ')'), ('~ ', 'psi'), ('AP', )),
+    'AP': (
+        ('a', ),
+        ('b', ),
+        ('c', ),
+        ('d', ),
+        ('e', ),
+        ('f', ),
+        ('g', ),
+        ('h', ),
+        ('i', ),
+        ('j', ),
+        ('k', ),
+        ('l', ),
     ),
-    'AP': (('a',), ('b',), ('c',), ('d',),
-           ('e',), ('f',), ('g',), ('h',),
-           ('i',), ('j',), ('k',), ('l',),),
 }
 
 
 def make_circuit(term):
     circ_str = ''.join(term)
     return bind(parse(circ_str)).comments.set([circ_str])
-    
+
+
 Circuits = st.builds(make_circuit,
                      ContextFreeGrammarStrategy(
                          GRAMMAR, max_length=15, start='psi'))
