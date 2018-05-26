@@ -66,5 +66,23 @@ def test_flipper(aag1, data):
     v1 = list(out1.values())[0]
     v2 = list(out2.values())[0]
     v3 = list(out3.values())[0]
+    
     assert v1 == (not v2)
     assert v1 == v3
+
+
+@given(aigh.Circuits, st.data())
+def test_tee(aag1, data):
+    # TODO
+    aag2 = aag1 >> common.tee({k: [None, None, None] for k in aag1.outputs})
+
+    assert len(aag2.outputs) == 3
+    assert len(aag2.inputs) == len(aag1.inputs)
+
+    test_input = {f'{i}': data.draw(st.booleans()) for i in aag1.inputs}
+    out1, _ = aag1(test_input)
+    out2, _ = aag2(test_input)
+    v1 = list(out1.values())[0]
+    for v in out2.values():
+        assert v1 == v
+    

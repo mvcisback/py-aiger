@@ -1,8 +1,7 @@
 from uuid import uuid1
 
-import funcy as fn
 from lenses import bind
-from aiger.common import (AAG, Header, and_gate, or_gate, bit_flipper, sink)
+from aiger.common import (AAG, Header, and_gate, bit_flipper)
 from parsimonious import Grammar, NodeVisitor
 import hypothesis.strategies as st
 from hypothesis_cfg import ContextFreeGrammarStrategy

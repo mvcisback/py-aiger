@@ -1,5 +1,4 @@
 from aiger import common
-from aiger.common import AAG
 from aiger import parser
 
 
@@ -78,7 +77,8 @@ class BV(object):
         """
         Creates a bitvector expression.
 
-        'kind' can be either an integer, a variable name, or a tuple of variable names and an aiger.
+        'kind' can be either an integer, a variable name, or a tuple
+        of variable names and an aiger.
         'name' allows us to label the outputs of the circuit
         """
         self.size = size
@@ -115,8 +115,7 @@ class BV(object):
         elif isinstance(kind, tuple):  # for internal use only
             assert isinstance(kind[0], list)  # variables
             self.variables.extend(kind[0])
-            assert isinstance(kind[1], common.AAG) \
-                or isinstance(kind[1], aiger.common.AAG)
+            assert isinstance(kind[1], common.AAG)
             self.aig = kind[1]
             assert len(self.aig.outputs) == self.size
 
@@ -129,23 +128,8 @@ class BV(object):
         return str(self.aig)
 
     def name(self, idx=None):
-        assert idx == None or idx >= 0
+        assert idx is None or idx >= 0
         return self._name if idx is None else f'{self._name}[{idx}]'
-
-    def rename(self, name):
-        """Renames the output of the expression; mostly used internally"""
-
-        comments = self.aig.comments.copy()
-
-        rename_map = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
-        return BV(
-            self.size, (self.variables, self.aig['o', rename_map]), name=name)
-
-        # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend(comments)
-
-        return res
 
     def subtitute(self, subst):
         """Simultaniously substitutes one set of input words by another."""
@@ -182,7 +166,8 @@ class BV(object):
 
         return res
 
-    def __invert__(self):  # ~x
+    def __invert__(self):
+        """Implements -x."""
         neg = _negation_circuit(
             self.size, output=self.name(), input=self.name())
         res = BV(self.size, (self.variables, self.aig >> neg))
@@ -193,7 +178,8 @@ class BV(object):
 
         return res
 
-    def __neg__(self):  #-x
+    def __neg__(self):
+        """Implements -x."""
         res = ~self + BV(self.size, 1)
 
         # nice comments
@@ -202,7 +188,7 @@ class BV(object):
 
         return res
 
-    def __pos__(self):  # +x
+    def __pos__(self):
         return self
 
     def __sub__(self, other):
@@ -302,7 +288,8 @@ class BV(object):
         return res
 
     def __rshift__(self, k):
-        """Signed rightshift by a fixed integer; big endian encoding; index 0 of bitvector is rightmost"""
+        """Signed rightshift by a fixed integer; big endian encoding;
+        index 0 of bitvector is rightmost"""
         right_side = self[-1:].repeat(k)
         assert right_side.size == k
         res = self[k:].concat(right_side)
@@ -314,7 +301,8 @@ class BV(object):
         return res
 
     def __lshift__(self, k):
-        """Leftshift by a fixed integer; big endian encoding; index 0 of bitvector is rightmost"""
+        """Leftshift by a fixed integer; big endian encoding; index 0
+        of bitvector is rightmost"""
         res = BV(k, 0).concat(self[:-k])
 
         # nice comments
@@ -387,8 +375,7 @@ class BV(object):
                  self.name(i) + '_neg'],
                 output=self.name(i))
             aig = (or_gate_pos | or_gate_neg)
-            return tee >> negated_inputs >> (or_gate_pos
-                                             | or_gate_neg) >> and_gate
+            return tee >> negated_inputs >> aig >> and_gate
 
         bitwise_xor = common.empty()
         for i in range(self.size):
@@ -493,21 +480,6 @@ class BV(object):
 
         return res
 
-        # assert self.size == other.size
-        # if self.name() == other.name():
-        #     other = other.rename(self.name() + '_other')
-
-        # local_lt =   BV(self.size, self.name())  & ~BV(other.size, other.name())
-        # local_gt =  ~BV(self.size, self.name())  &  BV(other.size, other.name())
-
-        # lt = BV(1,1)  # proof obligation show that it is less than
-        # for i in range(self.size -1, -1, -1):
-        #     lt = lt
-
-        # aig = self.aig >> (other.aig >> lt.aig)
-        # print(aig)
-        # return BV(1, (self.variables + other.variables, aig))
-
     # Difficult arithmetic operations
     # def __mul__(self, other):
     # def __mod__(self, other):
@@ -515,7 +487,19 @@ class BV(object):
     # def __pow__(self, other):
 
 
+    def rename(self, name):
+        """Renames the output of the expression; mostly used internally"""
+
+        comments = self.aig.comments.copy()
+
+        rename_map = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
+        return BV(
+            self.size, (self.variables, self.aig['o', rename_map]), name=name)
+
+
 # TODO:
 # Make iterable
 
-# def __hash__(self):  # for use in strash; remember hash with every expression to avoid recomputation; remember global map from hashes to subexpressions
+# def __hash__(self): # for use in strash; remember hash with every
+# expression to avoid recomputation; remember global map from hashes
+# to subexpressions

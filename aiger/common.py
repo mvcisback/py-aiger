@@ -1,12 +1,9 @@
 # TODO: factor out common parts of seq_compose and par_compose
-from operator import itemgetter as ig
 from collections import namedtuple
-from typing import NamedTuple, List, Tuple, Mapping
-from functools import lru_cache
+from typing import NamedTuple, List, Mapping
 
 import funcy as fn
 from lenses import bind
-from bidict import bidict
 from functools import reduce
 
 from toposort import toposort
@@ -60,7 +57,8 @@ class AAG(NamedTuple):
         if self.latches:
             latch_names, latch_lits = zip(*list(self.latches.items()))
 
-        str_idx = lambda lit: str(to_idx(lit))
+        def str_idx(lit):
+            return str(to_idx(lit))
 
         out = f"aag " + " ".join(map(str, self.header)) + '\n'
         if self.inputs:
@@ -176,9 +174,6 @@ class AAG(NamedTuple):
 
 def cutlatches(aag, latches):
     # TODO: assert relabels won't collide with existing labels.
-
-    # Drop latches from symbol table.
-    out = bind(aag).latches.modify(fn.partial(fn.omit, keys=latches))
 
     # Make latch an input.
     new_inputs = fn.merge(
@@ -382,7 +377,7 @@ def _make_tree(num, idx=1):
 
 
 def bit_flipper(inputs, outputs=None):
-    if outputs == None:
+    if outputs is None:
         outputs = inputs
     else:
         assert len(outputs) == len(inputs)
