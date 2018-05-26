@@ -12,7 +12,6 @@ except ImportError:
     from dd.autoref import BDD
 
 
-
 def to_bdd(aag: AAG, output):
     assert len(aag.outputs) == 1 or (output is not None)
     assert len(aag.latches) == 0
