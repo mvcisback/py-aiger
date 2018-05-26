@@ -1,14 +1,16 @@
 from itertools import chain
-from math import log, exp
+from math import exp, log
 
 import click
+
+from aiger import parser
+from aiger.common import AAG
+
 try:
     from dd.cudd import BDD
 except ImportError:
     from dd.autoref import BDD
 
-from aiger import parser
-from aiger.common import AAG
 
 
 def to_bdd(aag: AAG, output):

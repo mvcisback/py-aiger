@@ -1,11 +1,10 @@
 # TODO: factor out common parts of seq_compose and par_compose
 from collections import namedtuple
-from typing import NamedTuple, List, Mapping
+from functools import reduce
+from typing import List, Mapping, NamedTuple
 
 import funcy as fn
 from lenses import bind
-from functools import reduce
-
 from toposort import toposort
 
 Header = namedtuple(

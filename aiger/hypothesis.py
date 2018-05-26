@@ -1,10 +1,12 @@
 from uuid import uuid1
 
-from lenses import bind
-from aiger.common import (AAG, Header, and_gate, bit_flipper)
-from parsimonious import Grammar, NodeVisitor
 import hypothesis.strategies as st
+from lenses import bind
+
+from aiger.common import AAG, Header, and_gate, bit_flipper
 from hypothesis_cfg import ContextFreeGrammarStrategy
+from parsimonious import Grammar, NodeVisitor
+
 
 CIRC_GRAMMAR = Grammar(u'''
 phi =  and / neg / AP

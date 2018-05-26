@@ -1,8 +1,8 @@
 import hypothesis.strategies as st
 from hypothesis import given
 
-from aiger import common
 from aiger import hypothesis as aigh
+from aiger import common
 
 
 @given(st.integers(2, 10), st.data())

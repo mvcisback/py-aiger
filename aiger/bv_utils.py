@@ -1,11 +1,11 @@
 """Auxiliary functions for working with bitvectors that require ABC to
 be installed."""
 
+import tempfile
+from subprocess import PIPE, call
+
 import aiger.bv as bv
 from aiger import parser
-
-import tempfile
-from subprocess import call, PIPE
 
 
 def simplify(expr):

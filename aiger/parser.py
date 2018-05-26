@@ -1,8 +1,9 @@
 import funcy as fn
 from bidict import bidict
+
+from aiger.common import AAG, Header, Symbol, SymbolTable
 from parsimonious import Grammar, NodeVisitor
 
-from aiger.common import AAG, Symbol, SymbolTable, Header
 
 AAG_GRAMMAR = Grammar(u'''
 aag = header ios latches ios gates symbols comments?
