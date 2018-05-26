@@ -2,10 +2,9 @@ from itertools import chain
 from math import log, exp
 
 import click
-import funcy as fn
 try:
     from dd.cudd import BDD
-except:
+except ImportError:
     from dd.autoref import BDD
 
 from aiger import parser

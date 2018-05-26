@@ -480,21 +480,17 @@ class BV(object):
 
         return res
 
+    def rename(self, name):
+        """Renames the output of the expression; mostly used internally"""
+        rename_map = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
+        return BV(
+            self.size, (self.variables, self.aig['o', rename_map]), name=name)
+
     # Difficult arithmetic operations
     # def __mul__(self, other):
     # def __mod__(self, other):
     # def __div__(self, other):
     # def __pow__(self, other):
-
-
-    def rename(self, name):
-        """Renames the output of the expression; mostly used internally"""
-
-        comments = self.aig.comments.copy()
-
-        rename_map = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
-        return BV(
-            self.size, (self.variables, self.aig['o', rename_map]), name=name)
 
 
 # TODO:

@@ -1,5 +1,6 @@
-from aiger.bv import *
-from aiger.bv_utils import *
+from aiger.bv import BV
+# from aiger.bv import *
+from aiger.bv_utils import unsigned_value, value
 
 
 def test_bv_class():

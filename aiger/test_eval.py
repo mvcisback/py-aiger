@@ -66,7 +66,7 @@ def test_flipper(aag1, data):
     v1 = list(out1.values())[0]
     v2 = list(out2.values())[0]
     v3 = list(out3.values())[0]
-    
+
     assert v1 == (not v2)
     assert v1 == v3
 
@@ -85,4 +85,3 @@ def test_tee(aag1, data):
     v1 = list(out1.values())[0]
     for v in out2.values():
         assert v1 == v
-    
