@@ -1,7 +1,7 @@
 from tempfile import NamedTemporaryFile
 
-import hypothesis.strategies as st
 from hypothesis import given
+from lenses import bind
 
 from aiger import hypothesis as aigh
 from aiger import parser as aigp
@@ -12,5 +12,5 @@ def test_load(aag):
     with NamedTemporaryFile() as f:
         aag.write(f.name)
         aag2 = aigp.load(f.name)
-        
-        assert aag == aag2
+
+        assert bind(aag).comments.set('') == bind(aag2).comments.set('')

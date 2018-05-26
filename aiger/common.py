@@ -56,9 +56,6 @@ class AAG(NamedTuple):
         if self.latches:
             latch_names, latch_lits = zip(*list(self.latches.items()))
 
-        def str_idx(lit):
-            return str(to_idx(lit))
-
         out = f"aag " + " ".join(map(str, self.header)) + '\n'
         if self.inputs:
             out += '\n'.join(map(str, input_lits)) + '\n'
@@ -80,7 +77,7 @@ class AAG(NamedTuple):
             out += '\n'.join(f"l{idx} {name}"
                              for idx, name in enumerate(latch_names)) + '\n'
         if self.comments:
-            out += 'c\n' + '\n'.join(self.comments)
+            out += 'c\n' + '\n'.join(self.comments) + '\n'
         return out
 
     def write(self, location):

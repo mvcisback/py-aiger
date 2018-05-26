@@ -85,3 +85,18 @@ def test_tee(aag1, data):
     v1 = list(out1.values())[0]
     for v in out2.values():
         assert v1 == v
+
+
+@given(aigh.Circuits)
+def test_relabel(aag1):
+    # TODO
+    new_inputs = {k: f'{k}#2' for k in aag1.inputs}
+    assert set(aag1['i', new_inputs].inputs.keys()) == set(new_inputs.values())
+
+    new_outputs = {k: f'{k}#2' for k in aag1.outputs}
+    assert set(aag1['o', new_outputs].outputs.keys()) == set(
+        new_outputs.values())
+
+    new_latches = {k: f'{k}#2' for k in aag1.latches}
+    assert set(aag1['l', new_latches].latches.keys()) == set(
+        new_latches.values())

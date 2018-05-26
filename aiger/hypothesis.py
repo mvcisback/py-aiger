@@ -9,9 +9,10 @@ from parsimonious import Grammar, NodeVisitor
 
 
 CIRC_GRAMMAR = Grammar(u'''
-phi =  and / neg / AP
+phi =  and / neg / vyest / AP
 and = "(" _ phi _ "&" _ phi _ ")"
 neg = "~" _ phi
+vyest = "Z" _ phi
 
 _ = ~r" "*
 AP = ~r"[a-zA-z]" ~r"[a-zA-Z\d]*"
@@ -30,6 +31,20 @@ def atomic_pred(a, out=None):
         latches={},
         gates=[],
         comments=[''])
+
+
+def vyesterday(a, out, latch_name=None):
+    if latch_name is None:
+        latch_name = f'l{uuid1()}'
+
+    return AAG(
+        header=Header(2, 1, 1, 1, 0),
+        inputs={a: 2},
+        outputs={out: 4},
+        latches={latch_name: [4, 2, 1]},
+        gates=[],
+        comments=['']
+    )
 
 
 class CircVisitor(NodeVisitor):
@@ -51,13 +66,19 @@ class CircVisitor(NodeVisitor):
         _, _, phi = children
         return phi >> bit_flipper(phi.outputs)
 
+    def visit_vyest(self, _, children):
+        _, _, phi = children
+        (out,) = phi.outputs.keys()
+        return phi >> vyesterday(out, str(uuid1()))
+
 
 def parse(circ_str: str):
     return CircVisitor().visit(CIRC_GRAMMAR.parse(circ_str))
 
 
 GRAMMAR = {
-    'psi': (('(', 'psi', ' & ', 'psi', ')'), ('~ ', 'psi'), ('AP', )),
+    'psi': (('(', 'psi', ' & ', 'psi', ')'), ('~ ', 'psi'),  ('Z ', 'psi'),
+            ('AP', )),
     'AP': (
         ('a', ),
         ('b', ),
