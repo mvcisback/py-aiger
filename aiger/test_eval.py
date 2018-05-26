@@ -1,4 +1,6 @@
+import funcy as fn
 import hypothesis.strategies as st
+import pytest
 from hypothesis import given
 
 from aiger import hypothesis as aigh
@@ -100,3 +102,29 @@ def test_relabel(aag1):
     new_latches = {k: f'{k}#2' for k in aag1.latches}
     assert set(aag1['l', new_latches].latches.keys()) == set(
         new_latches.values())
+
+    with pytest.raises(NotImplementedError):
+        aag1['z', {}]
+
+
+@given(aigh.Circuits, st.integers(min_value=1, max_value=4), st.data())
+def test_unroll_simulate(aag1, horizon, data):
+    # TODO
+    aag2 = aag1.unroll(horizon)
+
+    test_inputs = [{f'{i}': data.draw(st.booleans())
+                    for i in aag1.inputs} for _ in range(horizon)]
+
+    time = -1
+
+    def unroll_keys(inputs):
+        nonlocal time
+        time += 1
+
+        def unroll_key(key):
+            return f"{key}##time_{time}"
+
+        return fn.walk_keys(unroll_key, inputs)
+
+    *_, (out1, _) = aag1.simulate(test_inputs)
+    out2, _ = aag2(fn.merge(*map(unroll_keys, test_inputs)))

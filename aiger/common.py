@@ -43,7 +43,7 @@ class AAG(NamedTuple):
 
         name, relabels = others
         if name not in {'i', 'o', 'l'}:
-            raise NotImplemented
+            raise NotImplementedError
 
         name = {'i': 'inputs', 'o': 'outputs', 'l': 'latches'}.get(name)
         return bind(self).GetAttr(name).modify(_relabel(relabels))
