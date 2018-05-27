@@ -14,3 +14,10 @@ before_install:
   - mkdir ${HOME}/.cache/aiger
   - unzip /tmp/master.zip -d /tmp/abc
   - tar -xvf /tmp/aiger-1.9.9.tar.gz -C ${HOME}/.cache/aiger
+  - cd ${HOME}/.cache/aiger
+  - ./configure && make
+  - cd ${HOME}/.cache/abc
+  - make
+  - export PATH=$PATH:${HOME}/.cache/aiger/
+  - export PATH=$PATH:${HOME}/.cache/abc/
+
