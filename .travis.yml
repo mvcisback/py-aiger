@@ -2,7 +2,7 @@ language: python
 python:
   - "3.6"
 install: "pip install -r requirements.txt"
-script: pytest --flake8 --cov=aiger -x --cov-report=html
+script: pytest --flake8 --cov=aiger --cov-report=html
 cache:
   apt: true
   directories:
@@ -13,4 +13,5 @@ before_install:
   - python travis_install.py
   - export PATH=$PATH:${HOME}/.cache/aiger/aiger-1.9.9
   - export PATH=$PATH:${HOME}/.cache/abc/abc-master
-
+after_success:
+  - codecov
