@@ -6,7 +6,7 @@ from aiger.bv_utils import unsigned_value, value
 
 
 def test_bv_class():
-    # TODO: make these tests work on Travis
+    # TODO: make these tests work on Travis.
     if "TRAVIS" in os.environ and os.environ["TRAVIS"] == "true":
         return True
 

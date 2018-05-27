@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/mvcisback/py-aiger.svg?branch=master)](https://travis-ci.org/mvcisback/py-aiger)
+
 # Installation
 
 `$ pip install py-aiger`
