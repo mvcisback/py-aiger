@@ -36,7 +36,7 @@ def install_aiger(aiger_path):
     elif (aiger_path / "aiger-1.9.9").exists():
         print("Using cached version.")
         return
-    
+
     with working_directory(aiger_path):
         subprocess.check_call(GET_AIGER_CMD, shell=True)
 
