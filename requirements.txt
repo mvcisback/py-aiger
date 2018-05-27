@@ -1,4 +1,4 @@
--e git+git@github.com:mvcisback/hypothesis-cfg.git@225e0f678d204304a01dfff9829bd8b14ce4e96c#egg=hypothesis_cfg
+git+git://github.com/mvcisback/hypothesis-cfg.git.git@master#egg=hypothesis_cfg
 bidict==0.14.0
 blessings==1.6
 click==6.7
