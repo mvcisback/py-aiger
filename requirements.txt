@@ -1,11 +1,13 @@
-dd==0.5.3
-toposort==1.5
-parsimonious==0.8.0
+-e git+git@github.com:mvcisback/hypothesis-cfg.git@225e0f678d204304a01dfff9829bd8b14ce4e96c#egg=hypothesis_cfg
+bidict==0.14.0
 blessings==1.6
 click==6.7
-lenses==0.4.0
-bidict==0.14.0
-pytest==3.2.3
-pytest-flake8==0.9
-pytest-cov==2.5.1
+dd==0.5.3
 funcy==1.9.1
+hypothesis==3.32.1
+lenses==0.4.0
+parsimonious==0.8.0
+pytest-cov==2.5.1
+pytest-flake8==0.9
+pytest==3.2.3
+toposort==1.5
