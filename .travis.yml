@@ -8,7 +8,9 @@ cache:
   directories:
   - ${HOME}/.cache/pip
 before_install:
-  - sudo apt-get install berkeley-abc
+  - wget https://github.com/berkeley-abc/abc/archive/master.zip /tmp/abc.zip
   - wget http://fmv.jku.at/aiger/aiger-1.9.9.tar.gz /tmp/aiger.tar.gz
-  - tar -xvf /tmp/aiger.tar.gz
-  
+  - mkdir ${HOME}/.cache/abc
+  - mkdir ${HOME}/.cache/aiger
+  - unzip /tmp/abc.zip -d /tmp/abc
+  - tar -xvf /tmp/aiger.tar.gz -C ${HOME}/.cache/aiger
