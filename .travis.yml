@@ -6,18 +6,11 @@ script: pytest --flake8 --cov=aiger -x --cov-report=html
 cache:
   apt: true
   directories:
-  - ${HOME}/.cache/pip
+    - ${HOME}/.cache/pip
+    - ${HOME}/.cache/aiger
+    - ${HOME}/.cache/abc
 before_install:
-  - wget -P /tmp https://github.com/berkeley-abc/abc/archive/master.zip
-  - wget -P /tmp http://fmv.jku.at/aiger/aiger-1.9.9.tar.gz
-  - mkdir ${HOME}/.cache/abc
-  - mkdir ${HOME}/.cache/aiger
-  - unzip /tmp/master.zip -d /tmp/abc
-  - tar -xvf /tmp/aiger-1.9.9.tar.gz -C ${HOME}/.cache/aiger
-  - cd ${HOME}/.cache/aiger
-  - ./configure && make
-  - cd ${HOME}/.cache/abc
-  - make
+  - python travis_install.py
   - export PATH=$PATH:${HOME}/.cache/aiger/
   - export PATH=$PATH:${HOME}/.cache/abc/
 
