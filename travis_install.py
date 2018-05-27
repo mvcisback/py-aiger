@@ -30,7 +30,13 @@ def working_directory(path):
 
 
 def install_aiger(aiger_path):
-    aiger_path.mkdir()
+    print("Installing AIGER.")
+    if not aiger_path.exists():
+        aiger_path.mkdir()
+    elif (aiger_path / "aiger-1.9.9").exists():
+        print("Using cached version.")
+        return
+    
     with working_directory(aiger_path):
         subprocess.check_call(GET_AIGER_CMD, shell=True)
 
@@ -42,7 +48,13 @@ def install_aiger(aiger_path):
 
 
 def install_abc(abc_path):
-    abc_path.mkdir()
+    print("Installing ABC.")
+    if not abc_path.exists():
+        abc_path.mkdir()
+    elif (abc_path / "abc-master").exists():
+        print("Using cached version.")
+        return
+
     with working_directory(abc_path):
         subprocess.check_call(GET_ABC_CMD, shell=True)
 
@@ -58,11 +70,8 @@ def main():
     aiger_path = home / ".cache/aiger"
     abc_path = home / ".cache/abc"
 
-    if not aiger_path.exists():
-        install_aiger(aiger_path)
-
-    if not abc_path.exists():
-        install_abc(abc_path)
+    install_aiger(aiger_path)
+    install_abc(abc_path)
 
 
 if __name__ == '__main__':
