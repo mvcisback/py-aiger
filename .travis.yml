@@ -1,5 +1,14 @@
- language: python
- python:
-   - "3.6"
- install: "pip install -r requirements.txt"
- script: pytest --flake8 --cov=aiger -x --cov-report=html
+language: python
+python:
+  - "3.6"
+install: "pip install -r requirements.txt"
+script: pytest --flake8 --cov=aiger -x --cov-report=html
+cache:
+  apt: true
+  directories:
+  - ${HOME}/.cache/pip
+before_install:
+  - sudo apt-get install berkeley-abc
+  - wget http://fmv.jku.at/aiger/aiger-1.9.9.tar.gz /tmp/aiger.tar.gz
+  - tar -xvf /tmp/aiger.tar.gz
+  
