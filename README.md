@@ -15,17 +15,6 @@ or as a developer:
 
 `$ python setup.py develop`
 
-## aiger.utils and aiger.bv_utils
-
-`aiger.utils` and `aiger.bv_utils` contain a number of helper
-functions that depend on external tools.
-
-- For better bdd performance we recommend installing `dd` with cudd.
-  See https://github.com/johnyf/dd#cython-bindings for details.
-
-- To use simplification, make sure abc and aigtoaig are in your path.
-
-    TODO: remove this constraint.
 
 # Usage
 
@@ -143,6 +132,18 @@ would someday like feature parity.
 - [ ] Make dd an optional dependency (maybe move counting stuff out of
       py-aiger).
 - [ ] Officially support Bit Vector extensions.
+
+# aiger.utils and aiger.bv_utils
+
+`aiger.utils` and `aiger.bv_utils` contain a number of helper
+functions that depend on external tools.
+
+- For better bdd performance we recommend installing `dd` with cudd.
+  See https://github.com/johnyf/dd#cython-bindings for details.
+
+- To use simplification, make sure abc and aigtoaig are in your path.
+
+    TODO: remove this constraint.
 
 # Proposed API
 
