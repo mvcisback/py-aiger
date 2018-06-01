@@ -28,19 +28,6 @@ functions that depend on external tools.
 
 # Usage
 
-Installing py-aiger should install two commandline scripts:
-
-- aigseqcompose
-- aigparcompose
-- aigcount
-
-These are meant to augment the
-[aiger](fmv.jku.at/aiger/aiger-1.9.9.tar.gz) library. Ideally, we
-would someday like feature parity.
-
-
-## Implemented API
-
 ```python
 import aiger
 from aiger import utils
@@ -48,20 +35,26 @@ from aiger import utils
 
 aag1 = aiger.load(path_to_aag1_file)
 aag2 = aiger.load(path_to_aag2_file)
+```
 
-# Sequential composition
+## Sequential composition
+```python
 aag3 = aag1 >> aag2
+```
 
-# Parallel composition
+## Parallel composition
+```python
 aig4 = aag1 | aag2
+```
 
-# Evaluation
-aig3(inputs={'x':True, 'y':False})
-
-# Count solutions
+## Count solutions
+```python
 # Assume 1 output. This could be passed as an argument in the future.
 print(utils.count(aag3))
+```
 
+## Relabeling
+```python
 # Relabel input 'x' to 'z'.
 aig1['i', {'x': 'z'}]
 
@@ -70,22 +63,32 @@ aig1['o', {'y': 'w'}]
 
 # Relabel latches 'l1' to 'l2'.
 aig1['o', {'l1': 'l2'}]
+```
 
-# Simulator
+## Evaluation
+```python
+# Combinatoric evaluation.
+aig3(inputs={'x':True, 'y':False})
+
+# Sequential evaluation.
+sim = aig3.simulate({'x': 0, 'y': 0}, 
+                    {'x': 1, 'y': 2},
+                    {'x': 3, 'y': 4})
+
+# Simulation Coroutine
 sim = aig3.simulator()  # Coroutine
 next(sim)  # Initialize
 print(sim.send({'x': 0, 'y': 0}))
 print(sim.send({'x': 1, 'y': 2}))
 print(sim.send({'x': 3, 'y': 4}))
 
-# Simulate
-sim = aig3.simulate({'x': 0, 'y': 0}, 
-                    {'x': 1, 'y': 2},
-                    {'x': 3, 'y': 4})
 
 # Unroll
 aig4 = aig3.unroll(steps=10, init=True)
+```
 
+## Useful circuits
+```python
 # Fix input x to be False.
 aag4 = aiger.source({'x': False}) >> aag3
 
@@ -114,17 +117,32 @@ aig1 >> aiger.bit_flipper(inputs=aag1.outputs)
 aiger.bit_flipper(inputs=aag1.inputs) >> aig1
 ```
 
+# Scripts
+
+Installing py-aiger should install two commandline scripts:
+
+- aigseqcompose
+- aigparcompose
+- aigcount
+
+These are meant to augment the
+[aiger](fmv.jku.at/aiger/aiger-1.9.9.tar.gz) library. Ideally, we
+would someday like feature parity.
+
+
 
 # TODO
 - [ ] Document.
-- [ ] Publish on pypi.
-- [ ] Setup continuous integration
+- [X] Publish on pypi.
+- [X] Setup continuous integration
 - [ ] Support parser full the new aiger features 1.9.3.
   - [X] Latch Initialization
   - [ ] TODO: fill out with other feaures.
 - [ ] Symbolic circuits: Composition returns a function that composes using the rules defined.
 - [ ] qaiger
-- [ ] Make dd an optional dependency (maybe move counting stuff out of py-aiger).
+- [ ] Make dd an optional dependency (maybe move counting stuff out of
+      py-aiger).
+- [ ] Officially support Bit Vector extensions.
 
 # Proposed API
 
