@@ -1,5 +1,11 @@
+<figure>
+  <img src="logo_text.svg" alt="py-aiger logo" width=400px>
+  <figcaption>pyAiger: A python library for manipulating sequential and inverter gates.</figcaption>
+</figure>
+
 [![Build Status](https://travis-ci.org/mvcisback/py-aiger.svg?branch=master)](https://travis-ci.org/mvcisback/py-aiger)
 [![codecov](https://codecov.io/gh/mvcisback/py-aiger/branch/master/graph/badge.svg)](https://codecov.io/gh/mvcisback/py-aiger)
+
 # Installation
 
 `$ pip install py-aiger`
