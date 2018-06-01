@@ -2,8 +2,9 @@ from setuptools import find_packages, setup
 
 setup(
     name='py-aiger',
-    version='0.2',
-    description='TODO',
+    version='0.3',
+    description='A python library for manipulating sequential and
+    inverter gates.',
     url='http://github.com/mvcisback/py-aiger',
     author='Marcell Vazquez-Chanlatte',
     author_email='marcell.vc@eecs.berkeley.edu',
