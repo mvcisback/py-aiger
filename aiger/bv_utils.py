@@ -13,16 +13,21 @@ def simplify(expr):
     f.seek(0)
 
     call(["cp", f.name, f.name + ".aag"])
-    call(["aigtoaig", f.name + ".aag", f.name + ".aig"])
+    call(["aigtoaig", f.name + ".aag", f.name + ".aig"],
+        stdout=PIPE,
+        stderr=PIPE)
     call(
         [
             "abc", "-c",
             "read {}; print_stats; dc2; dc2; dc2; print_stats; write {}".
             format(f.name + ".aig", f.name + ".aig")
         ],
-        stdout=PIPE)  # this ensures that ABC is not too verbose, but will still print errors
+        stdout=PIPE,
+        stderr=PIPE)  # this ensures that ABC is not too verbose, but will still print errors
     simplified_filename = f.name + ".simp.aag"
-    call(["aigtoaig", f.name + ".aig", simplified_filename])
+    call(["aigtoaig", f.name + ".aig", simplified_filename],
+        stdout=PIPE,
+        stderr=PIPE)
 
     try:
         simplified = open(simplified_filename)
@@ -35,7 +40,7 @@ def simplify(expr):
         f.close()
 
     if not simp_aig_string:
-        print('Could not simpify file')
+        # print('Could not simpify file')
         return None
 
     aig = parser.parse(simp_aig_string)
