@@ -15,8 +15,8 @@ def simplify(expr):
 
     call(["cp", f.name, f.name + ".aag"])
     call(["aigtoaig", f.name + ".aag", f.name + ".aig"],
-        stdout=PIPE,
-        stderr=PIPE)
+        stdout=PIPE
+        )
     call(
         [
             "abc", "-c",
@@ -27,8 +27,8 @@ def simplify(expr):
     )  # this ensures that ABC is not too verbose, but will still print errors
     simplified_filename = f.name + ".simp.aag"
     call(["aigtoaig", f.name + ".aig", simplified_filename],
-        stdout=PIPE,
-        stderr=PIPE)
+        stdout=PIPE
+        )
 
     try:
         simplified = open(simplified_filename)
