@@ -1,11 +1,12 @@
-"""Auxiliary functions for working with bitvectors that require ABC to be installed."""
+"""Auxiliary functions for working with bitvectors that require ABC to
+be installed."""
+
+import tempfile
+from subprocess import PIPE, call
 
 import aiger.bv as bv
 from aiger import parser
 
-import tempfile
-from subprocess import call, PIPE
-import re
 
 def simplify(expr):
     f = tempfile.NamedTemporaryFile()
@@ -22,8 +23,8 @@ def simplify(expr):
             "read {}; print_stats; dc2; dc2; dc2; print_stats; write {}".
             format(f.name + ".aig", f.name + ".aig")
         ],
-        stdout=PIPE,
-        stderr=PIPE)  # this ensures that ABC is not too verbose, but will still print errors
+        stdout=PIPE
+    )  # this ensures that ABC is not too verbose, but will still print errors
     simplified_filename = f.name + ".simp.aag"
     call(["aigtoaig", f.name + ".aig", simplified_filename],
         stdout=PIPE,
@@ -32,7 +33,7 @@ def simplify(expr):
     try:
         simplified = open(simplified_filename)
         simp_aig_string = simplified.read()
-        simplified.close()    
+        simplified.close()
     except IOError as e:
         print(f'I/O error({e.errno}): {e.strerror}')
         simp_aig_string = None
@@ -44,7 +45,7 @@ def simplify(expr):
         return None
 
     aig = parser.parse(simp_aig_string)
-    del aig.comments[:] # remove ABC's comments
+    del aig.comments[:]  # remove ABC's comments
     aig.comments.extend([f'simplified'] + bv._indent(expr.aig.comments))
     return bv.BV(expr.size, (expr.variables, aig), name=expr.name())
 

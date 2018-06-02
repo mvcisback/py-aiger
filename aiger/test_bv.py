@@ -1,9 +1,9 @@
-from aiger.bv import *
-from aiger.bv_utils import *
+from aiger.bv import BV
+# from aiger.bv import *
+from aiger.bv_utils import unsigned_value, value
 
 
 def test_bv_class():
-
     # Repeat
     assert unsigned_value(BV(1, 1).repeat(3)) == 7
     assert unsigned_value(BV(2, 1).repeat(3)) == 21
@@ -57,7 +57,3 @@ def test_bv_class():
     assert unsigned_value(BV(4, 2) <= BV(4, 3)) == 1
     assert unsigned_value(BV(4, 3) <= BV(4, 3)) == 1
     assert unsigned_value(BV(4, 4) <= BV(4, 3)) == 0
-
-
-if __name__ == '__main__':
-    test_bv_class()

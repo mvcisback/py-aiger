@@ -1,15 +1,15 @@
 from itertools import chain
-from math import log, exp
+from math import exp, log
 
 import click
-import funcy as fn
-try:
-    from dd.cudd import BDD
-except:
-    from dd.autoref import BDD
 
 from aiger import parser
 from aiger.common import AAG
+
+try:
+    from dd.cudd import BDD
+except ImportError:
+    from dd.autoref import BDD
 
 
 def to_bdd(aag: AAG, output):
