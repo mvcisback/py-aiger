@@ -5,7 +5,7 @@ import hypothesis.strategies as st
 from hypothesis import given
 
 
-var_name_generator = st.text(alphabet = var_name_alphabet)
+var_name_generator = st.text(alphabet=var_name_alphabet)
 
 
 @given(st.integers(-128, 127))
@@ -46,36 +46,36 @@ def test_concat():
     assert (BV(4, 0).concat(BV(3, 1)))() == 16
 
 
-@given(st.integers(-128,127), st.integers(-128,127))
+@given(st.integers(-128, 127), st.integers(-128, 127))
 def test_addition(a, b):
     assert (BV(9, 'a') + BV(9, 'b'))({'a': a, 'b': b}) == a + b
 
 
-@given(st.integers(-128,127), st.integers(-128,127))
+@given(st.integers(-128, 127), st.integers(-128, 127))
 def test_and(a, b):
     e = BV(8, a) & BV(8, b)
     assert e() == a & b
 
 
-@given(st.integers(-128,127), st.integers(-128,127))
+@given(st.integers(-128, 127), st.integers(-128, 127))
 def test_or(a, b):
     e = BV(8, a) | BV(8, b)
     assert e() == a | b
 
 
-@given(st.integers(-128,127), st.integers(-128,127))
+@given(st.integers(-128, 127), st.integers(-128, 127))
 def test_xor(a, b):
     e = BV(8, a) ^ BV(8, b)
     assert e() == a ^ b
 
 
-@given(st.integers(-128,127), st.integers(-128,127))
+@given(st.integers(-128, 127), st.integers(-128, 127))
 def test_eq(a, b):
     e = (BV(8, a) == BV(8, b))
     assert e() == (a == b)
 
 
-@given(st.integers(-128,127), st.integers(-128,127))
+@given(st.integers(-128, 127), st.integers(-128, 127))
 def test_neq(a, b):
     e = (BV(8, a) != BV(8, b))
     assert e() == (a != b)
@@ -87,27 +87,28 @@ def test_abs(int_value):
     assert bv() == abs(int_value)
 
 
-# TODO: make tests for comparison operators complete; e.g. lower bit-width to 8, once they are fully implemented
+# TODO: make tests for comparison operators complete; e.g.
+# lower bit-width to 8, once they are fully implemented
 
-@given(st.integers(-128,127), st.integers(-128,127))
+@given(st.integers(-128, 127), st.integers(-128, 127))
 def test_lt(a, b):
     e = (BV(10, a) < BV(10, b))
     assert e() == (a < b)
 
 
-@given(st.integers(-128,127), st.integers(-128,127))
+@given(st.integers(-128, 127), st.integers(-128, 127))
 def test_gt(a, b):
     e = (BV(10, a) > BV(10, b))
     assert e() == (a > b)
 
 
-@given(st.integers(-128,127), st.integers(-128,127))
+@given(st.integers(-128, 127), st.integers(-128, 127))
 def test_le(a, b):
     e = (BV(10, a) <= BV(10, b))
     assert e() == (a <= b)
 
 
-@given(st.integers(-128,127), st.integers(-128,127))
+@given(st.integers(-128, 127), st.integers(-128, 127))
 def test_ge(a, b):
     e = (BV(10, a) >= BV(10, b))
     assert e() == (a >= b)

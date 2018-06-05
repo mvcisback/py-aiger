@@ -3,7 +3,9 @@ from aiger import common, parser
 import string
 import re
 
-var_name_alphabet = set([c for c in string.printable if c not in [' ', '[', ']', '\n', '\t', '\r', '\x0b', '\x0c']])
+forbidden = [' ', '[', ']', '\n', '\t', '\r', '\x0b', '\x0c']
+var_name_alphabet = set([c for c in string.printable if c not in forbidden])
+
 
 def _const(wordlen, value, output='x'):
     assert 2**wordlen > value
@@ -161,7 +163,8 @@ class BV(object):
         adder >>= common.sink([outname + '_carry'])
         add_other = other.aig >> adder
         result = self.aig >> add_other
-        res = BV(self.size, (self.variables + other.variables, result), name=outname)
+        all_vars = self.variables + other.variables
+        res = BV(self.size, (all_vars, result), name=outname)
 
         # nice comments
         del res.aig.comments[:]
@@ -174,7 +177,8 @@ class BV(object):
         """Implements -x."""
         neg = _negation_circuit(
             self.size, output=self.name(), input=self.name())
-        res = BV(self.size, (self.variables, self.aig >> neg), name=self.name())
+        aig = self.aig >> neg
+        res = BV(self.size, (self.variables, aig), name=self.name())
 
         # nice comments
         del res.aig.comments[:]
@@ -449,7 +453,7 @@ class BV(object):
 
     def __gt__(self, other):
         """signed comparison"""
-        res = (other - self)[-1:] 
+        res = (other - self)[-1:]
 
         # nice comments
         del res.aig.comments[:]
@@ -482,16 +486,16 @@ class BV(object):
 
     def rename(self, name):
         """Renames the output of the expression; mostly used internally"""
-        rename_map = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
-        return BV(self.size, (self.variables, self.aig['o', rename_map]), name=name)
+        m = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
+        return BV(self.size, (self.variables, self.aig['o', m]), name=name)
 
-
-    def __call__(self, args={}, signed=True): 
+    def __call__(self, args={}, signed=True):
         '''
         Eval for unsigned integers:
         - inputs must be unsigned
         - outputs are unsigned
-        - args is a dict mapping variable names to non-negative integers smaller than 2**bitwidth
+        - args is a dict mapping variable names to non-negative integers 
+          smaller than 2**bitwidth
         '''
 
         # Check completeness of inputs; check ranges
@@ -499,10 +503,11 @@ class BV(object):
             assert value >= - 2**(self.size-1)
             assert value < 2**(self.size)
             assert key in self.variables
-        assert len(self.aig.inputs)//self.size == len(args)  # correct number of inputs?
+        # Check if the correct number of inputs is given
+        assert len(self.aig.inputs)//self.size == len(args)
 
-        # Tanslate integers values to bit values
-        # Challenge here is that we don't know the bit widths of the different variables
+        # Tanslate integers values to bit values; Challenge here is that we
+        # don't know the bit widths of the different variables
         inputs = {}
         for input_name, _ in self.aig.inputs.items():
             # split name into variable name and index
@@ -511,7 +516,7 @@ class BV(object):
             # populate input map
             assert var_name in args
             inputs[input_name] = _testBit(args[var_name], int(idx))
-        
+
         outputs, gates = self.aig(inputs=inputs)
 
         # Interpret result
@@ -525,16 +530,14 @@ class BV(object):
             for idx in range(self.size):
                 if outputs[f'{self.name()}[{idx}]']:
                     out_value += 2**idx
-        
-        return out_value
 
+        return out_value
 
     # Difficult arithmetic operations
     # def __mul__(self, other):
     # def __mod__(self, other):
     # def __div__(self, other):
     # def __pow__(self, other):
-
 
 # TODO:
 # Make iterable
