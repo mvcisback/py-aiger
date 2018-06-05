@@ -1,8 +1,12 @@
-from aiger.bv import BV
+from aiger.bv import BV, var_name_alphabet
 
 # additional imports for testing frammework
 import hypothesis.strategies as st
 from hypothesis import given
+import string
+
+
+var_name_generator = st.text(alphabet = var_name_alphabet)
 
 
 @given(st.integers(-128, 127))
@@ -11,7 +15,7 @@ def test_signed_value(int_value):
     assert int_value == var({'x': int_value})
 
 
-@given(st.text(), st.integers(-128, 127))
+@given(var_name_generator, st.integers(-128, 127))
 def test_assign(var_name, int_value):
     var = BV(8, var_name)
     assigned = var.assign({var_name: int_value})
@@ -20,9 +24,9 @@ def test_assign(var_name, int_value):
 
 @given(st.integers(-128, 127), st.integers(-128, 127))
 def test_assign2(a, b):
-    var = BV(16, 'a')
+    var = BV(10, 'a')
     assigned = var.assign({'a': a})
-    num = BV(16, b)
+    num = BV(10, b)
     assert a + b == (assigned + num)()
 
 
@@ -32,7 +36,7 @@ def test_repeat():
 
 
 def test_slicing():
-    assert BV(4, 6)[2]() == -1
+    assert BV(4, 6)[2]() == 1
     assert BV(4, 6)[0]() == 0
     assert BV(4, 6)[1:3]() == BV(2, 3)()
     assert BV(4, 6)[::-1]() == BV(4, 6)()
@@ -72,29 +76,40 @@ def test_eq(a, b):
     assert e() == (a == b)
 
 
-@given(st.integers(-128, 127))
+@given(st.integers(-128,127), st.integers(-128,127))
+def test_neq(a, b):
+    e = (BV(8, a) != BV(8, b))
+    assert e() == (a != b)
+
+
+@given(st.integers(-127, 127))  # note that abs(-128) == -128
 def test_abs(int_value):
     bv = abs(BV(8, int_value))
     assert bv() == abs(int_value)
 
 
+# TODO: make tests for comparison operators complete; e.g. lower bit-width to 8, once they are fully implemented
 
-# def test_bv_class():
-#     # Abs
-#     assert value(abs(BV(8, -17))) == 17
-#     assert value(abs(BV(8, 42))) == 42
+@given(st.integers(-128,127), st.integers(-128,127))
+def test_lt(a, b):
+    e = (BV(10, a) < BV(10, b))
+    assert e() == (a < b)
 
-#     # Equality
-#     assert unsigned_value(BV(4, 2) == BV(4, 2)) == 1
-#     assert unsigned_value(BV(4, 2) != BV(4, 2)) == 0
-#     assert unsigned_value(BV(4, 2) == BV(4, 3)) == 0
-#     assert unsigned_value(BV(4, 2) != BV(4, 3)) == 1
 
-#     # Comparison
-#     assert unsigned_value(BV(4, 2) < BV(4, 3)) == 1
-#     assert unsigned_value(BV(4, 3) < BV(4, 2)) == 0
-#     assert unsigned_value(BV(4, 2) > BV(4, 3)) == 0
-#     assert unsigned_value(BV(4, 3) > BV(4, 2)) == 1
-#     assert unsigned_value(BV(4, 2) <= BV(4, 3)) == 1
-#     assert unsigned_value(BV(4, 3) <= BV(4, 3)) == 1
-#     assert unsigned_value(BV(4, 4) <= BV(4, 3)) == 0
+@given(st.integers(-128,127), st.integers(-128,127))
+def test_gt(a, b):
+    e = (BV(10, a) > BV(10, b))
+    assert e() == (a > b)
+
+
+@given(st.integers(-128,127), st.integers(-128,127))
+def test_le(a, b):
+    e = (BV(10, a) <= BV(10, b))
+    assert e() == (a <= b)
+
+
+@given(st.integers(-128,127), st.integers(-128,127))
+def test_ge(a, b):
+    e = (BV(10, a) >= BV(10, b))
+    assert e() == (a >= b)
+

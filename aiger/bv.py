@@ -1,7 +1,9 @@
 from aiger import common, parser
 
+import string
 import re
 
+var_name_alphabet = set([c for c in string.printable if c not in [' ', '[', ']', '\n', '\t', '\r', '\x0b', '\x0c']])
 
 def _const(wordlen, value, output='x'):
     assert 2**wordlen > value
@@ -51,6 +53,10 @@ def _testBit(value, bit_idx):
     return value & mask
 
 
+def _split_output_name(name):
+    return re.match('^(.*)\[(\d*)\]$', name).groups()
+
+
 class BV(object):
     def __init__(self, size, kind, name="bv"):
         """
@@ -64,8 +70,8 @@ class BV(object):
         self.variables = []
 
         assert isinstance(name, str)
-        assert '[' not in name  # interferes with pattern matching
-        assert ']' not in name
+        for c in name:
+            assert c in var_name_alphabet
         self._name = name  # name of all circuit outputs
 
         if self.size == 0:
@@ -101,9 +107,16 @@ class BV(object):
             self.aig = kind[1]
             assert len(self.aig.outputs) == self.size
 
+            # get actual output name of circuit
+            if self.size > 0:
+                actual_name, _ = _split_output_name(list(self.aig.outputs)[0])
+                if actual_name != self.name():
+                    self._name = actual_name
+                    self.aig = self.rename(name).aig
+                    self._name = name
+
+        # final sanity check
         assert len(self.aig.outputs) == self.size
-        if self.size > 0:
-            assert list(self.aig.outputs)[0].startswith(self.name())
 
     def __len__(self):
         return self.size
@@ -425,8 +438,7 @@ class BV(object):
 
     def __lt__(self, other):
         """signed comparison"""
-        res = (self - other)[
-            -1:]  # TODO: fix for overflows when using two negative numbers
+        res = (self - other)[-1:]
 
         # nice comments
         del res.aig.comments[:]
@@ -437,8 +449,7 @@ class BV(object):
 
     def __gt__(self, other):
         """signed comparison"""
-        res = (other - self)[
-            -1:]  # TODO: fix for overflows when using two negative numbers
+        res = (other - self)[-1:] 
 
         # nice comments
         del res.aig.comments[:]
@@ -449,8 +460,7 @@ class BV(object):
 
     def __le__(self, other):
         """signed comparison"""
-        res = ~(self > other
-                )  # TODO: fix for overflows when using two negative numbers
+        res = ~(self > other)
 
         # nice comments
         del res.aig.comments[:]
@@ -461,8 +471,7 @@ class BV(object):
 
     def __ge__(self, other):
         """signed comparison"""
-        res = ~(self < other
-                )  # TODO: fix for overflows when using two negative numbers
+        res = ~(self < other)
 
         # nice comments
         del res.aig.comments[:]
@@ -497,15 +506,13 @@ class BV(object):
         inputs = {}
         for input_name, _ in self.aig.inputs.items():
             # split name into variable name and index
-            var_name, idx = re.match('^(.*)\[(\d*)\]$', input_name).groups()
+            var_name, idx = _split_output_name(input_name)
 
             # populate input map
             assert var_name in args
             inputs[input_name] = _testBit(args[var_name], int(idx))
         
         outputs, gates = self.aig(inputs=inputs)
-
-        print(outputs)
 
         # Interpret result
         out_value = 0
