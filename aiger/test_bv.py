@@ -3,7 +3,6 @@ from aiger.bv import BV, var_name_alphabet
 # additional imports for testing frammework
 import hypothesis.strategies as st
 from hypothesis import given
-import string
 
 
 var_name_generator = st.text(alphabet = var_name_alphabet)
