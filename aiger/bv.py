@@ -37,6 +37,27 @@ def _adder_circuit(wordlen, output='x+y', left='x', right='y'):
             carry_out=carry_name)
     return aig
 
+# def _lt_comp(x='left', y='right', carry='carry', output='res', 
+#              equal_in='eq_in', equal_out='eq_out'):
+#     """unsigned comparison"""
+#     return parser.parse(
+#         "aag 9 4 0 2 5\n2\n4\n6\n8\n11\n12\n14 3 4\n16 14 8\n10 17 7\n18 2 5\n12 8 19\n"
+#         f"i0 {x}\ni1 {y}\ni2 {carry}\ni3 {equal_in}\no0 {output}\no1 {equal_out}\n")
+#
+# def _lt_circuit(wordlen, output='x<y', equal='eq', left='x', right='y'):
+#     output = f'{output}[0]'
+#     assert len(set([output, equal, left, right])) == 4  # all different
+
+#     aig = common.source({output: False, equal: True})
+#     for i in range(wordlen)[::-1]:
+#         aig >>= _lt_comp(
+#             x=f"{left}[{i}]",
+#             y=f"{right}[{i}]",
+#             carry=output,
+#             output=output,
+#             equal_in=equal,
+#             equal_out=equal)
+#     return aig
 
 def _negation_circuit(wordlen, output='not x', input='x'):
     return common.bit_flipper(
@@ -440,26 +461,36 @@ class BV(object):
 
         return res
 
+    def stretch_signed(self, k):
+        '''Add k more outputs, just after the sign bit'''
+
+
     def __lt__(self, other):
         """signed comparison"""
-        res = (self - other)[-1:]
+        assert self.size == other.size
 
-        # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend(['<'] + _indent(self.aig.comments) + _indent(
-            other.aig.comments))
+        left = self.concat(self[-1:])
+        assert left.size == self.size + 1
+        right = other.concat(other[-1:])
 
-        return res
-
-    def __gt__(self, other):
-        """signed comparison"""
-        res = (other - self)[-1:]
+        res = (left - right)[-1:]
 
         # nice comments
         del res.aig.comments[:]
         res.aig.comments.extend(['>'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
 
+        return res
+
+    def __gt__(self, other):
+        """signed comparison"""
+        res = other < self
+
+        # nice comments
+        del res.aig.comments[:]
+        res.aig.comments.extend(['>'] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
+        
         return res
 
     def __le__(self, other):

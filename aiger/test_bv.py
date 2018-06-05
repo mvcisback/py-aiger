@@ -46,9 +46,9 @@ def test_concat():
     assert (BV(4, 0).concat(BV(3, 1)))() == 16
 
 
-@given(st.integers(-128, 127), st.integers(-128, 127))
+@given(st.integers(-64, 63), st.integers(-64, 63))
 def test_addition(a, b):
-    assert (BV(9, 'a') + BV(9, 'b'))({'a': a, 'b': b}) == a + b
+    assert (BV(8, 'a') + BV(8, 'b'))({'a': a, 'b': b}) == a + b
 
 
 @given(st.integers(-128, 127), st.integers(-128, 127))
@@ -75,40 +75,37 @@ def test_eq(a, b):
     assert e() == (a == b)
 
 
-@given(st.integers(-128, 127), st.integers(-128, 127))
+@given(st.integers(-7, 7), st.integers(-7, 7))
 def test_neq(a, b):
-    e = (BV(8, a) != BV(8, b))
+    e = (BV(4, a) != BV(4, b))
     assert e() == (a != b)
 
 
-@given(st.integers(-127, 127))  # note that abs(-128) == -128
+@given(st.integers(-7, 7))  # note that abs(-8) == -8
 def test_abs(int_value):
-    bv = abs(BV(8, int_value))
+    bv = abs(BV(4, int_value))
     assert bv() == abs(int_value)
 
 
-# TODO: make tests for comparison operators complete; e.g.
-# lower bit-width to 8, once they are fully implemented
-
-@given(st.integers(-128, 127), st.integers(-128, 127))
+@given(st.integers(-8, 7), st.integers(-8, 7))
 def test_lt(a, b):
-    e = (BV(10, a) < BV(10, b))
+    e = (BV(4, a) < BV(4, b))
     assert e() == (a < b)
 
 
-@given(st.integers(-128, 127), st.integers(-128, 127))
+@given(st.integers(-8, 7), st.integers(-8, 7))
 def test_gt(a, b):
-    e = (BV(10, a) > BV(10, b))
+    e = (BV(4, a) > BV(4, b))
     assert e() == (a > b)
 
 
-@given(st.integers(-128, 127), st.integers(-128, 127))
+@given(st.integers(-8, 7), st.integers(-8, 7))
 def test_le(a, b):
-    e = (BV(10, a) <= BV(10, b))
+    e = (BV(4, a) <= BV(4, b))
     assert e() == (a <= b)
 
 
-@given(st.integers(-128, 127), st.integers(-128, 127))
+@given(st.integers(-8, 7), st.integers(-8, 7))
 def test_ge(a, b):
-    e = (BV(10, a) >= BV(10, b))
+    e = (BV(4, a) >= BV(4, b))
     assert e() == (a >= b)
