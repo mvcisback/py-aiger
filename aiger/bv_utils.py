@@ -3,6 +3,8 @@ be installed."""
 
 import tempfile
 from subprocess import PIPE, call
+import re
+
 
 import aiger.bv as bv
 from aiger import parser

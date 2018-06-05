@@ -1,59 +1,100 @@
 from aiger.bv import BV
-# from aiger.bv import *
-from aiger.bv_utils import unsigned_value, value
+
+# additional imports for testing frammework
+import hypothesis.strategies as st
+from hypothesis import given
 
 
-def test_bv_class():
-    # Repeat
-    assert unsigned_value(BV(1, 1).repeat(3)) == 7
-    assert unsigned_value(BV(2, 1).repeat(3)) == 21
+@given(st.integers(-128, 127))
+def test_signed_value(int_value):
+    var = BV(8, 'x')
+    assert int_value == var({'x': int_value})
 
-    # Items and Slicing
-    assert unsigned_value(BV(4, 6)[2]) == 1
-    assert unsigned_value(BV(4, 6)[0]) == 0
-    assert unsigned_value(BV(4, 6)[1:3]) == unsigned_value(BV(2, 3))
-    assert unsigned_value(BV(4, 6)[::-1]) == unsigned_value(BV(4, 6))
 
-    # Concatenation
-    assert unsigned_value((BV(4, 1).concat(BV(3, 0)))) == 1
-    assert unsigned_value((BV(4, 0).concat(BV(3, 1)))) == 16
+@given(st.text(), st.integers(-128, 127))
+def test_assign(var_name, int_value):
+    var = BV(8, var_name)
+    assigned = var.assign({var_name: int_value})
+    assert int_value == assigned()
 
-    # Values
-    assert value(BV(4, 6)) == 6
-    assert unsigned_value(BV(4, -6)) == 10
-    assert value(BV(4, -6)) == -6
 
-    # Addition
-    assert value(BV(16, 6) + BV(16, 3)) == value(BV(16, 9))
-    assert value(-BV(16, -127)) == value(BV(16, 127))
-    assert value(BV(16, -127)) == -value(BV(16, 127))
-    assert value(BV(16, 0) - BV(16, 42)) == -value(BV(16, 42))
+@given(st.integers(-128, 127), st.integers(-128, 127))
+def test_assign2(a, b):
+    var = BV(16, 'a')
+    assigned = var.assign({'a': a})
+    num = BV(16, b)
+    assert a + b == (assigned + num)()
 
-    # Assignment
-    assert value(BV(5, 'x').assign({'x': 12})) == 12
-    assert value((BV(8, 'x') - BV(8, 'y')).assign({'x': 12, 'y': 2})) == 10
 
-    # Bitwise operators
-    assert value(BV(8, 67) and BV(8, 66)) == 66
-    assert value(BV(8, 67) or BV(8, 66)) == 67
-    assert value(BV(8, 42) ^ BV(8, 42)) == 0
-    assert value(BV(8, 127) ^ BV(8, 126)) == 1
+def test_repeat():
+    assert BV(1, 1).repeat(3)() == -1
+    assert BV(2, 1).repeat(3)() == 21
 
-    # Abs
-    assert value(abs(BV(8, -17))) == 17
-    assert value(abs(BV(8, 42))) == 42
 
-    # Equality
-    assert unsigned_value(BV(4, 2) == BV(4, 2)) == 1
-    assert unsigned_value(BV(4, 2) != BV(4, 2)) == 0
-    assert unsigned_value(BV(4, 2) == BV(4, 3)) == 0
-    assert unsigned_value(BV(4, 2) != BV(4, 3)) == 1
+def test_slicing():
+    assert BV(4, 6)[2]() == -1
+    assert BV(4, 6)[0]() == 0
+    assert BV(4, 6)[1:3]() == BV(2, 3)()
+    assert BV(4, 6)[::-1]() == BV(4, 6)()
 
-    # Comparison
-    assert unsigned_value(BV(4, 2) < BV(4, 3)) == 1
-    assert unsigned_value(BV(4, 3) < BV(4, 2)) == 0
-    assert unsigned_value(BV(4, 2) > BV(4, 3)) == 0
-    assert unsigned_value(BV(4, 3) > BV(4, 2)) == 1
-    assert unsigned_value(BV(4, 2) <= BV(4, 3)) == 1
-    assert unsigned_value(BV(4, 3) <= BV(4, 3)) == 1
-    assert unsigned_value(BV(4, 4) <= BV(4, 3)) == 0
+
+def test_concat():
+    assert (BV(4, 1).concat(BV(3, 0)))() == 1
+    assert (BV(4, 0).concat(BV(3, 1)))() == 16
+
+
+@given(st.integers(-128,127), st.integers(-128,127))
+def test_addition(a, b):
+    assert (BV(9, 'a') + BV(9, 'b'))({'a': a, 'b': b}) == a + b
+
+
+@given(st.integers(-128,127), st.integers(-128,127))
+def test_and(a, b):
+    e = BV(8, a) & BV(8, b)
+    assert e() == a & b
+
+
+@given(st.integers(-128,127), st.integers(-128,127))
+def test_or(a, b):
+    e = BV(8, a) | BV(8, b)
+    assert e() == a | b
+
+
+@given(st.integers(-128,127), st.integers(-128,127))
+def test_xor(a, b):
+    e = BV(8, a) ^ BV(8, b)
+    assert e() == a ^ b
+
+
+@given(st.integers(-128,127), st.integers(-128,127))
+def test_eq(a, b):
+    e = (BV(8, a) == BV(8, b))
+    assert e() == (a == b)
+
+
+@given(st.integers(-128, 127))
+def test_abs(int_value):
+    bv = abs(BV(8, int_value))
+    assert bv() == abs(int_value)
+
+
+
+# def test_bv_class():
+#     # Abs
+#     assert value(abs(BV(8, -17))) == 17
+#     assert value(abs(BV(8, 42))) == 42
+
+#     # Equality
+#     assert unsigned_value(BV(4, 2) == BV(4, 2)) == 1
+#     assert unsigned_value(BV(4, 2) != BV(4, 2)) == 0
+#     assert unsigned_value(BV(4, 2) == BV(4, 3)) == 0
+#     assert unsigned_value(BV(4, 2) != BV(4, 3)) == 1
+
+#     # Comparison
+#     assert unsigned_value(BV(4, 2) < BV(4, 3)) == 1
+#     assert unsigned_value(BV(4, 3) < BV(4, 2)) == 0
+#     assert unsigned_value(BV(4, 2) > BV(4, 3)) == 0
+#     assert unsigned_value(BV(4, 3) > BV(4, 2)) == 1
+#     assert unsigned_value(BV(4, 2) <= BV(4, 3)) == 1
+#     assert unsigned_value(BV(4, 3) <= BV(4, 3)) == 1
+#     assert unsigned_value(BV(4, 4) <= BV(4, 3)) == 0

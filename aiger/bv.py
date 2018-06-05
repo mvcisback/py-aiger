@@ -1,23 +1,9 @@
 from aiger import common, parser
 
-
-def _bv_andor(wordlen, gate, output='x&y', left='x', right='y'):
-    aig = common.empty()
-    for i in range(wordlen):
-        aig |= common.and_gate(
-            [f'{left}[{i}]', f'{right}[{i}]'], output=f'{output}[{i}]')
-    return aig
+import re
 
 
-def bv_and(wordlen, output='x&y', left='x', right='y'):
-    return _bv_andor(wordlen, common.and_gate, output, left, right)
-
-
-def bv_or(wordlen, output='x&y', left='x', right='y'):
-    return _bv_andor(wordlen, common.or_gate, output, left, right)
-
-
-def const(wordlen, value, output='x'):
+def _const(wordlen, value, output='x'):
     assert 2**wordlen > value
     aig = common.empty()
     for i in range(wordlen):
@@ -48,27 +34,21 @@ def _adder_circuit(wordlen, output='x+y', left='x', right='y'):
     return aig
 
 
-def _incrementer_circuit(wordlen, output='x+1', input='x'):
-    const_1 = const(wordlen, 1, output='y')
-    adder = _adder_circuit(wordlen, output=output, left=input, right='y')
-    return const_1 >> adder
-
-
 def _negation_circuit(wordlen, output='not x', input='x'):
     return common.bit_flipper(
         inputs=[f'{input}[{i}]' for i in range(wordlen)],
         outputs=[f'{output}[{i}]' for i in range(wordlen)])
 
 
-def _negative_circuit(wordlen, output='-x', input='x'):
-    """Returns the circuit computing x*(-1) in Two's complement"""
-    neg = _negation_circuit(wordlen, output='tmp', input=input)
-    inc = _incrementer_circuit(wordlen, output=output, input='tmp')
-    return neg >> inc
-
-
 def _indent(strings):
     return list(map(lambda s: '  ' + s, strings))
+
+
+def _testBit(value, bit_idx):
+    assert isinstance(value, int)
+    assert isinstance(bit_idx, int)
+    mask = 1 << bit_idx
+    return value & mask
 
 
 class BV(object):
@@ -84,6 +64,8 @@ class BV(object):
         self.variables = []
 
         assert isinstance(name, str)
+        assert '[' not in name  # interferes with pattern matching
+        assert ']' not in name
         self._name = name  # name of all circuit outputs
 
         if self.size == 0:
@@ -92,9 +74,10 @@ class BV(object):
 
         elif isinstance(kind, int):  # Constant
             assert kind < 2**size and kind > -2**size
-            self.aig = const(size, abs(kind), output=self.name())
+            self.aig = _const(size, abs(kind), output=self.name())
             if kind < 0:
-                self.aig = (-self).aig
+                negative = -self
+                self.aig = negative.rename(self.name()).aig
 
             # nice comments
             del self.aig.comments[:]
@@ -119,6 +102,8 @@ class BV(object):
             assert len(self.aig.outputs) == self.size
 
         assert len(self.aig.outputs) == self.size
+        if self.size > 0:
+            assert list(self.aig.outputs)[0].startswith(self.name())
 
     def __len__(self):
         return self.size
@@ -141,23 +126,30 @@ class BV(object):
 
     def assign(self, assignment):
         """Assignment must be map from names to integer values."""
-        aig = self.aig
+        value_aig = common.empty()
         for name, value in assignment.items():
-            aig = BV(self.size, value, name=name).aig >> aig
-
+            value_aig |= BV(self.size, value, name=name).aig
+        composed_aig = value_aig >> self.aig
         names = assignment.keys()
         variables = list(filter(lambda n: n not in names, self.variables))
-        return BV(self.size, (variables, aig))
+        return BV(self.size, (variables, composed_aig))
 
     # Arithmetic operations
     def __add__(self, other):
         assert self.size == other.size
-        other = other.rename('other')
+        if self.name() == other.name():
+            other = other.rename('other')
+        outname = 'bv'
+        if self.name() == outname or other.name() == outname:
+            outname = f'{self.name()}_+_{other.name()}'
+
         adder = _adder_circuit(
-            self.size, output=self.name(), left=self.name(), right='other')
-        adder >>= common.sink([self.name() + '_carry'])
-        res = BV(self.size, (self.variables + other.variables, self.aig >>
-                             (other.aig >> adder)))
+            self.size, output=outname, left=self.name(), right=other.name())
+        adder >>= common.sink([outname + '_carry'])
+        add_other = other.aig >> adder
+        result = self.aig >> add_other
+        res = BV(self.size, (self.variables + other.variables, result), name=outname)
+
         # nice comments
         del res.aig.comments[:]
         res.aig.comments.extend([f'add'] + _indent(self.aig.comments) +
@@ -169,7 +161,7 @@ class BV(object):
         """Implements -x."""
         neg = _negation_circuit(
             self.size, output=self.name(), input=self.name())
-        res = BV(self.size, (self.variables, self.aig >> neg))
+        res = BV(self.size, (self.variables, self.aig >> neg), name=self.name())
 
         # nice comments
         del res.aig.comments[:]
@@ -482,8 +474,53 @@ class BV(object):
     def rename(self, name):
         """Renames the output of the expression; mostly used internally"""
         rename_map = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
-        return BV(
-            self.size, (self.variables, self.aig['o', rename_map]), name=name)
+        return BV(self.size, (self.variables, self.aig['o', rename_map]), name=name)
+
+
+    def __call__(self, args={}, signed=True): 
+        '''
+        Eval for unsigned integers:
+        - inputs must be unsigned
+        - outputs are unsigned
+        - args is a dict mapping variable names to non-negative integers smaller than 2**bitwidth
+        '''
+
+        # Check completeness of inputs; check ranges
+        for key, value in args.items():
+            assert value >= - 2**(self.size-1)
+            assert value < 2**(self.size)
+            assert key in self.variables
+        assert len(self.aig.inputs)//self.size == len(args)  # correct number of inputs?
+
+        # Tanslate integers values to bit values
+        # Challenge here is that we don't know the bit widths of the different variables
+        inputs = {}
+        for input_name, _ in self.aig.inputs.items():
+            # split name into variable name and index
+            var_name, idx = re.match('^(.*)\[(\d*)\]$', input_name).groups()
+
+            # populate input map
+            assert var_name in args
+            inputs[input_name] = _testBit(args[var_name], int(idx))
+        
+        outputs, gates = self.aig(inputs=inputs)
+
+        print(outputs)
+
+        # Interpret result
+        out_value = 0
+        if signed and self.size > 1 and outputs[f'{self.name(self.size - 1)}']:
+            for idx in range(self.size):
+                if not outputs[f'{self.name()}[{idx}]']:
+                    out_value -= 2**idx
+            out_value -= 1
+        else:
+            for idx in range(self.size):
+                if outputs[f'{self.name()}[{idx}]']:
+                    out_value += 2**idx
+        
+        return out_value
+
 
     # Difficult arithmetic operations
     # def __mul__(self, other):
