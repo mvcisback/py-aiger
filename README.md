@@ -133,6 +133,7 @@ would someday like feature parity.
       py-aiger).
 - [ ] Officially support Bit Vector extensions.
 
+
 # aiger.utils and aiger.bv_utils
 
 `aiger.utils` and `aiger.bv_utils` contain a number of helper
@@ -144,6 +145,7 @@ functions that depend on external tools.
 - To use simplification, make sure abc and aigtoaig are in your path.
 
     TODO: remove this constraint.
+
 
 # Proposed API
 
