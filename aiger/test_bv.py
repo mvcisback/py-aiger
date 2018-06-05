@@ -112,4 +112,3 @@ def test_le(a, b):
 def test_ge(a, b):
     e = (BV(10, a) >= BV(10, b))
     assert e() == (a >= b)
-

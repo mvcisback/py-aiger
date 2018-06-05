@@ -494,7 +494,7 @@ class BV(object):
         Eval for unsigned integers:
         - inputs must be unsigned
         - outputs are unsigned
-        - args is a dict mapping variable names to non-negative integers 
+        - args is a dict mapping variable names to non-negative integers
           smaller than 2**bitwidth
         '''
 

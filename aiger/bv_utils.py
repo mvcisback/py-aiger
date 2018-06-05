@@ -21,8 +21,8 @@ def simplify(expr):
             "read {}; print_stats; dc2; dc2; dc2; print_stats; write {}".
             format(f.name + ".aig", f.name + ".aig")
           ],
-        stdout=PIPE
-    )  # this ensures that ABC is not too verbose, but will still print errors
+         stdout=PIPE
+        )  # this ensures that ABC is not too verbose, but still prints errors
     simplified_filename = f.name + ".simp.aag"
     call(["aigtoaig", f.name + ".aig", simplified_filename],
          stdout=PIPE
