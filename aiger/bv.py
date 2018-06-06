@@ -4,7 +4,8 @@ import string
 import re
 
 _FORBIDDEN = (' ', '[', ']', '\n', '\t', '\r', '\x0b', '\x0c')
-VAR_NAME_ALPHABET = frozenset([c for c in string.printable if c not in _FORBIDDEN])
+VAR_NAME_ALPHABET = frozenset(
+    [c for c in string.printable if c not in _FORBIDDEN])
 
 
 def _const(wordlen, value, output='x'):
@@ -465,7 +466,7 @@ class BV(object):
         del res.aig.comments[:]
         res.aig.comments.extend(['>'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
-        
+
         return res
 
     def __le__(self, other):
