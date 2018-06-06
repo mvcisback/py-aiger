@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import starmap
-from typing import Tuple, FrozenSet, Mapping, NamedTuple, Union
+from typing import Tuple, FrozenSet, NamedTuple, Union
 
 import funcy as fn
 import lenses.hooks  # TODO: remove on next lenses version release.
@@ -16,14 +16,14 @@ def _frozenset_from_iter(self, iterable):
 
 
 class AndGate(NamedTuple):
-    left: 'Gate' # TODO: replace with Gate once 3.7 lands.
+    left: 'Gate'  # TODO: replace with Gate once 3.7 lands.
     right: 'Gate'
 
     @property
     def children(self):
         return tuple((self.left, self.right))
 
-    
+
 class Latch(NamedTuple):
     name: str
     input: 'Gate'
@@ -31,7 +31,7 @@ class Latch(NamedTuple):
 
     @property
     def children(self):
-        return tuple((self.input,))
+        return tuple((self.input, ))
 
 
 class Inverter(NamedTuple):
@@ -39,12 +39,12 @@ class Inverter(NamedTuple):
 
     @property
     def children(self):
-        return tuple((self.input,))
+        return tuple((self.input, ))
 
-    
+
 # Enables filtering for InputSignal via lens library.
 class InputSignal(NamedTuple):
-    name: str  
+    name: str
 
     @property
     def children(self):
@@ -59,6 +59,7 @@ class Ground(NamedTuple):
 
 Gate = Union[AndGate, Latch, Ground, Inverter, InputSignal]
 
+
 class AIG(NamedTuple):
     inputs: FrozenSet[str]
     top_level: FrozenSet[Tuple[str, Gate]]
@@ -66,7 +67,7 @@ class AIG(NamedTuple):
 
     # TODO:
     # __repr__(self):
-    
+
     @property
     def outputs(self):
         return frozenset(fn.pluck(0, self.top_level))
@@ -88,12 +89,12 @@ class AIG(NamedTuple):
     @property
     def _eval_order(self):
         return list(toposort(_dependency_graph(self.gates)))
-    
+
     def __call__(self, inputs, latches=None):
         # TODO: Implement partial evaluation.
         if latches is not None:
             latches = dict()
-            
+
         latches = {l: latches.get(l.name, l.initial) for l in self.latches}
         lookup = fn.merge(inputs, latches)
         for gate in fn.cat(self._eval_order[1:]):
@@ -109,7 +110,7 @@ class AIG(NamedTuple):
                 lookup[gate] = False
             else:
                 raise NotImplementedError
-            
+
         outputs = {name: lookup[gate] for name, gate in self.top_level}
         latches = {l.name: lookup[l] for l in latches}
         return outputs, latches
@@ -124,15 +125,13 @@ class AIG(NamedTuple):
         sim = self.simulator()
         next(sim)
         return [sim.send(inputs) for inputs in input_seq]
-    
 
     def cutlatches(self, latches=None):
         raise NotImplementedError
-    
+
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO: Port cutlatches
         raise NotImplementedError
-
 
 
 def _dependency_graph(gates):
@@ -162,17 +161,15 @@ def and_gate(inputs, output=None):
 
     return AIG(
         inputs=frozenset(inputs),
-        top_level=frozenset(((output, _map_tree(inputs, f=AndGate)),)),
-        comments=()
-    )
+        top_level=frozenset(((output, _map_tree(inputs, f=AndGate)), )),
+        comments=())
 
 
 def identity(inputs):
     return AIG(
         inputs=frozenset(inputs),
         top_level=frozenset(zip(inputs, map(InputSignal, inputs))),
-        comments=()
-    )
+        comments=())
 
 
 def empty():
@@ -192,8 +189,7 @@ def inverter(inputs, outputs=None):
     return AIG(
         inputs=tuple(inputs),
         top_level=tuple(zip(outputs, map(_inverted_input, inputs))),
-        comments=()
-    )
+        comments=())
 
 
 def _const(val):
@@ -204,16 +200,11 @@ def source(outputs):
     return AIG(
         inputs=tuple(),
         top_level=tuple((k, _const(v)) for k, v in outputs.items()),
-        comments=()
-    )
+        comments=())
 
 
 def sink(inputs):
-    return AIG(
-        inputs=tuple(inputs),
-        top_level=tuple(),
-        comments=()
-    )
+    return AIG(inputs=tuple(inputs), top_level=tuple(), comments=())
 
 
 def par_compose(aig1, aig2, check_precondition=True):
@@ -224,27 +215,28 @@ def par_compose(aig1, aig2, check_precondition=True):
     return AIG(
         inputs=aig1.inputs | aig2.inputs,
         top_level=aig1.top_level | aig2.top_level,
-        comments=()
-    )
+        comments=())
 
 
 def seq_compose(aig1, aig2, check_precondition=True):
-    # TODO: apply simple optimizations such as unit propogation and excluded middle.
+    # TODO: apply simple optimizations such as unit propogation and
+    # excluded middle.
 
     interface = aig1.outputs & aig2.inputs
     if check_precondition:
         assert not (aig1.outputs - interface) & aig2.outputs
         assert not aig1.latches & aig2.latches
-    
+
     lookup = dict(aig1.top_level)
+
     def sub(input_sig):
         return lookup.get(input_sig.name, input_sig)
 
     composed = bind(aig2.top_level).Recur(InputSignal).modify(sub)
-    passthrough = frozenset((k, v) for k, v in aig1.top_level if k not in interface)
+    passthrough = frozenset(
+        (k, v) for k, v in aig1.top_level if k not in interface)
 
     return AIG(
         inputs=aig1.inputs | (aig2.inputs - interface),
         top_level=composed | passthrough,
-        comments=()
-    )
+        comments=())
