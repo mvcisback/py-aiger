@@ -3,8 +3,8 @@ from aiger import common, parser
 import string
 import re
 
-forbidden = [' ', '[', ']', '\n', '\t', '\r', '\x0b', '\x0c']
-var_name_alphabet = set([c for c in string.printable if c not in forbidden])
+_FORBIDDEN = (' ', '[', ']', '\n', '\t', '\r', '\x0b', '\x0c')
+VAR_NAME_ALPHABET = frozenset([c for c in string.printable if c not in _FORBIDDEN])
 
 
 def _const(wordlen, value, output='x'):
@@ -37,27 +37,6 @@ def _adder_circuit(wordlen, output='x+y', left='x', right='y'):
             carry_out=carry_name)
     return aig
 
-# def _lt_comp(x='left', y='right', carry='carry', output='res', 
-#              equal_in='eq_in', equal_out='eq_out'):
-#     """unsigned comparison"""
-#     return parser.parse(
-#         "aag 9 4 0 2 5\n2\n4\n6\n8\n11\n12\n14 3 4\n16 14 8\n10 17 7\n18 2 5\n12 8 19\n"
-#         f"i0 {x}\ni1 {y}\ni2 {carry}\ni3 {equal_in}\no0 {output}\no1 {equal_out}\n")
-#
-# def _lt_circuit(wordlen, output='x<y', equal='eq', left='x', right='y'):
-#     output = f'{output}[0]'
-#     assert len(set([output, equal, left, right])) == 4  # all different
-
-#     aig = common.source({output: False, equal: True})
-#     for i in range(wordlen)[::-1]:
-#         aig >>= _lt_comp(
-#             x=f"{left}[{i}]",
-#             y=f"{right}[{i}]",
-#             carry=output,
-#             output=output,
-#             equal_in=equal,
-#             equal_out=equal)
-#     return aig
 
 def _negation_circuit(wordlen, output='not x', input='x'):
     return common.bit_flipper(
@@ -94,7 +73,7 @@ class BV(object):
 
         assert isinstance(name, str)
         for c in name:
-            assert c in var_name_alphabet
+            assert c in VAR_NAME_ALPHABET
         self._name = name  # name of all circuit outputs
 
         if self.size == 0:
@@ -461,10 +440,6 @@ class BV(object):
 
         return res
 
-    def stretch_signed(self, k):
-        '''Add k more outputs, just after the sign bit'''
-
-
     def __lt__(self, other):
         """signed comparison"""
         assert self.size == other.size
@@ -520,14 +495,18 @@ class BV(object):
         m = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
         return BV(self.size, (self.variables, self.aig['o', m]), name=name)
 
-    def __call__(self, args={}, signed=True):
+    def __call__(self, args=None, signed=True, interpreted=True):
         '''
         Eval for unsigned integers:
         - inputs must be unsigned
         - outputs are unsigned
         - args is a dict mapping variable names to non-negative integers
           smaller than 2**bitwidth
+        - signed controls if the output is interpreted signed or unsigned
+        - interpreted=False returns the bitvector instead of an int
         '''
+        if args is None:
+            args = {}
 
         # Check completeness of inputs; check ranges
         for key, value in args.items():
@@ -549,6 +528,9 @@ class BV(object):
             inputs[input_name] = _testBit(args[var_name], int(idx))
 
         outputs, gates = self.aig(inputs=inputs)
+
+        if not interpreted:
+            return outputs
 
         # Interpret result
         out_value = 0

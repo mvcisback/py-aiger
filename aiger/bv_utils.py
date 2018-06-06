@@ -38,8 +38,7 @@ def simplify(expr):
     finally:
         f.close()
 
-    if not simp_aig_string:
-        # print('Could not simpify file')
+    if not simp_aig_string:  # could not simplify file
         return None
 
     aig = parser.parse(simp_aig_string)

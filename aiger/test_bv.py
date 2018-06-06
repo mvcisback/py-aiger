@@ -1,11 +1,11 @@
-from aiger.bv import BV, var_name_alphabet
+from aiger.bv import BV, VAR_NAME_ALPHABET
 
 # additional imports for testing frammework
 import hypothesis.strategies as st
 from hypothesis import given
 
 
-var_name_generator = st.text(alphabet=var_name_alphabet)
+var_name_generator = st.text(alphabet=VAR_NAME_ALPHABET)
 
 
 @given(st.integers(-128, 127))
