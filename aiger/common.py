@@ -7,6 +7,8 @@ import funcy as fn
 from lenses import bind
 from toposort import toposort
 
+from aiger import aig
+
 Header = namedtuple(
     'Header',
     ['max_var_index', 'num_inputs', 'num_latches', 'num_outputs', 'num_ands'])
@@ -16,6 +18,9 @@ SymbolTable = namedtuple('SymbolTable', ['inputs', 'outputs', 'latches'])
 
 def to_idx(lit):
     return lit >> 1
+
+def inverted(lit):
+    return lit & 1 == 1
 
 
 @fn.curry
@@ -163,6 +168,55 @@ class AAG(NamedTuple):
             unrolled = unrolled >> sink(latch_names)
 
         return unrolled
+
+
+    @property
+    def eval_order_and_gate_lookup(self):
+        deps = {a & -2: {b & -2, c & -2} for a, b, c in self.gates}
+        deps.update(
+            {a & -2: {b & -2} for _, (a, b, _) in self.latches.items()}
+        )
+
+        lookup = {v[0] & -2: ('AND', v) for v in self.gates}
+        lookup.update(
+            {v[0] & -2: ('LATCH', (v, k)) for k, v in self.latches.items()}
+        )
+        return list(toposort(deps)), lookup
+
+
+    def _to_aig(self):
+        eval_order, gate_lookup = self.eval_order_and_gate_lookup
+
+        lookup = {to_idx(l): aig.Input(n) for n, l in self.inputs.items()}
+        # TODO: include latches
+        lookup[0] = aig.ConstFalse()
+
+        for gate in fn.cat(eval_order[1:]):
+            kind, gate = gate_lookup[gate]
+
+            if kind == 'AND':
+                out, *inputs = gate
+            elif kind == 'LATCH':
+                (out, *inputs, init), name = gate
+
+            def polarity(i):
+                return aig.Inverter if inverted(i) else lambda x: x
+
+            sources = [polarity(i)(lookup[to_idx(i)]) for i in inputs]
+            if kind == 'AND':
+                output = aig.AndGate(*sources)
+            else:
+                output = aig.Latch(input=sources[0], initial=init, name=name)
+
+            lookup[to_idx(out)] = output
+
+        top_level = ((k, lookup[to_idx(v)]) for k, v in self.outputs.items())
+        return aig.AIG(
+            inputs=frozenset(self.inputs.keys()),
+            top_level=frozenset(top_level),
+            comments=self.comments
+        )
+
 
 
 def cutlatches(aag, latches):

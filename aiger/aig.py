@@ -4,7 +4,7 @@ from typing import Tuple, FrozenSet, NamedTuple, Union
 
 import funcy as fn
 import lenses.hooks  # TODO: remove on next lenses version release.
-from lenses import bind
+from lenses import bind, lens
 from toposort import toposort
 
 
@@ -16,8 +16,8 @@ def _frozenset_from_iter(self, iterable):
 
 
 class AndGate(NamedTuple):
-    left: 'Gate'  # TODO: replace with Gate once 3.7 lands.
-    right: 'Gate'
+    left: 'Node'  # TODO: replace with Node once 3.7 lands.
+    right: 'Node'
 
     @property
     def children(self):
@@ -26,7 +26,7 @@ class AndGate(NamedTuple):
 
 class Latch(NamedTuple):
     name: str
-    input: 'Gate'
+    input: 'Node'
     initial: bool
 
     @property
@@ -35,15 +35,15 @@ class Latch(NamedTuple):
 
 
 class Inverter(NamedTuple):
-    input: 'Gate'
+    input: 'Node'
 
     @property
     def children(self):
         return tuple((self.input, ))
 
 
-# Enables filtering for InputSignal via lens library.
-class InputSignal(NamedTuple):
+# Enables filtering for Input via lens library.
+class Input(NamedTuple):
     name: str
 
     @property
@@ -51,22 +51,39 @@ class InputSignal(NamedTuple):
         return tuple()
 
 
-class Ground(NamedTuple):
+class ConstFalse(NamedTuple):
     @property
     def children(self):
         return tuple()
 
 
-Gate = Union[AndGate, Latch, Ground, Inverter, InputSignal]
+Node = Union[AndGate, Latch, ConstFalse, Inverter, Input]
 
 
 class AIG(NamedTuple):
     inputs: FrozenSet[str]
-    top_level: FrozenSet[Tuple[str, Gate]]
+    top_level: FrozenSet[Tuple[str, Node]]
     comments: Tuple[str]
 
     # TODO:
     # __repr__(self):
+
+    def __getitem__(self, others):
+        if not isinstance(others, tuple):
+            return super().__getitem__(others)
+
+        kind, relabels = others
+        if kind not in {'i', 'o', 'l'}:
+            raise NotImplementedError
+
+        def _relabel(n):
+            return relabels.get(n, n)
+
+        return {
+            'i': lens.Fork(lens.Recur(Input).name, lens.inputs.Each()),
+            'o': lens.top_level.Each()[0],
+            'l': lens.Recur(Latch).name
+        }.get(kind).modify(_relabel)(self)
 
     @property
     def outputs(self):
@@ -77,8 +94,8 @@ class AIG(NamedTuple):
         return frozenset(bind(self).Recur(Latch).collect())
 
     @property
-    def gates(self):
-        return frozenset(fn.pluck(1, self.top_level))
+    def and_gates(self):
+        return frozenset(bind(self).Recur(AndGate).collect())
 
     def __rshift__(self, other):
         return seq_compose(self, other)
@@ -88,30 +105,30 @@ class AIG(NamedTuple):
 
     @property
     def _eval_order(self):
-        return list(toposort(_dependency_graph(self.gates)))
+        return list(toposort(_dependency_graph(self.nodes)))
 
     def __call__(self, inputs, latches=None):
         # TODO: Implement partial evaluation.
-        if latches is not None:
+        if latches is None:
             latches = dict()
 
         latches = {l: latches.get(l.name, l.initial) for l in self.latches}
         lookup = fn.merge(inputs, latches)
-        for gate in fn.cat(self._eval_order[1:]):
-            if isinstance(gate, AndGate):
-                lookup[gate] = lookup[gate.left] and lookup[gate.right]
-            elif isinstance(gate, Inverter):
-                lookup[gate] = not lookup[gate.input]
-            elif isinstance(gate, Latch):
-                lookup[gate] = lookup[gate.input]
-            elif isinstance(gate, InputSignal):
-                lookup[gate] = lookup[gate.name]
-            elif isinstance(gate, Ground):
-                lookup[gate] = False
+        for node in fn.cat(self._eval_order[1:]):
+            if isinstance(node, AndGate):
+                lookup[node] = lookup[node.left] and lookup[node.right]
+            elif isinstance(node, Inverter):
+                lookup[node] = not lookup[node.input]
+            elif isinstance(node, Latch):
+                lookup[node] = lookup[node.input]
+            elif isinstance(node, Input):
+                lookup[node] = lookup[node.name]
+            elif isinstance(node, ConstFalse):
+                lookup[node] = False
             else:
                 raise NotImplementedError
 
-        outputs = {name: lookup[gate] for name, gate in self.top_level}
+        outputs = {name: lookup[node] for name, node in self.top_level}
         latches = {l.name: lookup[l] for l in latches}
         return outputs, latches
 
@@ -126,27 +143,63 @@ class AIG(NamedTuple):
         next(sim)
         return [sim.send(inputs) for inputs in input_seq]
 
-    def cutlatches(self, latches=None):
-        raise NotImplementedError
+    def cutlatches(self, latches):
+        # TODO: assert relabels won't collide with existing labels.
+        latch_top_level = {(l.name, l.input) for l in self.latches}
+        return AIG(
+            inputs=fn.merge(self.inputs, frozenset(name_to_latch)),
+            top_level=self.top_level | latch_top_level,
+            comments=()
+        )
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
-        # TODO: Port cutlatches
-        raise NotImplementedError
+        # TODO:
+        # - Check for name collisions.
+        aag0 = cutlatches(self, self.latches.keys())
+
+        def _unroll():
+            prev = aag0
+            for t in range(1, horizon + 1):
+                tmp = prev['i', {k: f"{k}##time_{t-1}" for k in aag0.inputs}]
+                yield tmp['o', {k: f"{k}##time_{t}" for k in aag0.outputs}]
+
+        unrolled = reduce(seq_compose, _unroll())
+        if init:
+            latch_source = {
+                f"{k}##time_0": val
+                for k, (_, _, val) in self.latches.items()
+            }
+            unrolled = source(latch_source) >> unrolled
+
+        if omit_latches:
+            latch_names = [f"{k}##time_{horizon}" for k in self.latches.keys()]
+
+            unrolled = unrolled >> sink(latch_names)
+
+        return unrolled
+    
+
+    def to_aag(self):
+        # TODO: toposort.
+        # TODO: convert 
+        
+        pass
 
 
-def _dependency_graph(gates):
-    queue, deps = list(gates), defaultdict(set)
+
+def _dependency_graph(nodes):
+    queue, deps = list(nodes), defaultdict(set)
     while queue:
-        gate = queue.pop()
-        children = gate.children
+        node = queue.pop()
+        children = node.children
         queue.extend(children)
-        deps[gate].update(children)
+        deps[node].update(children)
 
     return deps
 
 
 def _map_tree(inputs, f):
-    queue = fn.lmap(InputSignal, inputs)
+    queue = fn.lmap(Input, inputs)
     while len(queue) > 1:
         queue = list(starmap(f, zip(queue, queue[1:])))
     return queue[0]
@@ -168,7 +221,7 @@ def and_gate(inputs, output=None):
 def identity(inputs):
     return AIG(
         inputs=frozenset(inputs),
-        top_level=frozenset(zip(inputs, map(InputSignal, inputs))),
+        top_level=frozenset(zip(inputs, map(Input, inputs))),
         comments=())
 
 
@@ -177,7 +230,7 @@ def empty():
 
 
 def _inverted_input(name):
-    return Inverter(InputSignal(name))
+    return Inverter(Input(name))
 
 
 def inverter(inputs, outputs=None):
@@ -187,24 +240,35 @@ def inverter(inputs, outputs=None):
         assert len(outputs) == len(inputs)
 
     return AIG(
-        inputs=tuple(inputs),
-        top_level=tuple(zip(outputs, map(_inverted_input, inputs))),
+        inputs=frozenset(inputs),
+        top_level=frozenset(zip(outputs, map(_inverted_input, inputs))),
         comments=())
 
 
 def _const(val):
-    return Inverter(Ground()) if val else Ground()
+    return Inverter(ConstFalse()) if val else ConstFalse()
 
 
 def source(outputs):
     return AIG(
-        inputs=tuple(),
-        top_level=tuple((k, _const(v)) for k, v in outputs.items()),
+        inputs=frozenset(),
+        top_level=frozenset((k, _const(v)) for k, v in outputs.items()),
         comments=())
 
 
 def sink(inputs):
-    return AIG(inputs=tuple(inputs), top_level=tuple(), comments=())
+    return AIG(inputs=frozenset(inputs), top_level=frozenset(), comments=())
+
+
+def tee(outputs):
+    def tee_output(name, renames):
+        return frozenset((r, Input(name)) for r in renames)
+
+    return AIG(
+        inputs=frozenset(outputs),
+        top_level=frozenset.union(*starmap(tee_output, outputs.items())),
+        comments=[])
+
 
 
 def par_compose(aig1, aig2, check_precondition=True):
@@ -232,7 +296,7 @@ def seq_compose(aig1, aig2, check_precondition=True):
     def sub(input_sig):
         return lookup.get(input_sig.name, input_sig)
 
-    composed = bind(aig2.top_level).Recur(InputSignal).modify(sub)
+    composed = bind(aig2.top_level).Recur(Input).modify(sub)
     passthrough = frozenset(
         (k, v) for k, v in aig1.top_level if k not in interface)
 
