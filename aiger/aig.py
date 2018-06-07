@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import starmap
-from typing import Tuple, FrozenSet, NamedTuple, Union
+from typing import Tuple, FrozenSet, NamedTuple, Union, Mapping, List
 
 import funcy as fn
 import lenses.hooks  # TODO: remove on next lenses version release.
@@ -94,8 +94,8 @@ class AIG(NamedTuple):
         return frozenset(bind(self).Recur(Latch).collect())
 
     @property
-    def and_gates(self):
-        return frozenset(bind(self).Recur(AndGate).collect())
+    def cones(self):
+        return frozenset(fn.pluck(1, self.top_level))
 
     def __rshift__(self, other):
         return seq_compose(self, other)
@@ -149,8 +149,7 @@ class AIG(NamedTuple):
         return AIG(
             inputs=fn.merge(self.inputs, frozenset(name_to_latch)),
             top_level=self.top_level | latch_top_level,
-            comments=()
-        )
+            comments=())
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO:
@@ -177,14 +176,103 @@ class AIG(NamedTuple):
             unrolled = unrolled >> sink(latch_names)
 
         return unrolled
-    
 
     def to_aag(self):
         # TODO: toposort.
-        # TODO: convert 
-        
+        # TODO: convert
         pass
 
+
+class AAG(NamedTuple):
+    lit_map: Mapping[Node, int]
+    inputs: Mapping[str, int]
+    latches: Mapping[str, Tuple[int]]
+    outputs: Mapping[str, int]
+    gates: List[Tuple[int]]
+    comments: Tuple[str]
+
+    @property
+    def header(self):
+        return (max((v >> 1
+                     for v in self.lit_map.values())), len(self.inputs), len(
+                         self.latches), len(self.outputs), len(self.gates))
+
+    def __repr__(self):
+        if self.inputs:
+            input_names, input_lits = zip(*list(self.inputs.items()))
+        if self.outputs:
+            output_names, output_lits = zip(*list(self.outputs.items()))
+        if self.latches:
+            latch_names, latch_lits = zip(*list(self.latches.items()))
+
+        out = f"aag " + " ".join(map(str, self.header)) + '\n'
+        if self.inputs:
+            out += '\n'.join(map(str, input_lits)) + '\n'
+        if self.latches:
+            out += '\n'.join([' '.join(map(str, xs))
+                              for xs in latch_lits]) + '\n'
+        if self.outputs:
+            out += '\n'.join(map(str, output_lits)) + '\n'
+        if self.gates:
+            out += '\n'.join([' '.join(map(str, xs))
+                              for xs in self.gates]) + '\n'
+        if self.inputs:
+            out += '\n'.join(f"i{idx} {name}"
+                             for idx, name in enumerate(input_names)) + '\n'
+        if self.outputs:
+            out += '\n'.join(f"o{idx} {name}"
+                             for idx, name in enumerate(output_names)) + '\n'
+        if self.latches:
+            out += '\n'.join(f"l{idx} {name}"
+                             for idx, name in enumerate(latch_names)) + '\n'
+        if self.comments:
+            out += 'c\n' + '\n'.join(self.comments) + '\n'
+        return out
+
+
+def _to_aag(aig):
+    aag = __to_aag(aig.cones, AAG({}, {}, {}, {}, [], aig.comments))
+    aag.outputs.update({k: aag.lit_map[cone] for k, cone in aig.top_level})
+    return aag
+
+
+def __to_aag(gates, aag: AAG = None, *, max_idx=1):
+    if not gates:
+        return aag
+
+    # Recurse to update get aag for subtrees.
+    children = fn.cat(g.children for g in gates)
+    children = [c for c in children if c not in aag.lit_map]
+    aag = __to_aag(children, aag, max_idx=max_idx)
+
+    # Update aag with current level.
+    lit_map = aag.lit_map
+    for gate in gates:
+        if gate in lit_map:
+            continue
+
+        if isinstance(gate, Inverter):
+            lit_map[gate] = lit_map[gate.input] + 1
+            continue
+        elif isinstance(gate, ConstFalse):
+            lit_map[gate] = 0
+            continue
+
+        # Must be And, Latch, or Input
+        lit_map[gate] = 2 * max_idx
+        max_idx += 1
+        if isinstance(gate, AndGate):
+            encoded = tuple(map(lit_map.get, (gate, gate.left, gate.right)))
+            aag.gates.append(encoded)
+
+        elif isinstance(gate, Latch):
+            encoded = (lit_map[gate], lit_map[gate.input], int(gate.initial))
+            aag.latches[gate.name] = encoded
+
+        elif isinstance(gate, Input):
+            aag.inputs[gate.name] = lit_map[gate]
+
+    return aag
 
 
 def _dependency_graph(nodes):
@@ -268,7 +356,6 @@ def tee(outputs):
         inputs=frozenset(outputs),
         top_level=frozenset.union(*starmap(tee_output, outputs.items())),
         comments=[])
-
 
 
 def par_compose(aig1, aig2, check_precondition=True):
