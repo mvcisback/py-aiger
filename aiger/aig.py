@@ -115,7 +115,7 @@ class AIG(NamedTuple):
 
         latches = {l: latches.get(l.name, l.initial) for l in self.latches}
         lookup = fn.merge(inputs, latches)
-        for node in fn.cat(self._eval_order[1:]):
+        for node in fn.cat(self._eval_order):
             if isinstance(node, AndGate):
                 lookup[node] = lookup[node.left] and lookup[node.right]
             elif isinstance(node, Inverter):
