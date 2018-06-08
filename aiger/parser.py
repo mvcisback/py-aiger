@@ -9,7 +9,6 @@ from aiger import aig
 Symbol = namedtuple('Symbol', ['kind', 'index', 'name'])
 SymbolTable = namedtuple('SymbolTable', ['inputs', 'outputs', 'latches'])
 
-
 AAG_GRAMMAR = Grammar(u'''
 aag = header ios latches ios gates symbols comments?
 header = "aag" _ id _ id _ id _ id _ id EOL
@@ -76,11 +75,12 @@ class AAGVisitor(NodeVisitor):
         if len(comments) > 0:
             assert comments[0].startswith('c\n')
             comments[0] = comments[0][2:]
-        return aig.AAG(inputs=inputs, 
-                       outputs=outputs, 
-                       latches=fn.walk_values(tuple, latches), 
-                       gates=fn.lmap(tuple, gates), 
-                       comments=tuple(comments))
+        return aig.AAG(
+            inputs=inputs,
+            outputs=outputs,
+            latches=fn.walk_values(tuple, latches),
+            gates=fn.lmap(tuple, gates),
+            comments=tuple(comments))
 
     def visit_symbols(self, node, children):
         children = {(k, int(i), n) for k, i, n in children}
@@ -102,7 +102,7 @@ class AAGVisitor(NodeVisitor):
 
 
 def parse(aag_str: str, rule: str = "aag", to_aig=True):
-    aag =  AAGVisitor().visit(AAG_GRAMMAR[rule].parse(aag_str))
+    aag = AAGVisitor().visit(AAG_GRAMMAR[rule].parse(aag_str))
     return aag._to_aig() if to_aig else aag
 
 

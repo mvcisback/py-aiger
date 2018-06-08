@@ -6,6 +6,7 @@ import funcy as fn
 
 from aiger import aig
 
+
 def _map_tree(inputs, f):
     queue = fn.lmap(aig.Input, inputs)
     while len(queue) > 1:
@@ -28,7 +29,7 @@ def and_gate(inputs, output=None):
 def identity(inputs):
     return aig.AIG(
         inputs=frozenset(inputs),
-        top_level=frozenset(zip(inputs, map(Input, inputs))),
+        top_level=frozenset(zip(inputs, map(aig.Input, inputs))),
         comments=())
 
 
@@ -64,7 +65,10 @@ def source(outputs):
 
 
 def sink(inputs):
-    return aig.AIG(inputs=frozenset(inputs), top_level=frozenset(), comments=())
+    return aig.AIG(
+        inputs=frozenset(inputs), 
+        top_level=frozenset(), 
+        comments=())
 
 
 def tee(outputs):
@@ -74,7 +78,7 @@ def tee(outputs):
     return aig.AIG(
         inputs=frozenset(outputs),
         top_level=frozenset.union(*starmap(tee_output, outputs.items())),
-        comments=[])
+        comments=())
 
 
 def or_gate(inputs, output=None):

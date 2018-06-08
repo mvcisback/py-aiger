@@ -76,7 +76,7 @@ def test_flipper(aag1, data):
 @given(aigh.Circuits, st.data())
 def test_tee(aag1, data):
     # TODO
-    aag2 = aag1 >> common.tee({k: [None, None, None] for k in aag1.outputs})
+    aag2 = aag1 >> common.tee({k: ['a', 'b', 'c'] for k in aag1.outputs})
 
     assert len(aag2.outputs) == 3
     assert len(aag2.inputs) == len(aag1.inputs)
@@ -93,14 +93,14 @@ def test_tee(aag1, data):
 def test_relabel(aag1):
     # TODO
     new_inputs = {k: f'{k}#2' for k in aag1.inputs}
-    assert set(aag1['i', new_inputs].inputs.keys()) == set(new_inputs.values())
+    assert set(aag1['i', new_inputs].inputs) == set(new_inputs.values())
 
     new_outputs = {k: f'{k}#2' for k in aag1.outputs}
-    assert set(aag1['o', new_outputs].outputs.keys()) == set(
+    assert set(aag1['o', new_outputs].outputs) == set(
         new_outputs.values())
 
     new_latches = {k: f'{k}#2' for k in aag1.latches}
-    assert set(aag1['l', new_latches].latches.keys()) == set(
+    assert set(aag1['l', new_latches].latches) == set(
         new_latches.values())
 
     with pytest.raises(NotImplementedError):

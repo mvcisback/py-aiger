@@ -1,5 +1,6 @@
 from collections import defaultdict
 from itertools import starmap, chain
+from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union, Mapping, List
 
 import funcy as fn
@@ -105,7 +106,7 @@ class AIG(NamedTuple):
 
     @property
     def _eval_order(self):
-        return list(toposort(_dependency_graph(self.nodes)))
+        return list(toposort(_dependency_graph(self.cones)))
 
     def __call__(self, inputs, latches=None):
         # TODO: Implement partial evaluation.
@@ -147,14 +148,15 @@ class AIG(NamedTuple):
         # TODO: assert relabels won't collide with existing labels.
         latch_top_level = {(l.name, l.input) for l in self.latches}
         return AIG(
-            inputs=fn.merge(self.inputs, frozenset(name_to_latch)),
+            inputs=fn.merge(self.inputs, frozenset(latch_top_level)),
             top_level=self.top_level | latch_top_level,
             comments=())
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO:
         # - Check for name collisions.
-        aag0 = cutlatches(self, self.latches.keys())
+        latches = self.latches
+        aag0 = self.cutlatches({l.name for l in latches})
 
         def _unroll():
             prev = aag0
@@ -164,14 +166,11 @@ class AIG(NamedTuple):
 
         unrolled = reduce(seq_compose, _unroll())
         if init:
-            latch_source = {
-                f"{k}##time_0": val
-                for k, (_, _, val) in self.latches.items()
-            }
+            latch_source = {f"{l.name}##time_0": l.initial for l in latches}
             unrolled = source(latch_source) >> unrolled
 
         if omit_latches:
-            latch_names = [f"{k}##time_{horizon}" for k in self.latches.keys()]
+            latch_names = [f"{l.name}##time_{horizon}" for l in latches]
 
             unrolled = unrolled >> sink(latch_names)
 
@@ -185,6 +184,7 @@ class AIG(NamedTuple):
 
 def to_idx(lit):
     return lit >> 1
+
 
 def inverted(lit):
     return lit & 1 == 1
@@ -208,7 +208,7 @@ class AAG(NamedTuple):
     @property
     def header(self):
         max_idx = max(chain(
-            self.inputs.values(), 
+            self.inputs.values(),
             self.outputs.values(),
             fn.pluck(0, self.latches.values())
         ), key=to_idx)
@@ -231,7 +231,7 @@ class AAG(NamedTuple):
                               for xs in latch_lits]) + '\n'
         if self.outputs:
             out += '\n'.join(map(str, output_lits)) + '\n'
-            
+
         if self.gates:
             out += '\n'.join([' '.join(map(str, xs))
                               for xs in self.gates]) + '\n'
@@ -362,7 +362,7 @@ def and_gate(inputs, output=None):
     if len(inputs) <= 1:
         return identity(inputs)
 
-    output = f'#and_output#{hash(tuple(inputs))}' if output is None else output
+    output = f'#and#{hash(tuple(inputs))}' if output is None else output
 
     return AIG(
         inputs=frozenset(inputs),
@@ -423,7 +423,7 @@ def tee(outputs):
 
 
 def or_gate(inputs, output=None):
-    outputs = [f'#or_output#{hash(tuple(inputs))}' if output is None else output]
+    outputs = [f'#or#{hash(tuple(inputs))}' if output is None else output]
     circ = and_gate(inputs, output)
     return bit_flipper(inputs) >> circ >> bit_flipper(outputs)
 
