@@ -82,6 +82,7 @@ def tee(outputs):
 
 
 def or_gate(inputs, output=None):
-    outputs = [f'#or_output#{hash(tuple(inputs))}' if output is None else output]
+    output = f'#or_output#{hash(tuple(inputs))}' if output is None else output
     circ = and_gate(inputs, output)
-    return bit_flipper(inputs) >> circ >> bit_flipper(outputs)
+
+    return bit_flipper(inputs) >> circ >> bit_flipper([output])
