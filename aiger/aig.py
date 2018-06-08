@@ -66,15 +66,15 @@ class AIG(NamedTuple):
     top_level: FrozenSet[Tuple[str, Node]]
     comments: Tuple[str]
 
-    # TODO:
-    # __repr__(self):
+    def __repr__(self):
+        return repr(self._to_aag())
 
     def __getitem__(self, others):
         if not isinstance(others, tuple):
             return super().__getitem__(others)
 
         kind, relabels = others
-        if kind not in {'i', 'o', 'l'}:
+        if kind not in {'i', 'o'}:
             raise NotImplementedError
 
         def _relabel(n):
@@ -83,7 +83,6 @@ class AIG(NamedTuple):
         return {
             'i': lens.Fork(lens.Recur(Input).name, lens.inputs.Each()),
             'o': lens.top_level.Each()[0],
-            'l': lens.Recur(Latch).name
         }.get(kind).modify(_relabel)(self)
 
     @property
@@ -171,19 +170,26 @@ class AIG(NamedTuple):
 
         if omit_latches:
             latch_names = [f"{l.name}##time_{horizon}" for l in latches]
-
             unrolled = unrolled >> sink(latch_names)
 
         return unrolled
 
-    def to_aag(self):
-        # TODO: toposort.
-        # TODO: convert
-        pass
+    def _to_aag(self):
+        aag, _, l_map = _to_aag(self.cones, AAG({}, {}, {}, [], self.comments))
+        aag.outputs.update({k: l_map[cone] for k, cone in self.top_level})
+        return aag
+
+    def write(self, path):
+        with open(path, 'w') as f:
+            f.write(repr(self))
 
 
 def to_idx(lit):
     return lit >> 1
+
+
+def _polarity(i):
+    return Inverter if inverted(i) else lambda x: x
 
 
 def inverted(lit):
@@ -207,11 +213,11 @@ class AAG(NamedTuple):
 
     @property
     def header(self):
-        max_idx = max(chain(
+        max_idx = max(map(to_idx, chain(
             self.inputs.values(),
             self.outputs.values(),
             fn.pluck(0, self.latches.values())
-        ), key=to_idx)
+        )))
 
         return Header(max_idx, *map(len, self[:-1]))
 
@@ -242,7 +248,9 @@ class AAG(NamedTuple):
             out += '\n'.join(f"o{idx} {name}"
                              for idx, name in enumerate(output_names)) + '\n'
         if self.comments:
-            out += 'c\n' + '\n'.join(self.comments) + '\n'
+            out += 'c\n' + '\n'.join(self.comments)
+            if out[-1] != '\n':
+                out += '\n' 
         return out
 
     def _to_aig(self):
@@ -260,10 +268,8 @@ class AAG(NamedTuple):
             elif kind == 'LATCH':
                 (out, *inputs, init), name = gate
 
-            def polarity(i):
-                return Inverter if inverted(i) else lambda x: x
 
-            sources = [polarity(i)(lookup[to_idx(i)]) for i in inputs]
+            sources = [_polarity(i)(lookup[to_idx(i)]) for i in inputs]
             if kind == 'AND':
                 output = AndGate(*sources)
             else:
@@ -271,7 +277,11 @@ class AAG(NamedTuple):
 
             lookup[to_idx(out)] = output
 
-        top_level = ((k, lookup[to_idx(v)]) for k, v in self.outputs.items())
+        def get_output(v):
+            idx = to_idx(v)
+            return _polarity(v)(lookup[idx])
+
+        top_level = ((k, get_output(v)) for k, v in self.outputs.items())
         return AIG(
             inputs=frozenset(self.inputs.keys()),
             top_level=frozenset(top_level),
@@ -292,13 +302,7 @@ class AAG(NamedTuple):
         return list(toposort(deps)), lookup
 
 
-def _to_aag(aig):
-    aag, _, lit_map = __to_aag(aig.cones, AAG({}, {}, {}, [], aig.comments))
-    aag.outputs.update({k: lit_map[cone] for k, cone in aig.top_level})
-    return aag
-
-
-def __to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
+def _to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
     if lit_map is None:
         lit_map = {}
 
@@ -308,7 +312,7 @@ def __to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
     # Recurse to update get aag for subtrees.
     children = fn.cat(g.children for g in gates)
     children = [c for c in children if c not in lit_map]
-    aag, max_idx, lit_map = __to_aag(
+    aag, max_idx, lit_map = _to_aag(
         children, aag, max_idx=max_idx, lit_map=lit_map)
 
     # Update aag with current level.
@@ -317,7 +321,8 @@ def __to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
             continue
 
         if isinstance(gate, Inverter):
-            lit_map[gate] = lit_map[gate.input] + 1
+            input_lit = lit_map[gate.input]
+            lit_map[gate] = (input_lit & -2) | (1 ^ (input_lit & 1))
             continue
         elif isinstance(gate, ConstFalse):
             lit_map[gate] = 0

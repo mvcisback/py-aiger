@@ -67,10 +67,17 @@ class AAGVisitor(NodeVisitor):
 
         latches, gates = lgs[:header.num_latches], lgs[header.num_latches:]
 
-        inputs = {n: inputs[i] for n, i in symbols.inputs.items()}
-        outputs = {n: outputs[i] for n, i in symbols.outputs.items()}
-        latches = {n: latches[i] for n, i in symbols.latches.items()}
-        latches = fn.walk_values(lambda l: tuple((l + [0])[:3]), latches)
+        # TODO: need to allow for inputs, outputs, latches not in
+        # symbol table.
+        inputs = {symbols.inputs.inv.get(idx, f'i{idx}'): i
+                  for idx, i in enumerate(inputs)}
+        outputs = {symbols.outputs.inv.get(idx, f'o{idx}'): i
+                  for idx, i in enumerate(outputs)}
+
+        latches = {symbols.latches.inv.get(idx, f'l{idx}'): tuple(i)
+                   for idx, i in enumerate(latches)}
+        latches = fn.walk_values(lambda l: (l + (0,))[:3], latches)
+
 
         if len(comments) > 0:
             assert comments[0].startswith('c\n')

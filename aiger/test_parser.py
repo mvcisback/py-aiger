@@ -13,4 +13,9 @@ def test_load(aag):
         aag.write(f.name)
         aag2 = aigp.load(f.name)
 
-        assert bind(aag).comments.set('') == bind(aag2).comments.set('')
+    assert repr(aag) == repr(aag2)
+
+
+@given(aigh.Circuits)
+def test_parse(aag):
+    assert aigp.parse(repr(aag)) == aag

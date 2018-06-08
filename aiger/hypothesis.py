@@ -5,7 +5,6 @@ from hypothesis_cfg import ContextFreeGrammarStrategy
 from lenses import bind
 from parsimonious import Grammar, NodeVisitor
 
-import aiger
 from aiger import aig
 
 

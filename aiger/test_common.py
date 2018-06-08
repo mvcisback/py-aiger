@@ -99,10 +99,6 @@ def test_relabel(aag1):
     assert set(aag1['o', new_outputs].outputs) == set(
         new_outputs.values())
 
-    new_latches = {k: f'{k}#2' for k in aag1.latches}
-    relabels_names = {l.name for l in aag1['l', new_latches].latches}
-    assert relabels_names == set(new_latches.values())
-
     with pytest.raises(NotImplementedError):
         aag1['z', {}]
 

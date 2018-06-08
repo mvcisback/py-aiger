@@ -1,5 +1,4 @@
 # TODO: factor out common parts of seq_compose and par_compose
-from collections import namedtuple
 from itertools import starmap
 
 import funcy as fn
@@ -66,9 +65,7 @@ def source(outputs):
 
 def sink(inputs):
     return aig.AIG(
-        inputs=frozenset(inputs), 
-        top_level=frozenset(), 
-        comments=())
+        inputs=frozenset(inputs), top_level=frozenset(), comments=())
 
 
 def tee(outputs):
