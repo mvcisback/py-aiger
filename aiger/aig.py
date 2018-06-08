@@ -1,5 +1,5 @@
 from collections import defaultdict
-from itertools import starmap
+from itertools import starmap, chain
 from typing import Tuple, FrozenSet, NamedTuple, Union, Mapping, List
 
 import funcy as fn
@@ -183,8 +183,22 @@ class AIG(NamedTuple):
         pass
 
 
+def to_idx(lit):
+    return lit >> 1
+
+def inverted(lit):
+    return lit & 1 == 1
+
+
+class Header(NamedTuple):
+    max_var_index: int
+    num_inputs: int
+    num_latches: int
+    num_outputs: int
+    num_ands: int
+
+
 class AAG(NamedTuple):
-    lit_map: Mapping[Node, int]
     inputs: Mapping[str, int]
     latches: Mapping[str, Tuple[int]]
     outputs: Mapping[str, int]
@@ -193,9 +207,13 @@ class AAG(NamedTuple):
 
     @property
     def header(self):
-        return (max((v >> 1
-                     for v in self.lit_map.values())), len(self.inputs), len(
-                         self.latches), len(self.outputs), len(self.gates))
+        max_idx = max(chain(
+            self.inputs.values(), 
+            self.outputs.values(),
+            fn.pluck(0, self.latches.values())
+        ), key=to_idx)
+
+        return Header(max_idx, *map(len, self[:-1]))
 
     def __repr__(self):
         if self.inputs:
@@ -213,6 +231,7 @@ class AAG(NamedTuple):
                               for xs in latch_lits]) + '\n'
         if self.outputs:
             out += '\n'.join(map(str, output_lits)) + '\n'
+            
         if self.gates:
             out += '\n'.join([' '.join(map(str, xs))
                               for xs in self.gates]) + '\n'
@@ -222,31 +241,77 @@ class AAG(NamedTuple):
         if self.outputs:
             out += '\n'.join(f"o{idx} {name}"
                              for idx, name in enumerate(output_names)) + '\n'
-        if self.latches:
-            out += '\n'.join(f"l{idx} {name}"
-                             for idx, name in enumerate(latch_names)) + '\n'
         if self.comments:
             out += 'c\n' + '\n'.join(self.comments) + '\n'
         return out
 
+    def _to_aig(self):
+        eval_order, gate_lookup = self.eval_order_and_gate_lookup
+
+        lookup = {to_idx(l): Input(n) for n, l in self.inputs.items()}
+        # TODO: include latches
+        lookup[0] = ConstFalse()
+
+        for gate in fn.cat(eval_order[1:]):
+            kind, gate = gate_lookup[gate]
+
+            if kind == 'AND':
+                out, *inputs = gate
+            elif kind == 'LATCH':
+                (out, *inputs, init), name = gate
+
+            def polarity(i):
+                return Inverter if inverted(i) else lambda x: x
+
+            sources = [polarity(i)(lookup[to_idx(i)]) for i in inputs]
+            if kind == 'AND':
+                output = AndGate(*sources)
+            else:
+                output = Latch(input=sources[0], initial=init, name=name)
+
+            lookup[to_idx(out)] = output
+
+        top_level = ((k, lookup[to_idx(v)]) for k, v in self.outputs.items())
+        return AIG(
+            inputs=frozenset(self.inputs.keys()),
+            top_level=frozenset(top_level),
+            comments=self.comments
+        )
+
+    @property
+    def eval_order_and_gate_lookup(self):
+        deps = {a & -2: {b & -2, c & -2} for a, b, c in self.gates}
+        deps.update(
+            {a & -2: {b & -2} for _, (a, b, _) in self.latches.items()}
+        )
+
+        lookup = {v[0] & -2: ('AND', v) for v in self.gates}
+        lookup.update(
+            {v[0] & -2: ('LATCH', (v, k)) for k, v in self.latches.items()}
+        )
+        return list(toposort(deps)), lookup
+
 
 def _to_aag(aig):
-    aag = __to_aag(aig.cones, AAG({}, {}, {}, {}, [], aig.comments))
-    aag.outputs.update({k: aag.lit_map[cone] for k, cone in aig.top_level})
+    aag, _, lit_map = __to_aag(aig.cones, AAG({}, {}, {}, [], aig.comments))
+    aag.outputs.update({k: lit_map[cone] for k, cone in aig.top_level})
     return aag
 
 
-def __to_aag(gates, aag: AAG = None, *, max_idx=1):
+def __to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
+    if lit_map is None:
+        lit_map = {}
+
     if not gates:
-        return aag
+        return aag, max_idx, lit_map
 
     # Recurse to update get aag for subtrees.
     children = fn.cat(g.children for g in gates)
-    children = [c for c in children if c not in aag.lit_map]
-    aag = __to_aag(children, aag, max_idx=max_idx)
+    children = [c for c in children if c not in lit_map]
+    aag, max_idx, lit_map = __to_aag(
+        children, aag, max_idx=max_idx, lit_map=lit_map)
 
     # Update aag with current level.
-    lit_map = aag.lit_map
     for gate in gates:
         if gate in lit_map:
             continue
@@ -272,7 +337,7 @@ def __to_aag(gates, aag: AAG = None, *, max_idx=1):
         elif isinstance(gate, Input):
             aag.inputs[gate.name] = lit_map[gate]
 
-    return aag
+    return aag, max_idx, lit_map
 
 
 def _dependency_graph(nodes):
@@ -295,8 +360,7 @@ def _map_tree(inputs, f):
 
 def and_gate(inputs, output=None):
     if len(inputs) <= 1:
-        # TODO: return identity or empty circuits.
-        raise NotImplementedError
+        return identity(inputs)
 
     output = f'#and_output#{hash(tuple(inputs))}' if output is None else output
 
@@ -321,7 +385,7 @@ def _inverted_input(name):
     return Inverter(Input(name))
 
 
-def inverter(inputs, outputs=None):
+def bit_flipper(inputs, outputs=None):
     if outputs is None:
         outputs = inputs
     else:
@@ -356,6 +420,12 @@ def tee(outputs):
         inputs=frozenset(outputs),
         top_level=frozenset.union(*starmap(tee_output, outputs.items())),
         comments=[])
+
+
+def or_gate(inputs, output=None):
+    outputs = [f'#or_output#{hash(tuple(inputs))}' if output is None else output]
+    circ = and_gate(inputs, output)
+    return bit_flipper(inputs) >> circ >> bit_flipper(outputs)
 
 
 def par_compose(aig1, aig2, check_precondition=True):
