@@ -69,15 +69,20 @@ class AAGVisitor(NodeVisitor):
 
         # TODO: need to allow for inputs, outputs, latches not in
         # symbol table.
-        inputs = {symbols.inputs.inv.get(idx, f'i{idx}'): i
-                  for idx, i in enumerate(inputs)}
-        outputs = {symbols.outputs.inv.get(idx, f'o{idx}'): i
-                  for idx, i in enumerate(outputs)}
+        inputs = {
+            symbols.inputs.inv.get(idx, f'i{idx}'): i
+            for idx, i in enumerate(inputs)
+        }
+        outputs = {
+            symbols.outputs.inv.get(idx, f'o{idx}'): i
+            for idx, i in enumerate(outputs)
+        }
 
-        latches = {symbols.latches.inv.get(idx, f'l{idx}'): tuple(i)
-                   for idx, i in enumerate(latches)}
-        latches = fn.walk_values(lambda l: (l + (0,))[:3], latches)
-
+        latches = {
+            symbols.latches.inv.get(idx, f'l{idx}'): tuple(i)
+            for idx, i in enumerate(latches)
+        }
+        latches = fn.walk_values(lambda l: (l + (0, ))[:3], latches)
 
         if len(comments) > 0:
             assert comments[0].startswith('c\n')

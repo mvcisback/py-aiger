@@ -213,11 +213,11 @@ class AAG(NamedTuple):
 
     @property
     def header(self):
-        max_idx = max(map(to_idx, chain(
-            self.inputs.values(),
-            self.outputs.values(),
-            fn.pluck(0, self.latches.values())
-        )))
+        max_idx = max(
+            map(to_idx,
+                chain(self.inputs.values(),
+                      self.outputs.values(), fn.pluck(0,
+                                                      self.latches.values()))))
 
         return Header(max_idx, *map(len, self[:-1]))
 
@@ -247,7 +247,7 @@ class AAG(NamedTuple):
         if self.outputs:
             out += '\n'.join(f"o{idx} {name}"
                              for idx, name in enumerate(output_names)) + '\n'
-            
+
         if self.latches:
             out += '\n'.join(f"l{idx} {name}"
                              for idx, name in enumerate(latch_names)) + '\n'
@@ -255,7 +255,7 @@ class AAG(NamedTuple):
         if self.comments:
             out += 'c\n' + '\n'.join(self.comments)
             if out[-1] != '\n':
-                out += '\n' 
+                out += '\n'
         return out
 
     def _to_aig(self):
@@ -273,7 +273,6 @@ class AAG(NamedTuple):
             elif kind == 'LATCH':
                 (out, *inputs, init), name = gate
 
-
             sources = [_polarity(i)(lookup[to_idx(i)]) for i in inputs]
             if kind == 'AND':
                 output = AndGate(*sources)
@@ -290,20 +289,19 @@ class AAG(NamedTuple):
         return AIG(
             inputs=frozenset(self.inputs.keys()),
             top_level=frozenset(top_level),
-            comments=self.comments
-        )
+            comments=self.comments)
 
     @property
     def eval_order_and_gate_lookup(self):
         deps = {a & -2: {b & -2, c & -2} for a, b, c in self.gates}
         deps.update(
-            {a & -2: {b & -2} for _, (a, b, _) in self.latches.items()}
-        )
+            {a & -2: {b & -2}
+             for _, (a, b, _) in self.latches.items()})
 
         lookup = {v[0] & -2: ('AND', v) for v in self.gates}
         lookup.update(
-            {v[0] & -2: ('LATCH', (v, k)) for k, v in self.latches.items()}
-        )
+            {v[0] & -2: ('LATCH', (v, k))
+             for k, v in self.latches.items()})
         return list(toposort(deps)), lookup
 
 

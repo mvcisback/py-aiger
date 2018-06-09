@@ -7,7 +7,6 @@ from parsimonious import Grammar, NodeVisitor
 
 from aiger import aig
 
-
 CIRC_GRAMMAR = Grammar(u'''
 phi =  and / neg / vyest / AP
 and = "(" _ phi _ "&" _ phi _ ")"
@@ -62,7 +61,7 @@ class CircVisitor(NodeVisitor):
 
     def visit_vyest(self, _, children):
         _, _, phi = children
-        (out,) = phi.outputs
+        (out, ) = phi.outputs
         return phi >> vyesterday(out, str(uuid1()))
 
 
@@ -71,7 +70,7 @@ def parse(circ_str: str):
 
 
 GRAMMAR = {
-    'psi': (('(', 'psi', ' & ', 'psi', ')'), ('~ ', 'psi'),  ('Z ', 'psi'),
+    'psi': (('(', 'psi', ' & ', 'psi', ')'), ('~ ', 'psi'), ('Z ', 'psi'),
             ('AP', )),
     'AP': (
         ('a', ),

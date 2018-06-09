@@ -5,7 +5,6 @@ import aiger
 import string
 import re
 
-
 _FORBIDDEN = (' ', '[', ']', '\n', '\t', '\r', '\x0b', '\x0c')
 VAR_NAME_ALPHABET = frozenset(
     [c for c in string.printable if c not in _FORBIDDEN])
@@ -173,9 +172,8 @@ class BV(object):
         res = BV(self.size, (all_vars, result), name=outname)
 
         # nice comments
-        res._replace_comments(
-            [f'add'] + _indent(self.aig.comments) + _indent(other.aig.comments)
-        )
+        res._replace_comments([f'add'] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
         return res
 
     def __invert__(self):
@@ -377,11 +375,10 @@ class BV(object):
 
         aig = (self.aig | other.aig) >> bitwise_xor
 
-        res =  BV(self.size, (self.variables + other.variables, aig))
+        res = BV(self.size, (self.variables + other.variables, aig))
         res._replace_comments(['xor'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
         return res
-
 
     def __abs__(self):
         mask = self >> self.size - 1
@@ -487,11 +484,11 @@ class BV(object):
 
         # Check completeness of inputs; check ranges
         for key, value in args.items():
-            assert value >= - 2**(self.size-1)
+            assert value >= -2**(self.size - 1)
             assert value < 2**(self.size)
             assert key in self.variables
         # Check if the correct number of inputs is given
-        assert len(self.aig.inputs)//self.size == len(args)
+        assert len(self.aig.inputs) // self.size == len(args)
 
         # Tanslate integers values to bit values; Challenge here is that we
         # don't know the bit widths of the different variables
@@ -528,6 +525,7 @@ class BV(object):
     # def __mod__(self, other):
     # def __div__(self, other):
     # def __pow__(self, other):
+
 
 # TODO:
 # Make iterable

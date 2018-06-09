@@ -15,7 +15,7 @@ def _map_tree(inputs, f):
 
 def and_gate(inputs, output=None):
     output = f'#and_output#{hash(tuple(inputs))}' if output is None else output
-    
+
     return aig.AIG(
         inputs=frozenset(inputs),
         top_level=frozenset(((output, _map_tree(inputs, f=aig.AndGate)), )),

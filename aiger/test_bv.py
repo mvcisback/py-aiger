@@ -4,7 +4,6 @@ from aiger.bv import BV, VAR_NAME_ALPHABET
 import hypothesis.strategies as st
 from hypothesis import given
 
-
 var_name_generator = st.text(alphabet=VAR_NAME_ALPHABET)
 
 

@@ -11,4 +11,3 @@ def test_aig_to_aag(circ, data):
     assert circ.outputs == circ2.outputs
     test_input = {f'{i}': data.draw(st.booleans()) for i in circ.inputs}
     assert circ(test_input) == circ2(test_input)
-    
