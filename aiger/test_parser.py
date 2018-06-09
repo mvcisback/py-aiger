@@ -2,7 +2,6 @@ from tempfile import NamedTemporaryFile
 
 import hypothesis.strategies as st
 from hypothesis import given
-from lenses import bind
 
 from aiger import hypothesis as aigh
 from aiger import parser as aigp
