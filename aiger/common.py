@@ -14,21 +14,21 @@ def _map_tree(inputs, f):
 
 
 def and_gate(inputs, output=None):
-    if len(inputs) <= 1:
-        return identity(inputs)
-
     output = f'#and_output#{hash(tuple(inputs))}' if output is None else output
-
+    
     return aig.AIG(
         inputs=frozenset(inputs),
         top_level=frozenset(((output, _map_tree(inputs, f=aig.AndGate)), )),
         comments=())
 
 
-def identity(inputs):
+def identity(inputs, outputs=None):
+    if outputs is None:
+        outputs = inputs
+
     return aig.AIG(
         inputs=frozenset(inputs),
-        top_level=frozenset(zip(inputs, map(aig.Input, inputs))),
+        top_level=frozenset(zip(outputs, map(aig.Input, inputs))),
         comments=())
 
 

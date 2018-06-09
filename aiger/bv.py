@@ -87,6 +87,7 @@ class BV(object):
         elif isinstance(kind, int):  # Constant
             assert kind < 2**size and kind > -2**size
             self.aig = _const(size, abs(kind), output=self.name())
+
             if kind < 0:
                 negative = -self
                 self.aig = negative.rename(self.name()).aig
@@ -96,10 +97,9 @@ class BV(object):
 
         elif isinstance(kind, str):  # Variable
             self.variables.append(kind)
-            self.aig = aiger.empty()
-            for i in range(self.size):
-                self.aig = self.aig | aiger.and_gate(
-                    [kind + f'[{i}]'], output=self.name(i))
+            inputs = [kind + f'[{i}]' for i in range(self.size)]
+            outputs = [self.name(i) for i in range(self.size)]
+            self.aig = aiger.identity(inputs, outputs)
 
             # nice comments
             self._replace_comments([f'{kind}'])
@@ -121,6 +121,7 @@ class BV(object):
 
         # final sanity check
         assert len(self.aig.outputs) == self.size
+        assert list(self.aig.outputs)[0].startswith(self.name())
 
     def _replace_comments(self, comments):
         self.aig = bind(self.aig).comments.set(tuple(comments))
@@ -146,7 +147,7 @@ class BV(object):
 
     def assign(self, assignment):
         """Assignment must be map from names to integer values."""
-        value_aig = common.empty()
+        value_aig = aiger.empty()
         for name, value in assignment.items():
             value_aig |= BV(self.size, value, name=name).aig
         composed_aig = value_aig >> self.aig
@@ -165,7 +166,7 @@ class BV(object):
 
         adder = _adder_circuit(
             self.size, output=outname, left=self.name(), right=other.name())
-        adder >>= common.sink([outname + '_carry'])
+        adder >>= aiger.sink([outname + '_carry'])
         add_other = other.aig >> adder
         result = self.aig >> add_other
         all_vars = self.variables + other.variables
@@ -208,7 +209,7 @@ class BV(object):
         return res
 
     def __getitem__(self, k):
-        comments = self.aig.comments.copy()
+        comments = self.aig.comments
 
         out_idxs = [k] if isinstance(k, int) else range(self.size)[k]
 
@@ -317,10 +318,10 @@ class BV(object):
         aig = (self.aig | other.aig) >> bitwise_or
 
         # nice comments
-        aig._replace_comments(['or'] + _indent(self.aig.comments) + _indent(
+        res = BV(self.size, (self.variables + other.variables, aig))
+        res._replace_comments(['or'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
-
-        return BV(self.size, (self.variables + other.variables, aig))
+        return res
 
     def __and__(self, other):
         assert self.size == other.size
@@ -332,11 +333,11 @@ class BV(object):
                 [self.name(i), other.name(i)], output=self.name(i))
         aig = (self.aig | other.aig) >> bitwise_and
 
+        res = BV(self.size, (self.variables + other.variables, aig))
         # nice comments
-        aig._replace_comments(['and'] + _indent(self.aig.comments) + _indent(
+        res._replace_comments(['and'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
-
-        return BV(self.size, (self.variables + other.variables, aig))
+        return res
 
     def __xor__(self, other):
         assert self.size == other.size
@@ -376,11 +377,11 @@ class BV(object):
 
         aig = (self.aig | other.aig) >> bitwise_xor
 
-        # nice comments
-        aig._replace_comments(['xor'] + _indent(self.aig.comments) + _indent(
+        res =  BV(self.size, (self.variables + other.variables, aig))
+        res._replace_comments(['xor'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
+        return res
 
-        return BV(self.size, (self.variables + other.variables, aig))
 
     def __abs__(self):
         mask = self >> self.size - 1
@@ -495,7 +496,7 @@ class BV(object):
         # Tanslate integers values to bit values; Challenge here is that we
         # don't know the bit widths of the different variables
         inputs = {}
-        for input_name, _ in self.aig.inputs.items():
+        for input_name in self.aig.inputs:
             # split name into variable name and index
             var_name, idx = _split_output_name(input_name)
 
