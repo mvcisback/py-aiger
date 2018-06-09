@@ -247,6 +247,11 @@ class AAG(NamedTuple):
         if self.outputs:
             out += '\n'.join(f"o{idx} {name}"
                              for idx, name in enumerate(output_names)) + '\n'
+            
+        if self.latches:
+            out += '\n'.join(f"l{idx} {name}"
+                             for idx, name in enumerate(latch_names)) + '\n'
+
         if self.comments:
             out += 'c\n' + '\n'.join(self.comments)
             if out[-1] != '\n':
