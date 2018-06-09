@@ -2,7 +2,7 @@ from aiger.bv import BV, VAR_NAME_ALPHABET
 
 # additional imports for testing frammework
 import hypothesis.strategies as st
-from hypothesis import given
+from hypothesis import given, settings, unlimited
 
 var_name_generator = st.text(alphabet=VAR_NAME_ALPHABET)
 
@@ -86,24 +86,28 @@ def test_abs(int_value):
     assert bv() == abs(int_value)
 
 
+@settings(max_examples=20, timeout=unlimited)
 @given(st.integers(-8, 7), st.integers(-8, 7))
 def test_lt(a, b):
     e = (BV(4, a) < BV(4, b))
     assert e() == (a < b)
 
 
+@settings(max_examples=20, timeout=unlimited)
 @given(st.integers(-8, 7), st.integers(-8, 7))
 def test_gt(a, b):
     e = (BV(4, a) > BV(4, b))
     assert e() == (a > b)
 
 
+@settings(max_examples=20, timeout=unlimited)
 @given(st.integers(-8, 7), st.integers(-8, 7))
 def test_le(a, b):
     e = (BV(4, a) <= BV(4, b))
     assert e() == (a <= b)
 
 
+@settings(max_examples=20, timeout=unlimited)
 @given(st.integers(-8, 7), st.integers(-8, 7))
 def test_ge(a, b):
     e = (BV(4, a) >= BV(4, b))
