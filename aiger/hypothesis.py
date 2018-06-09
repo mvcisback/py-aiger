@@ -5,7 +5,7 @@ from hypothesis_cfg import ContextFreeGrammarStrategy
 from lenses import bind
 from parsimonious import Grammar, NodeVisitor
 
-from aiger import aig
+from aiger import aig, common
 
 CIRC_GRAMMAR = Grammar(u'''
 phi =  and / neg / vyest / AP
@@ -53,11 +53,11 @@ class CircVisitor(NodeVisitor):
     def visit_and(self, _, children):
         _, _, left, _, _, _, right, _, _ = children
         combined = left | right
-        return combined >> aig.and_gate(combined.outputs, str(uuid1()))
+        return combined >> common.and_gate(combined.outputs, str(uuid1()))
 
     def visit_neg(self, _, children):
         _, _, phi = children
-        return phi >> aig.bit_flipper(phi.outputs)
+        return phi >> common.bit_flipper(phi.outputs)
 
     def visit_vyest(self, _, children):
         _, _, phi = children
