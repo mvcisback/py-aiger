@@ -6,8 +6,8 @@ from parsimonious import Grammar, NodeVisitor
 
 from aiger import aig
 
-Symbol = namedtuple('Symbol', ['kind', 'index', 'name'])
-SymbolTable = namedtuple('SymbolTable', ['inputs', 'outputs', 'latches'])
+_Symbol = namedtuple('Symbol', ['kind', 'index', 'name'])
+_SymbolTable = namedtuple('SymbolTable', ['inputs', 'outputs', 'latches'])
 
 AAG_GRAMMAR = Grammar(u'''
 aag = header ios latches ios gates symbols comments?
@@ -100,10 +100,10 @@ class AAGVisitor(NodeVisitor):
         def to_dict(kind):
             return bidict({n: i for k, i, n in children if k == kind})
 
-        return SymbolTable(to_dict('i'), to_dict('o'), to_dict('l'))
+        return _SymbolTable(to_dict('i'), to_dict('o'), to_dict('l'))
 
     def visit_symbol(self, node, children):
-        return Symbol(children[0], int(children[1]), children[3])
+        return _Symbol(children[0], int(children[1]), children[3])
 
     def node_text(self, node, _):
         return node.text

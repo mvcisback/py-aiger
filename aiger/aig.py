@@ -24,7 +24,7 @@ class AndGate(NamedTuple):
 
     @property
     def children(self):
-        return tuple((self.left, self.right))
+        return (self.left, self.right)
 
 
 class Latch(NamedTuple):
@@ -34,7 +34,7 @@ class Latch(NamedTuple):
 
     @property
     def children(self):
-        return tuple((self.input, ))
+        return (self.input, )
 
 
 class Inverter(NamedTuple):
@@ -42,7 +42,7 @@ class Inverter(NamedTuple):
 
     @property
     def children(self):
-        return tuple((self.input, ))
+        return (self.input, )
 
 
 # Enables filtering for Input via lens library.
@@ -51,13 +51,13 @@ class Input(NamedTuple):
 
     @property
     def children(self):
-        return tuple()
+        return ()
 
 
 class ConstFalse(NamedTuple):
     @property
     def children(self):
-        return tuple()
+        return ()
 
 
 Node = Union[AndGate, Latch, ConstFalse, Inverter, Input]
@@ -186,16 +186,14 @@ class AIG(NamedTuple):
             f.write(repr(self))
 
 
-def to_idx(lit):
+def _to_idx(lit):
+    """AAG format uses least significant bit to encode an inverter.
+    The index is thus the interal literal shifted by one bit."""
     return lit >> 1
 
 
 def _polarity(i):
-    return Inverter if inverted(i) else lambda x: x
-
-
-def inverted(lit):
-    return lit & 1 == 1
+    return Inverter if i & 1 == 1 else lambda x: x
 
 
 class Header(NamedTuple):
@@ -215,12 +213,13 @@ class AAG(NamedTuple):
 
     @property
     def header(self):
-        max_idx = max(
-            map(to_idx,
-                chain(self.inputs.values(),
-                      self.outputs.values(), fn.pluck(0,
-                                                      self.latches.values()))))
-
+        literals = chain(
+            self.inputs.values(),
+            self.outputs.values(),
+            fn.pluck(0, self.gates),
+            fn.pluck(0, self.latches.values())
+        )
+        max_idx = max(map(_to_idx, literals))
         return Header(max_idx, *map(len, self[:-1]))
 
     def __repr__(self):
@@ -263,7 +262,7 @@ class AAG(NamedTuple):
     def _to_aig(self):
         eval_order, gate_lookup = self.eval_order_and_gate_lookup
 
-        lookup = {to_idx(l): Input(n) for n, l in self.inputs.items()}
+        lookup = {_to_idx(l): Input(n) for n, l in self.inputs.items()}
         # TODO: include latches
         lookup[0] = ConstFalse()
 
@@ -275,16 +274,16 @@ class AAG(NamedTuple):
             elif kind == 'LATCH':
                 (out, *inputs, init), name = gate
 
-            sources = [_polarity(i)(lookup[to_idx(i)]) for i in inputs]
+            sources = [_polarity(i)(lookup[_to_idx(i)]) for i in inputs]
             if kind == 'AND':
                 output = AndGate(*sources)
             else:
                 output = Latch(input=sources[0], initial=init, name=name)
 
-            lookup[to_idx(out)] = output
+            lookup[_to_idx(out)] = output
 
         def get_output(v):
-            idx = to_idx(v)
+            idx = _to_idx(v)
             return _polarity(v)(lookup[idx])
 
         top_level = ((k, get_output(v)) for k, v in self.outputs.items())
