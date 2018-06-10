@@ -1,12 +1,11 @@
 from uuid import uuid1
 
 import hypothesis.strategies as st
-from lenses import bind
-
-from aiger.common import AAG, Header, and_gate, bit_flipper
 from hypothesis_cfg import ContextFreeGrammarStrategy
+from lenses import bind
 from parsimonious import Grammar, NodeVisitor
 
+from aiger import aig, common
 
 CIRC_GRAMMAR = Grammar(u'''
 phi =  and / neg / vyest / AP
@@ -24,27 +23,21 @@ def atomic_pred(a, out=None):
     if out is None:
         out = f'l{uuid1()}'
 
-    return AAG(
-        header=Header(1, 1, 0, 1, 0),
-        inputs={a: 2},
-        outputs={out: 2},
-        latches={},
-        gates=[],
-        comments=[''])
+    return aig.AIG(
+        inputs=frozenset([a]),
+        top_level=frozenset([(out, aig.Input(a))]),
+        comments=())
 
 
 def vyesterday(a, out, latch_name=None):
     if latch_name is None:
         latch_name = f'l{uuid1()}'
 
-    return AAG(
-        header=Header(2, 1, 1, 1, 0),
-        inputs={a: 2},
-        outputs={out: 4},
-        latches={latch_name: [4, 2, 1]},
-        gates=[],
-        comments=['']
-    )
+    latch = aig.Latch(latch_name, aig.Input(a), True)
+    return aig.AIG(
+        inputs=frozenset([a]),
+        top_level=frozenset([(out, latch)]),
+        comments=())
 
 
 class CircVisitor(NodeVisitor):
@@ -60,15 +53,15 @@ class CircVisitor(NodeVisitor):
     def visit_and(self, _, children):
         _, _, left, _, _, _, right, _, _ = children
         combined = left | right
-        return combined >> and_gate(combined.outputs, str(uuid1()))
+        return combined >> common.and_gate(combined.outputs, str(uuid1()))
 
     def visit_neg(self, _, children):
         _, _, phi = children
-        return phi >> bit_flipper(phi.outputs)
+        return phi >> common.bit_flipper(phi.outputs)
 
     def visit_vyest(self, _, children):
         _, _, phi = children
-        (out,) = phi.outputs.keys()
+        (out, ) = phi.outputs
         return phi >> vyesterday(out, str(uuid1()))
 
 
@@ -77,7 +70,7 @@ def parse(circ_str: str):
 
 
 GRAMMAR = {
-    'psi': (('(', 'psi', ' & ', 'psi', ')'), ('~ ', 'psi'),  ('Z ', 'psi'),
+    'psi': (('(', 'psi', ' & ', 'psi', ')'), ('~ ', 'psi'), ('Z ', 'psi'),
             ('AP', )),
     'AP': (
         ('a', ),

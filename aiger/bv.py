@@ -1,4 +1,6 @@
-from aiger import common, parser
+from lenses import bind
+
+import aiger
 
 import string
 import re
@@ -10,15 +12,15 @@ VAR_NAME_ALPHABET = frozenset(
 
 def _const(wordlen, value, output='x'):
     assert 2**wordlen > value
-    aig = common.empty()
+    aig = aiger.empty()
     for i in range(wordlen):
-        aig = aig | common.source({output + '[{}]'.format(i): value % 2 == 1})
+        aig = aig | aiger.source({output + '[{}]'.format(i): value % 2 == 1})
         value = value // 2
     return aig
 
 
 def _full_adder(x, y, carry_in, result, carry_out):
-    return parser.parse(
+    return aiger.parse(
         "aag 10 3 0 2 7\n2\n4\n6\n18\n21\n8 4 2\n10 5 3\n"
         "12 11 9\n14 12 6\n16 13 7\n18 17 15\n20 15 9\n"
         f"i0 {x}\ni1 {y}\ni2 {carry_in}\no0 {result}\no1 {carry_out}\n")
@@ -28,7 +30,7 @@ def _adder_circuit(wordlen, output='x+y', left='x', right='y'):
     carry_name = f'{output}_carry'
     assert left != carry_name and right != carry_name
 
-    aig = common.source({carry_name: False})
+    aig = aiger.source({carry_name: False})
     for i in range(wordlen):
         aig >>= _full_adder(
             x=f"{left}[{i}]",
@@ -40,7 +42,7 @@ def _adder_circuit(wordlen, output='x+y', left='x', right='y'):
 
 
 def _negation_circuit(wordlen, output='not x', input='x'):
-    return common.bit_flipper(
+    return aiger.bit_flipper(
         inputs=[f'{input}[{i}]' for i in range(wordlen)],
         outputs=[f'{output}[{i}]' for i in range(wordlen)])
 
@@ -78,35 +80,33 @@ class BV(object):
         self._name = name  # name of all circuit outputs
 
         if self.size == 0:
-            self.aig = common.empty()
+            self.aig = aiger.empty()
             return
 
         elif isinstance(kind, int):  # Constant
             assert kind < 2**size and kind > -2**size
             self.aig = _const(size, abs(kind), output=self.name())
+
             if kind < 0:
                 negative = -self
                 self.aig = negative.rename(self.name()).aig
 
             # nice comments
-            del self.aig.comments[:]
-            self.aig.comments.append(f'{kind}')
+            self._replace_comments([f'{kind}'])
 
         elif isinstance(kind, str):  # Variable
             self.variables.append(kind)
-            self.aig = common.empty()
-            for i in range(self.size):
-                self.aig = self.aig | common.and_gate(
-                    [kind + f'[{i}]'], output=self.name(i))
+            inputs = [kind + f'[{i}]' for i in range(self.size)]
+            outputs = [self.name(i) for i in range(self.size)]
+            self.aig = aiger.identity(inputs, outputs)
 
             # nice comments
-            del self.aig.comments[:]
-            self.aig.comments.append(f'{kind}')
+            self._replace_comments([f'{kind}'])
 
         elif isinstance(kind, tuple):  # for internal use only
             assert isinstance(kind[0], list)  # variables
             self.variables.extend(kind[0])
-            assert isinstance(kind[1], common.AAG)
+            assert isinstance(kind[1], aiger.AIG)
             self.aig = kind[1]
             assert len(self.aig.outputs) == self.size
 
@@ -120,6 +120,10 @@ class BV(object):
 
         # final sanity check
         assert len(self.aig.outputs) == self.size
+        assert list(self.aig.outputs)[0].startswith(self.name())
+
+    def _replace_comments(self, comments):
+        self.aig = bind(self.aig).comments.set(tuple(comments))
 
     def __len__(self):
         return self.size
@@ -142,7 +146,7 @@ class BV(object):
 
     def assign(self, assignment):
         """Assignment must be map from names to integer values."""
-        value_aig = common.empty()
+        value_aig = aiger.empty()
         for name, value in assignment.items():
             value_aig |= BV(self.size, value, name=name).aig
         composed_aig = value_aig >> self.aig
@@ -161,17 +165,15 @@ class BV(object):
 
         adder = _adder_circuit(
             self.size, output=outname, left=self.name(), right=other.name())
-        adder >>= common.sink([outname + '_carry'])
+        adder >>= aiger.sink([outname + '_carry'])
         add_other = other.aig >> adder
         result = self.aig >> add_other
         all_vars = self.variables + other.variables
         res = BV(self.size, (all_vars, result), name=outname)
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'add'] + _indent(self.aig.comments) +
-                                _indent(other.aig.comments))
-
+        res._replace_comments([f'add'] + _indent(self.aig.comments) + _indent(
+            other.aig.comments))
         return res
 
     def __invert__(self):
@@ -182,9 +184,7 @@ class BV(object):
         res = BV(self.size, (self.variables, aig), name=self.name())
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'invert'] + _indent(self.aig.comments))
-
+        res._replace_comments([f'invert'] + _indent(self.aig.comments))
         return res
 
     def __neg__(self):
@@ -192,9 +192,7 @@ class BV(object):
         res = ~self + BV(self.size, 1)
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'unary minus'] + _indent(self.aig.comments))
-
+        res._replace_comments([f'unary minus'] + _indent(self.aig.comments))
         return res
 
     def __pos__(self):
@@ -204,14 +202,12 @@ class BV(object):
         res = self + (-other)
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'subtract'] + _indent(self.aig.comments) +
-                                _indent(other.aig.comments))
-
+        res._replace_comments([f'subtract'] + _indent(self.aig.comments) +
+                              _indent(other.aig.comments))
         return res
 
     def __getitem__(self, k):
-        comments = self.aig.comments.copy()
+        comments = self.aig.comments
 
         out_idxs = [k] if isinstance(k, int) else range(self.size)[k]
 
@@ -231,14 +227,12 @@ class BV(object):
 
         aig = self.aig
         if len(outputs_to_remove) > 0:
-            aig >>= common.sink(outputs_to_remove)
+            aig >>= aiger.sink(outputs_to_remove)
 
         res = BV(len(out_idxs), (self.variables, aig['o', rename]))
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'get({k})'] + _indent(comments))
-
+        res._replace_comments([f'get({k})'] + _indent(comments))
         return res
 
     def reverse(self):
@@ -246,9 +240,7 @@ class BV(object):
         res = self[::-1]
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'reverse'] + _indent(comments))
-
+        res._replace_comments([f'reverse'] + _indent(comments))
         return res
 
     def concat(self, other):
@@ -261,10 +253,8 @@ class BV(object):
                   self.aig | other.aig['o', other_rename]))
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'concat'] + _indent(self.aig.comments) +
-                                _indent(other.aig.comments))
-
+        res._replace_comments([f'concat'] + _indent(self.aig.comments) +
+                              _indent(other.aig.comments))
         return res
 
     # Bitwise opeators
@@ -273,8 +263,7 @@ class BV(object):
         res = self[:-k].concat(BV(k, 0))
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'>> {k}  (unsigned)'] + _indent(
+        res._replace_comments([f'>> {k}  (unsigned)'] + _indent(
             self.aig.comments))
 
         return res
@@ -288,12 +277,10 @@ class BV(object):
                 self.name(i + j) for j in range(0, k * self.size, self.size)
             ]
         res = BV(self.size * k,
-                 (self.variables, self.aig >> common.tee(copies)))
+                 (self.variables, self.aig >> aiger.tee(copies)))
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'repeat({k})'] + _indent(self.aig.comments))
-
+        res._replace_comments([f'repeat({k})'] + _indent(self.aig.comments))
         return res
 
     def __rshift__(self, k):
@@ -304,8 +291,7 @@ class BV(object):
         res = self[k:].concat(right_side)
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'>> {k}'] + _indent(self.aig.comments))
+        res._replace_comments([f'>> {k}'] + _indent(self.aig.comments))
 
         return res
 
@@ -315,8 +301,7 @@ class BV(object):
         res = BV(k, 0).concat(self[:-k])
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend([f'<< {k}'] + _indent(self.aig.comments))
+        res._replace_comments([f'<< {k}'] + _indent(self.aig.comments))
 
         return res
 
@@ -324,35 +309,33 @@ class BV(object):
         assert self.size == other.size
         if self.name() == other.name():
             other = other.rename(self.name() + '_other')
-        bitwise_or = common.empty()
+        bitwise_or = aiger.empty()
         for i in range(self.size):
-            bitwise_or = bitwise_or | common.or_gate(
+            bitwise_or = bitwise_or | aiger.or_gate(
                 [self.name(i), other.name(i)], output=self.name(i))
         aig = (self.aig | other.aig) >> bitwise_or
 
         # nice comments
-        del aig.comments[:]
-        aig.comments.extend(['or'] + _indent(self.aig.comments) + _indent(
+        res = BV(self.size, (self.variables + other.variables, aig))
+        res._replace_comments(['or'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
-
-        return BV(self.size, (self.variables + other.variables, aig))
+        return res
 
     def __and__(self, other):
         assert self.size == other.size
         if self.name() == other.name():
             other = other.rename(self.name() + '_other')
-        bitwise_and = common.empty()
+        bitwise_and = aiger.empty()
         for i in range(self.size):
-            bitwise_and = bitwise_and | common.and_gate(
+            bitwise_and = bitwise_and | aiger.and_gate(
                 [self.name(i), other.name(i)], output=self.name(i))
         aig = (self.aig | other.aig) >> bitwise_and
 
+        res = BV(self.size, (self.variables + other.variables, aig))
         # nice comments
-        del aig.comments[:]
-        aig.comments.extend(['and'] + _indent(self.aig.comments) + _indent(
+        res._replace_comments(['and'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
-
-        return BV(self.size, (self.variables + other.variables, aig))
+        return res
 
     def __xor__(self, other):
         assert self.size == other.size
@@ -360,44 +343,42 @@ class BV(object):
             other = other.rename(self.name() + '_other')
 
         def xor(i):
-            tee = common.tee({
+            tee = aiger.tee({
                 self.name(i): [self.name(i),
                                self.name(i) + '_alt'],
                 other.name(i): [other.name(i),
                                 other.name(i) + '_alt']
             })
-            negated_inputs = common.bit_flipper(
+            negated_inputs = aiger.bit_flipper(
                 [self.name(i) + '_alt',
                  other.name(i) + '_alt'],
                 outputs=[self.name(i) + '_neg',
                          other.name(i) + '_neg'])
 
-            or_gate_pos = common.or_gate(
+            or_gate_pos = aiger.or_gate(
                 [self.name(i), other.name(i)], output=self.name(i) + '_pos')
-            or_gate_neg = common.or_gate(
+            or_gate_neg = aiger.or_gate(
                 [self.name(i) + '_neg',
                  other.name(i) + '_neg'],
                 output=self.name(i) + '_neg')
 
-            and_gate = common.and_gate(
+            and_gate = aiger.and_gate(
                 [self.name(i) + '_pos',
                  self.name(i) + '_neg'],
                 output=self.name(i))
             aig = (or_gate_pos | or_gate_neg)
             return tee >> negated_inputs >> aig >> and_gate
 
-        bitwise_xor = common.empty()
+        bitwise_xor = aiger.empty()
         for i in range(self.size):
             bitwise_xor = bitwise_xor | xor(i)
 
         aig = (self.aig | other.aig) >> bitwise_xor
 
-        # nice comments
-        del aig.comments[:]
-        aig.comments.extend(['xor'] + _indent(self.aig.comments) + _indent(
+        res = BV(self.size, (self.variables + other.variables, aig))
+        res._replace_comments(['xor'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
-
-        return BV(self.size, (self.variables + other.variables, aig))
+        return res
 
     def __abs__(self):
         mask = self >> self.size - 1
@@ -405,19 +386,18 @@ class BV(object):
         res = (self + mask) ^ mask
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend(['abs'] + _indent(self.aig.comments))
+        res._replace_comments(['abs'] + _indent(self.aig.comments))
 
         return res
 
     def is_nonzero(self, output='bool'):
         return BV(
-            1, (self.variables, self.aig >> common.or_gate(
+            1, (self.variables, self.aig >> aiger.or_gate(
                 self.aig.outputs, output=output + '[0]')),
             name=output)
 
     def is_zero(self, output='bool'):
-        check_zero = common.bit_flipper(self.aig.outputs) >> common.and_gate(
+        check_zero = aiger.bit_flipper(self.aig.outputs) >> aiger.and_gate(
             self.aig.outputs, output=output + '[0]')
         return BV(1, (self.variables, self.aig >> check_zero), name=output)
 
@@ -425,18 +405,15 @@ class BV(object):
         res = (self ^ other).is_zero()
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend(['=='] + _indent(self.aig.comments) + _indent(
+        res._replace_comments(['=='] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
-
         return res
 
     def __ne__(self, other):
         res = (self ^ other).is_nonzero()
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend(['!='] + _indent(self.aig.comments) + _indent(
+        res._replace_comments(['!='] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
 
         return res
@@ -452,8 +429,7 @@ class BV(object):
         res = (left - right)[-1:]
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend(['>'] + _indent(self.aig.comments) + _indent(
+        res._replace_comments(['<'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
 
         return res
@@ -463,8 +439,7 @@ class BV(object):
         res = other < self
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend(['>'] + _indent(self.aig.comments) + _indent(
+        res._replace_comments(['>'] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
 
         return res
@@ -474,8 +449,7 @@ class BV(object):
         res = ~(self > other)
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend(['<='] + _indent(self.aig.comments) + _indent(
+        res._replace_comments(['<='] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
 
         return res
@@ -485,8 +459,7 @@ class BV(object):
         res = ~(self < other)
 
         # nice comments
-        del res.aig.comments[:]
-        res.aig.comments.extend(['>='] + _indent(self.aig.comments) + _indent(
+        res._replace_comments(['>='] + _indent(self.aig.comments) + _indent(
             other.aig.comments))
 
         return res
@@ -511,16 +484,16 @@ class BV(object):
 
         # Check completeness of inputs; check ranges
         for key, value in args.items():
-            assert value >= - 2**(self.size-1)
+            assert value >= -2**(self.size - 1)
             assert value < 2**(self.size)
             assert key in self.variables
         # Check if the correct number of inputs is given
-        assert len(self.aig.inputs)//self.size == len(args)
+        assert len(self.aig.inputs) // self.size == len(args)
 
         # Tanslate integers values to bit values; Challenge here is that we
         # don't know the bit widths of the different variables
         inputs = {}
-        for input_name, _ in self.aig.inputs.items():
+        for input_name in self.aig.inputs:
             # split name into variable name and index
             var_name, idx = _split_output_name(input_name)
 
@@ -552,6 +525,7 @@ class BV(object):
     # def __mod__(self, other):
     # def __div__(self, other):
     # def __pow__(self, other):
+
 
 # TODO:
 # Make iterable

@@ -1,9 +1,13 @@
+from collections import namedtuple
+
 import funcy as fn
 from bidict import bidict
-
-from aiger.common import AAG, Header, Symbol, SymbolTable
 from parsimonious import Grammar, NodeVisitor
 
+from aiger import aig
+
+_Symbol = namedtuple('Symbol', ['kind', 'index', 'name'])
+_SymbolTable = namedtuple('SymbolTable', ['inputs', 'outputs', 'latches'])
 
 AAG_GRAMMAR = Grammar(u'''
 aag = header ios latches ios gates symbols comments?
@@ -41,7 +45,7 @@ class AAGVisitor(NodeVisitor):
         return int(node.text)
 
     def visit_header(self, _, children):
-        return Header(*map(int, children[2::2]))
+        return aig.Header(*map(int, children[2::2]))
 
     def visit_io(self, _, children):
         return int(children[::2][0])
@@ -60,17 +64,35 @@ class AAGVisitor(NodeVisitor):
         assert len(ios) == header.num_inputs + header.num_outputs
         inputs, outputs = ios[:header.num_inputs], ios[header.num_inputs:]
         assert len(lgs) == header.num_ands + header.num_latches
+
         latches, gates = lgs[:header.num_latches], lgs[header.num_latches:]
 
-        inputs = {n: inputs[i] for n, i in symbols.inputs.items()}
-        outputs = {n: outputs[i] for n, i in symbols.outputs.items()}
-        latches = {n: latches[i] for n, i in symbols.latches.items()}
-        latches = fn.walk_values(lambda l: (l + [0])[:3], latches)
+        # TODO: need to allow for inputs, outputs, latches not in
+        # symbol table.
+        inputs = {
+            symbols.inputs.inv.get(idx, f'i{idx}'): i
+            for idx, i in enumerate(inputs)
+        }
+        outputs = {
+            symbols.outputs.inv.get(idx, f'o{idx}'): i
+            for idx, i in enumerate(outputs)
+        }
+
+        latches = {
+            symbols.latches.inv.get(idx, f'l{idx}'): tuple(i)
+            for idx, i in enumerate(latches)
+        }
+        latches = fn.walk_values(lambda l: (l + (0, ))[:3], latches)
 
         if len(comments) > 0:
             assert comments[0].startswith('c\n')
             comments[0] = comments[0][2:]
-        return AAG(header, inputs, outputs, latches, gates, comments)
+        return aig.AAG(
+            inputs=inputs,
+            outputs=outputs,
+            latches=fn.walk_values(tuple, latches),
+            gates=fn.lmap(tuple, gates),
+            comments=tuple(comments))
 
     def visit_symbols(self, node, children):
         children = {(k, int(i), n) for k, i, n in children}
@@ -78,10 +100,10 @@ class AAGVisitor(NodeVisitor):
         def to_dict(kind):
             return bidict({n: i for k, i, n in children if k == kind})
 
-        return SymbolTable(to_dict('i'), to_dict('o'), to_dict('l'))
+        return _SymbolTable(to_dict('i'), to_dict('o'), to_dict('l'))
 
     def visit_symbol(self, node, children):
-        return Symbol(children[0], int(children[1]), children[3])
+        return _Symbol(children[0], int(children[1]), children[3])
 
     def node_text(self, node, _):
         return node.text
@@ -91,8 +113,9 @@ class AAGVisitor(NodeVisitor):
     visit_comments = node_text
 
 
-def parse(aag_str: str, rule: str = "aag"):
-    return AAGVisitor().visit(AAG_GRAMMAR[rule].parse(aag_str))
+def parse(aag_str: str, rule: str = "aag", to_aig=True):
+    aag = AAGVisitor().visit(AAG_GRAMMAR[rule].parse(aag_str))
+    return aag._to_aig() if to_aig else aag
 
 
 def load(path: str, rule: str = "aag"):
