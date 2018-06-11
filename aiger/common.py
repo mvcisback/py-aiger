@@ -113,18 +113,22 @@ def sink(inputs):
         input_map=pmap({i: ref for i, ref in names}),
         latch_map=pmap(),
         output_map=pmap(),
-        node_map={ref: Input() for _, ref in names},
+        node_map={ref: aig.Input() for _, ref in names},
         comments=()
     )
 
 
 def tee(outputs):
-    def tee_output(name, renames):
-        return frozenset((r, aig.Input(name)) for r in renames)
+    input_map = {k: uuid1() for k in outputs.keys()}
+    output_map = {}
+    for name, renames in outputs.items():
+        output_map.update({name2: input_map[name] for name2 in renames})
 
     return aig.AIG(
-        inputs=frozenset(outputs),
-        top_level=frozenset.union(*starmap(tee_output, outputs.items())),
+        input_map=pmap(input_map),
+        output_map=pmap(output_map),
+        latch_map=pmap(),
+        node_map=pmap({ref: aig.Input() for ref in input_map.values()}),
         comments=())
 
 
