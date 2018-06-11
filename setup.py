@@ -26,6 +26,7 @@ setup(
         'dd',
         'toposort',
         'lens',
+        'pyrsistent',
     ],
     packages=find_packages(),
 )

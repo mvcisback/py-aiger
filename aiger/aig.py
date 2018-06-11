@@ -2,6 +2,7 @@ from collections import defaultdict
 from itertools import chain
 from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union, Mapping, List
+from uuid import uuid1
 
 import funcy as fn
 import lenses.hooks  # TODO: remove on next lenses version release.
@@ -17,10 +18,12 @@ from aiger import common
 def _frozenset_from_iter(self, iterable):
     return frozenset(iterable)
 
+Reference = str
+Name = str
 
 class AndGate(NamedTuple):
-    left: 'Node'  # TODO: replace with Node once 3.7 lands.
-    right: 'Node'
+    left: Reference
+    right: Reference
 
     @property
     def children(self):
@@ -28,8 +31,7 @@ class AndGate(NamedTuple):
 
 
 class Latch(NamedTuple):
-    name: str
-    input: 'Node'
+    input: Reference
     initial: bool
 
     @property
@@ -38,7 +40,7 @@ class Latch(NamedTuple):
 
 
 class Inverter(NamedTuple):
-    input: 'Node'
+    input: Reference
 
     @property
     def children(self):
@@ -47,8 +49,6 @@ class Inverter(NamedTuple):
 
 # Enables filtering for Input via lens library.
 class Input(NamedTuple):
-    name: str
-
     @property
     def children(self):
         return ()
@@ -64,13 +64,18 @@ Node = Union[AndGate, Latch, ConstFalse, Inverter, Input]
 
 
 class AIG(NamedTuple):
-    inputs: FrozenSet[str]
-    top_level: FrozenSet[Tuple[str, Node]]
+    input_map: Mapping[Name, Reference]
+    output_map: Mapping[Name, Reference]
+    latch_map: Mapping[Name, Reference]
+    node_map: Mapping[Reference, Node]
     comments: Tuple[str]
 
+    """
     def __repr__(self):
         return repr(self._to_aag())
+    """
 
+    """
     def __getitem__(self, others):
         if not isinstance(others, tuple):
             return super().__getitem__(others)
@@ -86,18 +91,19 @@ class AIG(NamedTuple):
             'i': lens.Fork(lens.Recur(Input).name, lens.inputs.Each()),
             'o': lens.top_level.Each()[0],
         }.get(kind).modify(_relabel)(self)
+    """
 
     @property
-    def outputs(self):
-        return frozenset(fn.pluck(0, self.top_level))
+    def outputs(self) -> FrozenSet[str]:
+        return frozenset(self.output_map.keys())
 
     @property
-    def latches(self):
-        return frozenset(bind(self).Recur(Latch).collect())
+    def latches(self) -> FrozenSet[str]:
+        return frozenset(self.latch_map.keys())
 
     @property
-    def cones(self):
-        return frozenset(fn.pluck(1, self.top_level))
+    def inputs(self) -> FrozenSet[str]:
+        return frozenset(self.input_map.keys())
 
     def __rshift__(self, other):
         return seq_compose(self, other)
@@ -365,13 +371,31 @@ def par_compose(aig1, aig2, check_precondition=True):
         assert not (aig1.latches & aig2.latches)
         assert not (aig1.outputs & aig2.outputs)
 
-    return AIG(
-        inputs=aig1.inputs | aig2.inputs,
-        top_level=aig1.top_level | aig2.top_level,
-        comments=())
+    interface = aig1.inputs & aig2.inputs
+    if interface:  # Need to split wire.
+        renames1 = {i: uuid1() for i in interface}
+        renames2 = {i: uuid1() for i in interface}
+        aig1 = aig1['i', renames1]
+        aig2 = aig2['i', renames2]
+
+    res = AIG(
+        input_map=aig1.input_map.update(aig2.input_map),
+        output_map=aig1.output_map.update(aig2.output_map),
+        latch_map=aig1.latch_map.update(aig2.latch_map),
+        node_map=aig1.node_map.update(aig2.node_map),
+        comments=aig1.comments + aig2.comments
+    )
+
+    if interface:
+        res >>= tee({i: (renames1[i], renames2[i]) for i in interface})
+    return res
 
 
-def seq_compose(aig1, aig2, check_precondition=True):
+def _omit(mapping, keys):
+    return {k: v for k, v in mapping.items() if k not in keys}
+
+
+def seq_compose(aig1, aig2, check_precondition=False):
     # TODO: apply simple optimizations such as unit propogation and
     # excluded middle.
 
@@ -379,17 +403,16 @@ def seq_compose(aig1, aig2, check_precondition=True):
     if check_precondition:
         assert not (aig1.outputs - interface) & aig2.outputs
         assert not aig1.latches & aig2.latches
-
-    lookup = dict(aig1.top_level)
-
-    def sub(input_sig):
-        return lookup.get(input_sig.name, input_sig)
-
-    composed = bind(aig2.top_level).Recur(Input).modify(sub)
-    passthrough = frozenset(
-        (k, v) for k, v in aig1.top_level if k not in interface)
-
+        
+    dropped_refs = {aig2.input_map[i] for i in interface}
     return AIG(
-        inputs=aig1.inputs | (aig2.inputs - interface),
-        top_level=composed | passthrough,
-        comments=())
+        input_map=aig1.input_map.update(
+            _omit(aig2.input_map, interface)),
+        output_map=aig2.output_map.update(
+            _omit(aig1.output_map, interface)),
+        latch_map=aig1.latch_map.update(aig2.latch_map),
+        node_map=aig1.node_map.update(
+            _omit(aig2.node_map, dropped_refs)
+        ),
+        comments=aig1.comments + aig2.comments
+    )
