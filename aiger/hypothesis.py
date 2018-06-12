@@ -21,22 +21,24 @@ EOL = "\\n"
 
 def atomic_pred(a, out=None):
     if out is None:
-        out = f'l{uuid1()}'
+        out = str(uuid1())
 
     return aig.AIG(
         inputs=frozenset([a]),
-        top_level=frozenset([(out, aig.Input(a))]),
+        latches=frozenset(),
+        node_map=frozenset([(out, aig.Input(a))]),
         comments=())
 
 
 def vyesterday(a, out, latch_name=None):
     if latch_name is None:
-        latch_name = f'l{uuid1()}'
+        latch_name = str(uuid1())
 
-    latch = aig.Latch(latch_name, aig.Input(a), True)
+    latch = aig.Latch(input=aig.Input(a), initial=True, name=latch_name)
     return aig.AIG(
         inputs=frozenset([a]),
-        top_level=frozenset([(out, latch)]),
+        latches=frozenset({latch_name}),
+        node_map=frozenset([(out, latch)]),
         comments=())
 
 

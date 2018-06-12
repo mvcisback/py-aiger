@@ -9,16 +9,24 @@ from aiger import aig
 def _map_tree(inputs, f):
     queue = fn.lmap(aig.Input, inputs)
     while len(queue) > 1:
-        queue = list(starmap(f, zip(queue, queue[1:])))
+        queue = fn.lmap(f, fn.chunks(2, queue))
     return queue[0]
 
 
-def and_gate(inputs, output=None):
-    output = f'#and_output#{hash(tuple(inputs))}' if output is None else output
+def _and(left_right):
+    if len(left_right) == 1:
+        return left_right[0]
 
+    return aig.AndGate(*left_right)
+
+
+def and_gate(inputs, output=None):
+    output = f'#and_output#{hash(tuple(inputs))}' if output is None else output        
+    
     return aig.AIG(
         inputs=frozenset(inputs),
-        top_level=frozenset(((output, _map_tree(inputs, f=aig.AndGate)), )),
+        latches=frozenset(),
+        node_map=frozenset(((output, _map_tree(inputs, f=_and)), )),
         comments=())
 
 
@@ -28,7 +36,8 @@ def identity(inputs, outputs=None):
 
     return aig.AIG(
         inputs=frozenset(inputs),
-        top_level=frozenset(zip(outputs, map(aig.Input, inputs))),
+        latches=frozenset(),
+        node_map=frozenset(zip(outputs, map(aig.Input, inputs))),
         comments=())
 
 
@@ -48,7 +57,8 @@ def bit_flipper(inputs, outputs=None):
 
     return aig.AIG(
         inputs=frozenset(inputs),
-        top_level=frozenset(zip(outputs, map(_inverted_input, inputs))),
+        latches=frozenset(),
+        node_map=frozenset(zip(outputs, map(_inverted_input, inputs))),
         comments=())
 
 
@@ -59,13 +69,18 @@ def _const(val):
 def source(outputs):
     return aig.AIG(
         inputs=frozenset(),
-        top_level=frozenset((k, _const(v)) for k, v in outputs.items()),
+        latches=frozenset(),
+        node_map=frozenset((k, _const(v)) for k, v in outputs.items()),
         comments=())
 
 
 def sink(inputs):
     return aig.AIG(
-        inputs=frozenset(inputs), top_level=frozenset(), comments=())
+        inputs=frozenset(inputs),
+        latches=frozenset(),
+        node_map=frozenset(),
+        comments=()
+    )
 
 
 def tee(outputs):
@@ -74,7 +89,8 @@ def tee(outputs):
 
     return aig.AIG(
         inputs=frozenset(outputs),
-        top_level=frozenset.union(*starmap(tee_output, outputs.items())),
+        latches=frozenset(),
+        node_map=frozenset.union(*starmap(tee_output, outputs.items())),
         comments=())
 
 

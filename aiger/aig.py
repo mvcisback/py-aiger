@@ -28,8 +28,8 @@ class AndGate(NamedTuple):
 
 
 class Latch(NamedTuple):
-    name: str
     input: 'Node'
+    name: str
     initial: bool
 
     @property
@@ -64,8 +64,9 @@ Node = Union[AndGate, Latch, ConstFalse, Inverter, Input]
 
 
 class AIG(NamedTuple):
-    inputs: FrozenSet[str]
-    top_level: FrozenSet[Tuple[str, Node]]
+    latches: FrozenSet[str]  # TODO: use internal names to make relabels fast.
+    inputs: FrozenSet[str]  # TODO: use internal names to make relabels fast.
+    node_map: FrozenSet[Tuple[str, Node]]
     comments: Tuple[str]
 
     def __repr__(self):
@@ -84,20 +85,16 @@ class AIG(NamedTuple):
 
         return {
             'i': lens.Fork(lens.Recur(Input).name, lens.inputs.Each()),
-            'o': lens.top_level.Each()[0],
+            'o': lens.node_map.Each()[0],
         }.get(kind).modify(_relabel)(self)
 
     @property
     def outputs(self):
-        return frozenset(fn.pluck(0, self.top_level))
-
-    @property
-    def latches(self):
-        return frozenset(bind(self).Recur(Latch).collect())
+        return frozenset(fn.pluck(0, self.node_map))
 
     @property
     def cones(self):
-        return frozenset(fn.pluck(1, self.top_level))
+        return frozenset(fn.pluck(1, self.node_map))
 
     def __rshift__(self, other):
         return seq_compose(self, other)
@@ -114,15 +111,16 @@ class AIG(NamedTuple):
         if latches is None:
             latches = dict()
 
-        latches = {l: latches.get(l.name, l.initial) for l in self.latches}
-        lookup = fn.merge(inputs, latches)
+        lookup = dict(inputs)  # Copy inputs as initial lookup table.
+        latch_outputs = {}
         for node in fn.cat(self._eval_order):
             if isinstance(node, AndGate):
                 lookup[node] = lookup[node.left] and lookup[node.right]
             elif isinstance(node, Inverter):
                 lookup[node] = not lookup[node.input]
             elif isinstance(node, Latch):
-                lookup[node] = lookup[node.input]
+                latch_outputs[node.name] = lookup[node.input]
+                lookup[node] = latches.get(node.name, node.initial)
             elif isinstance(node, Input):
                 lookup[node] = lookup[node.name]
             elif isinstance(node, ConstFalse):
@@ -130,9 +128,8 @@ class AIG(NamedTuple):
             else:
                 raise NotImplementedError
 
-        outputs = {name: lookup[node] for name, node in self.top_level}
-        latches = {l.name: lookup[l] for l in latches}
-        return outputs, latches
+        outputs = {name: lookup[node] for name, node in self.node_map}
+        return outputs, latch_outputs
 
     def simulator(self, latches=None):
         inputs = yield
@@ -147,11 +144,8 @@ class AIG(NamedTuple):
 
     def cutlatches(self, latches):
         # TODO: assert relabels won't collide with existing labels.
-        latch_top_level = {(l.name, l.input) for l in self.latches}
-        return AIG(
-            inputs=fn.merge(self.inputs, frozenset(latch_top_level)),
-            top_level=self.top_level | latch_top_level,
-            comments=())
+        raise NotImplementedError
+
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO:
@@ -177,8 +171,11 @@ class AIG(NamedTuple):
         return unrolled
 
     def _to_aag(self):
-        aag, _, l_map = _to_aag(self.cones, AAG({}, {}, {}, [], self.comments))
-        aag.outputs.update({k: l_map[cone] for k, cone in self.top_level})
+        aag, _, l_map = _to_aag(
+            self.cones,
+            AAG({}, {}, {}, [], self.comments),
+        )
+        aag.outputs.update({k: l_map[cone] for k, cone in self.node_map})
         return aag
 
     def write(self, path):
@@ -265,7 +262,7 @@ class AAG(NamedTuple):
         lookup = {_to_idx(l): Input(n) for n, l in self.inputs.items()}
         # TODO: include latches
         lookup[0] = ConstFalse()
-
+        latches=set()
         for gate in fn.cat(eval_order[1:]):
             kind, gate = gate_lookup[gate]
 
@@ -279,6 +276,7 @@ class AAG(NamedTuple):
                 output = AndGate(*sources)
             else:
                 output = Latch(input=sources[0], initial=init, name=name)
+                latches.add((name, output))
 
             lookup[_to_idx(out)] = output
 
@@ -287,9 +285,11 @@ class AAG(NamedTuple):
             return _polarity(v)(lookup[idx])
 
         top_level = ((k, get_output(v)) for k, v in self.outputs.items())
+
         return AIG(
-            inputs=frozenset(self.inputs.keys()),
-            top_level=frozenset(top_level),
+            inputs=frozenset(self.inputs),
+            latches=frozenset(self.latches),
+            node_map=frozenset(top_level),
             comments=self.comments)
 
     @property
@@ -343,6 +343,7 @@ def _to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
             encoded = (lit_map[gate], lit_map[gate.input], int(gate.initial))
             aag.latches[gate.name] = encoded
 
+
         elif isinstance(gate, Input):
             aag.inputs[gate.name] = lit_map[gate]
 
@@ -362,13 +363,18 @@ def _dependency_graph(nodes):
 
 def par_compose(aig1, aig2, check_precondition=True):
     if check_precondition:
-        assert not (aig1.latches & aig2.latches)
-        assert not (aig1.outputs & aig2.outputs)
+        try:
+            assert not (aig1.latches & aig2.latches)
+            assert not (aig1.outputs & aig2.outputs)
+        except:
+            import pdb; pdb.set_trace()
 
     return AIG(
         inputs=aig1.inputs | aig2.inputs,
-        top_level=aig1.top_level | aig2.top_level,
-        comments=())
+        latches=aig1.latches | aig2.latches,
+        node_map=aig1.node_map | aig2.node_map,
+        comments=()
+    )
 
 
 def seq_compose(aig1, aig2, check_precondition=True):
@@ -380,16 +386,19 @@ def seq_compose(aig1, aig2, check_precondition=True):
         assert not (aig1.outputs - interface) & aig2.outputs
         assert not aig1.latches & aig2.latches
 
-    lookup = dict(aig1.top_level)
+
+    lookup = dict(aig1.node_map)
 
     def sub(input_sig):
         return lookup.get(input_sig.name, input_sig)
 
-    composed = bind(aig2.top_level).Recur(Input).modify(sub)
+    composed = bind(aig2.node_map).Recur(Input).modify(sub)
+
     passthrough = frozenset(
-        (k, v) for k, v in aig1.top_level if k not in interface)
+        (k, v) for k, v in aig1.node_map if k not in interface)
 
     return AIG(
         inputs=aig1.inputs | (aig2.inputs - interface),
-        top_level=composed | passthrough,
+        latches=aig1.latches | aig2.latches,
+        node_map=composed | passthrough,
         comments=())
