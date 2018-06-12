@@ -8,9 +8,11 @@ from pyrsistent import pmap
 from aiger import aig
 
 
-def _binary_and(left, right):
-    output_name, and_ref = uuid1(), uuid1()
-    left_ref, right_ref = uuid1(), uuid1()
+def _binary_and(left, right, output_name=None):
+    if output_name is None:
+        output_name = str(uuid1())
+
+    and_ref, left_ref, right_ref = str(uuid1()), str(uuid1()), str(uuid1())
     return aig.AIG(
         input_map=pmap({left: left_ref, right: right_ref}),
         output_map=pmap({output_name: and_ref}),
@@ -23,27 +25,30 @@ def _binary_and(left, right):
         comments=())
 
 
-def _and_compose(left, right):
+def _and_compose(left, right, output_name=None):
     circ = left | right
     assert len(circ.outputs) == 2
-    return circ >> _binary_and(*circ.outputs)
+    return circ >> _binary_and(*circ.outputs, output_name=output_name)
 
 
-def _reduce_and(inputs):
+def _reduce_and(inputs, output_name):
     queue = fn.lmap(lambda x: identity([x]), inputs)
     while len(queue) > 1:
+        if len(queue) == 2:
+            return _and_compose(*queue, output_name=output_name)
+        
         queue = list(starmap(_and_compose, zip(queue, queue[1:])))
+        
     return queue[0]
 
 
 def and_gate(inputs, output=None):
-    output = f'#and_output#{hash(tuple(inputs))}' if output is None else output
+    output = f'#and#{hash(tuple(inputs))}' if output is None else output
 
     if len(inputs) == 0:
         return source({output: False})
-    
-    input_map = pmap({uuid1(): name for name in inputs})
-    return _reduce_and(inputs)
+
+    return _reduce_and(inputs, output)
 
 
 def identity(inputs, outputs=None):
@@ -52,7 +57,7 @@ def identity(inputs, outputs=None):
     else:
         assert len(outputs) == len(inputs)
 
-    names = [(i, o, uuid1()) for i, o in zip(inputs, outputs)]
+    names = [(i, o, str(uuid1())) for i, o in zip(inputs, outputs)]
     return aig.AIG(
         input_map=pmap({i: ref for i, _, ref in names}),
         output_map=pmap({o: ref for _, o, ref in names}),
@@ -75,7 +80,7 @@ def bit_flipper(inputs, outputs=None):
     else:
         assert len(outputs) == len(inputs)
 
-    names = [(i, o, uuid1(), uuid1()) for i, o in zip(inputs, outputs)]
+    names = [(i, o, str(uuid1()), str(uuid1())) for i, o in zip(inputs, outputs)]
     return aig.AIG(
         input_map=pmap({i: ref1 for i, _, ref1, _ in names}),
         output_map=pmap({o: ref2 for _, o, _, ref2 in names}),
@@ -92,7 +97,7 @@ def _const(val):
 
 
 def _false_source(outputs):
-    names = [(o, uuid1()) for o in outputs]
+    names = [(o, str(uuid1())) for o in outputs]
     return aig.AIG(
         input_map=pmap(),
         latch_map=pmap(),
@@ -108,7 +113,7 @@ def source(outputs):
 
 
 def sink(inputs):
-    names = [(i, uuid1()) for i in inputs]
+    names = [(i, str(uuid1())) for i in inputs]
     return aig.AIG(
         input_map=pmap({i: ref for i, ref in names}),
         latch_map=pmap(),
@@ -119,7 +124,7 @@ def sink(inputs):
 
 
 def tee(outputs):
-    input_map = {k: uuid1() for k in outputs.keys()}
+    input_map = {k: str(uuid1()) for k in outputs.keys()}
     output_map = {}
     for name, renames in outputs.items():
         output_map.update({name2: input_map[name] for name2 in renames})
@@ -132,8 +137,17 @@ def tee(outputs):
         comments=())
 
 
-def or_gate(inputs, output=None):
-    output = f'#or_output#{hash(tuple(inputs))}' if output is None else output
+def nand_gate(inputs, output=None):
+    output = f'#nand#{hash(tuple(inputs))}' if output is None else output
     circ = and_gate(inputs, output)
+    return circ >> bit_flipper([output])
 
-    return bit_flipper(inputs) >> circ >> bit_flipper([output])
+
+def or_gate(inputs, output=None):
+    output = f'#or#{hash(tuple(inputs))}' if output is None else output
+    return bit_flipper(inputs) >> nand_gate(inputs, output)
+
+
+def nor_gate(inputs, output=None):
+    output = f'#nor#{hash(tuple(inputs))}' if output is None else output
+    return bit_flipper(inputs) >> and_gate(inputs, output)
