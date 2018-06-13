@@ -144,6 +144,16 @@ class AIG(NamedTuple):
 
     def cutlatches(self, latches):
         # TODO: assert relabels won't collide with existing labels.
+        aig = self
+        new_cones = []
+        while True:
+            _latch_lens = bind(aig).Recur()
+            _new_cones = _latch_lens.collect()
+            if not _new_cones:
+                break
+
+            
+
         raise NotImplementedError
 
 
@@ -363,11 +373,8 @@ def _dependency_graph(nodes):
 
 def par_compose(aig1, aig2, check_precondition=True):
     if check_precondition:
-        try:
-            assert not (aig1.latches & aig2.latches)
-            assert not (aig1.outputs & aig2.outputs)
-        except:
-            import pdb; pdb.set_trace()
+        assert not (aig1.latches & aig2.latches)
+        assert not (aig1.outputs & aig2.outputs)
 
     return AIG(
         inputs=aig1.inputs | aig2.inputs,
@@ -375,6 +382,21 @@ def par_compose(aig1, aig2, check_precondition=True):
         node_map=aig1.node_map | aig2.node_map,
         comments=()
     )
+
+
+def _update_inputs(gate, f):
+    if isinstance(gate, Input):
+        return f.get(gate.name, gate)
+    elif isinstance(gate, (Inverter, Latch)):
+        return gate._replace(input=_update_inputs(gate.input, f))
+    elif isinstance(gate, AndGate):
+        left = _update_inputs(gate.left, f)
+        right = _update_inputs(gate.right, f)
+        return gate._replace(left=left, right=right)
+    elif isinstance(gate, ConstFalse):
+        return gate
+    
+    raise NotImplementedError
 
 
 def seq_compose(aig1, aig2, check_precondition=True):
@@ -392,7 +414,8 @@ def seq_compose(aig1, aig2, check_precondition=True):
     def sub(input_sig):
         return lookup.get(input_sig.name, input_sig)
 
-    composed = bind(aig2.node_map).Recur(Input).modify(sub)
+    composed = frozenset(
+        (name, _update_inputs(cone, lookup)) for name, cone in aig2.node_map)
 
     passthrough = frozenset(
         (k, v) for k, v in aig1.node_map if k not in interface)
