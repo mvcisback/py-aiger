@@ -349,10 +349,10 @@ class AAG(NamedTuple):
                  for lit in lits if lit & 1
              })
         return AIG(
-            input_map=input_map,
-            output_map=output_map,
-            latch_map=latch_map,
-            node_map=node_map,
+            input_map=pmap(input_map),
+            output_map=pmap(output_map),
+            latch_map=pmap(latch_map),
+            node_map=pmap(node_map),
             comments=self.comments)
 
 
