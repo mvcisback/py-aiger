@@ -1,5 +1,4 @@
 # TODO: factor out common parts of seq_compose and par_compose
-from itertools import starmap
 from uuid import uuid1
 
 import funcy as fn
@@ -14,8 +13,13 @@ def _binary_and(left, right, output_name=None):
 
     and_ref, left_ref, right_ref = str(uuid1()), str(uuid1()), str(uuid1())
     return aig.AIG(
-        input_map=pmap({left: left_ref, right: right_ref}),
-        output_map=pmap({output_name: and_ref}),
+        input_map=pmap({
+            left: left_ref,
+            right: right_ref
+        }),
+        output_map=pmap({
+            output_name: and_ref
+        }),
         latch_map=pmap(),
         node_map=pmap({
             and_ref: aig.AndGate(left_ref, right_ref),
@@ -25,7 +29,11 @@ def _binary_and(left, right, output_name=None):
         comments=())
 
 
-def _and_compose(left, right, output_name=None):
+def _and_compose(left_right, output_name=None):
+    if len(left_right) == 1:
+        return left_right[0]
+
+    left, right = left_right
     circ = left | right
     assert len(circ.outputs) == 2
     return circ >> _binary_and(*circ.outputs, output_name=output_name)
@@ -35,10 +43,10 @@ def _reduce_and(inputs, output_name):
     queue = fn.lmap(lambda x: identity([x]), inputs)
     while len(queue) > 1:
         if len(queue) == 2:
-            return _and_compose(*queue, output_name=output_name)
-        
-        queue = list(starmap(_and_compose, zip(queue, queue[1:])))
-        
+            return _and_compose(queue, output_name=output_name)
+
+        queue = list(map(_and_compose, fn.chunks(2, queue)))
+
     return queue[0]
 
 
@@ -59,10 +67,13 @@ def identity(inputs, outputs=None):
 
     names = [(i, o, str(uuid1())) for i, o in zip(inputs, outputs)]
     return aig.AIG(
-        input_map=pmap({i: ref for i, _, ref in names}),
-        output_map=pmap({o: ref for _, o, ref in names}),
+        input_map=pmap({i: ref
+                        for i, _, ref in names}),
+        output_map=pmap({o: ref
+                         for _, o, ref in names}),
         latch_map=pmap(),
-        node_map=pmap({ref: aig.Input() for i, _, ref in names}),
+        node_map=pmap({ref: aig.Input()
+                       for i, _, ref in names}),
         comments=())
 
 
@@ -80,15 +91,19 @@ def bit_flipper(inputs, outputs=None):
     else:
         assert len(outputs) == len(inputs)
 
-    names = [(i, o, str(uuid1()), str(uuid1())) for i, o in zip(inputs, outputs)]
+    names = [(i, o, str(uuid1()), str(uuid1()))
+             for i, o in zip(inputs, outputs)]
     return aig.AIG(
-        input_map=pmap({i: ref1 for i, _, ref1, _ in names}),
-        output_map=pmap({o: ref2 for _, o, _, ref2 in names}),
+        input_map=pmap({i: ref1
+                        for i, _, ref1, _ in names}),
+        output_map=pmap({o: ref2
+                         for _, o, _, ref2 in names}),
         latch_map=pmap(),
-        node_map=pmap(fn.merge(
-            {ref1: aig.Input() for _, _, ref1, _ in names},
-            {ref2: aig.Inverter(ref1) for _, _, ref1, ref2 in names}
-        )),
+        node_map=pmap(
+            fn.merge({ref1: aig.Input()
+                      for _, _, ref1, _ in names},
+                     {ref2: aig.Inverter(ref1)
+                      for _, _, ref1, ref2 in names})),
         comments=())
 
 
@@ -102,7 +117,8 @@ def _false_source(outputs):
         input_map=pmap(),
         latch_map=pmap(),
         output_map=pmap(names),
-        node_map=pmap({ref: aig.ConstFalse() for _, ref in names}),
+        node_map=pmap({ref: aig.ConstFalse()
+                       for _, ref in names}),
         comments=(),
     )
 
@@ -115,12 +131,13 @@ def source(outputs):
 def sink(inputs):
     names = [(i, str(uuid1())) for i in inputs]
     return aig.AIG(
-        input_map=pmap({i: ref for i, ref in names}),
+        input_map=pmap({i: ref
+                        for i, ref in names}),
         latch_map=pmap(),
         output_map=pmap(),
-        node_map={ref: aig.Input() for _, ref in names},
-        comments=()
-    )
+        node_map={ref: aig.Input()
+                  for _, ref in names},
+        comments=())
 
 
 def tee(outputs):
@@ -133,7 +150,8 @@ def tee(outputs):
         input_map=pmap(input_map),
         output_map=pmap(output_map),
         latch_map=pmap(),
-        node_map=pmap({ref: aig.Input() for ref in input_map.values()}),
+        node_map=pmap({ref: aig.Input()
+                       for ref in input_map.values()}),
         comments=())
 
 
@@ -151,3 +169,22 @@ def or_gate(inputs, output=None):
 def nor_gate(inputs, output=None):
     output = f'#nor#{hash(tuple(inputs))}' if output is None else output
     return bit_flipper(inputs) >> and_gate(inputs, output)
+
+
+def delay(inputs):
+    names = [(i, str(uuid1()), str(uuid1())) for i in inputs]
+    return aig.AIG(
+        input_map=pmap({i: ref
+                        for i, ref, _ in names}),
+        output_map=pmap({str(uuid1()): ref
+                         for _, _, ref in names}),
+        latch_map=pmap({str(uuid1()): ref
+                        for _, _, ref in names}),
+        node_map=pmap(
+            fn.merge(
+                {refi: aig.Input()
+                 for _, refi, _ in names},
+                {refl: aig.Latch(refi, inputs[i])
+                 for i, refi, refl in names},
+            )),
+        comments=())

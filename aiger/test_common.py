@@ -14,7 +14,7 @@ def test_identity_unit(names):
 
 
 @given(st.integers(2, 10), st.data())
-def test_and(n_inputs, data):
+def test_and1(n_inputs, data):
     aag = common.and_gate([f'x{i}' for i in range(n_inputs)], "out")
     test_input = {f'x{i}': data.draw(st.booleans()) for i in range(n_inputs)}
     out, _ = aag(test_input)

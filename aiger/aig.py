@@ -1,4 +1,3 @@
-from collections import defaultdict
 from itertools import chain
 from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union, Mapping, List
@@ -6,8 +5,8 @@ from uuid import uuid1
 
 import funcy as fn
 import lenses.hooks  # TODO: remove on next lenses version release.
-from lenses import bind, lens
-from toposort import toposort
+from pyrsistent import pmap
+from toposort import toposort_flatten as toposort
 
 from aiger import common
 
@@ -18,7 +17,9 @@ from aiger import common
 def _frozenset_from_iter(self, iterable):
     return frozenset(iterable)
 
+
 Reference = Union[str, int]
+
 
 class AndGate(NamedTuple):
     left: Reference
@@ -70,6 +71,10 @@ def _walk_values(f, mapping):
     return {k: f(v) for k, v in mapping.items()}
 
 
+def _omit(mapping, keys):
+    return {k: v for k, v in mapping.items() if k not in keys}
+
+
 class AIG(NamedTuple):
     input_map: Mapping[str, Reference]
     output_map: Mapping[str, Reference]
@@ -80,24 +85,24 @@ class AIG(NamedTuple):
     def __repr__(self):
         return repr(self._to_aag())
 
-
-    """
     def __getitem__(self, others):
         if not isinstance(others, tuple):
             return super().__getitem__(others)
 
         kind, relabels = others
-        if kind not in {'i', 'o'}:
-            raise NotImplementedError
 
         def _relabel(n):
             return relabels.get(n, n)
 
-        return {
-            'i': lens.Fork(lens.Recur(Input).name, lens.inputs.Each()),
-            'o': lens.top_level.Each()[0],
-        }.get(kind).modify(_relabel)(self)
-    """
+        if kind not in {'i', 'o', 'l'}:
+            raise NotImplementedError
+
+        key = {'i': 'input_map', 'o': 'output_map', 'l': 'latch_map'}.get(kind)
+        return self._replace(**{
+            key:
+            pmap({_relabel(k): v
+                  for k, v in getattr(self, key).items()})
+        })
 
     @property
     def outputs(self) -> FrozenSet[str]:
@@ -117,33 +122,25 @@ class AIG(NamedTuple):
     def __or__(self, other):
         return par_compose(self, other)
 
-    @property
-    def _eval_order(self):
-        return list(toposort(_dependency_graph(self.cones)))
-
     def __call__(self, inputs, latches=None):
         # TODO: Implement partial evaluation.
         if latches is None:
             latches = dict()
 
-        latches = {l: latches.get(l.name, l.initial) for l in self.latches}
-        lookup = fn.merge(inputs, latches)
-        for node in fn.cat(self._eval_order):
-            if isinstance(node, AndGate):
-                lookup[node] = lookup[node.left] and lookup[node.right]
-            elif isinstance(node, Inverter):
-                lookup[node] = not lookup[node.input]
-            elif isinstance(node, Latch):
-                lookup[node] = lookup[node.input]
-            elif isinstance(node, Input):
-                lookup[node] = lookup[node.name]
-            elif isinstance(node, ConstFalse):
-                lookup[node] = False
-            else:
-                raise NotImplementedError
+        lookup = fn.merge({
+            ref: latches.get(name, self.node_map[ref].initial)
+            for name, ref in self.latch_map.items()
+        }, {ref: inputs[name]
+            for name, ref in self.input_map.items()})
 
-        outputs = {name: lookup[node] for name, node in self.top_level}
-        latches = {l.name: lookup[l] for l in latches}
+        for ref in self.output_map.values():
+            self._eval(ref, lookup)
+
+        outputs = {name: lookup[ref] for name, ref in self.output_map.items()}
+        latches = {
+            name: lookup[self.node_map[ref].input]
+            for name, ref in self.latch_map.items()
+        }
         return outputs, latches
 
     def simulator(self, latches=None):
@@ -159,17 +156,25 @@ class AIG(NamedTuple):
 
     def cutlatches(self, latches):
         # TODO: assert relabels won't collide with existing labels.
-        latch_top_level = {(l.name, l.input) for l in self.latches}
+        # 1. Each latch becomes a new input.
+        new_inputs = {name: self.latch_map[name] for name in latches}
+
+        # 2. Each latch becomes a new output.
+        new_outputs = _walk_values(lambda ref: self.node_map[ref].input,
+                                   self.latch_map)
+
         return AIG(
-            inputs=fn.merge(self.inputs, frozenset(latch_top_level)),
-            top_level=self.top_level | latch_top_level,
+            input_map=self.input_map.update(new_inputs),
+            output_map=self.output_map.update(new_outputs),
+            latch_map=pmap(_omit(self.latch_map, latches)),
+            node_map=pmap(_omit(self.node_map, new_inputs.values())),
             comments=())
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO:
         # - Check for name collisions.
-        latches = self.latches
-        aag0 = self.cutlatches({l.name for l in latches})
+        aag0 = self.cutlatches(self.latches)
+        latches = _walk_values(self.node_map.get, self.latch_map).items()
 
         def _unroll():
             prev = aag0
@@ -179,39 +184,47 @@ class AIG(NamedTuple):
 
         unrolled = reduce(seq_compose, _unroll())
         if init:
-            latch_source = {f"{l.name}##time_0": l.initial for l in latches}
+            latch_source = {f"{n}##time_0": l.initial for n, l in latches}
             unrolled = common.source(latch_source) >> unrolled
 
         if omit_latches:
-            latch_names = [f"{l.name}##time_{horizon}" for l in latches]
+            latch_names = [f"{n}##time_{horizon}" for n, _ in latches]
             unrolled = unrolled >> common.sink(latch_names)
 
         return unrolled
 
     def _to_aag(self):
         # Compute ref -> lit map.
-        refs = set(chain(
-            self.input_map.values(),
-            self.output_map.values(),
-            self.latch_map.values(),
-            (k for k, v in self.node_map.items() 
-             if not isinstance(v, Inverter)),
-        ))
+        refs = set(
+            chain(
+                self.input_map.values(),
+                self.latch_map.values(),
+                (k for k, v in self.node_map.items()
+                 if not isinstance(v, Inverter)),
+            ))
         ref_to_lit = {ref: (idx + 1) << 1 for idx, ref in enumerate(refs)}
 
-        inverters = ((k, v) for k, v in self.node_map.items()
-                     if isinstance(v, Inverter))
-        ref_to_lit.update(
-            {ref: _invert_lit(ref_to_lit[v.input]) for ref, v in inverters}
-        )
+        # Propogate lits to inverters.
+        # Toposort inverters.
+        inverter_map = {
+            ref: {node.input}
+            for ref, node in self.node_map.items()
+            if isinstance(node, Inverter)
+        }
+        eval_order = list(toposort(inverter_map))
+        for ref in eval_order:
+            if ref in ref_to_lit:
+                continue
+
+            node = self.node_map[ref]
+            ref_to_lit[ref] = _invert_lit(ref_to_lit[node.input])
 
         # Convert AIG to ASCII encoding.
-        gates = [
-            (ref_to_lit[k], ref_to_lit[v.left], ref_to_lit[v.right]) 
-            for k, v in self.node_map.items() if isinstance(v, AndGate)
-        ]
+        gates = [(ref_to_lit[k], ref_to_lit[v.left], ref_to_lit[v.right])
+                 for k, v in self.node_map.items() if isinstance(v, AndGate)]
         latches = {
-            k: (ref_to_lit[k], ref_to_lit[v.input], int(v.initial))
+            k: (ref_to_lit[v], ref_to_lit[self.node_map[v].input], int(
+                self.node_map[v].initial))
             for k, v in self.latch_map.items()
         }
         return AAG(
@@ -219,13 +232,27 @@ class AIG(NamedTuple):
             outputs=_walk_values(ref_to_lit.get, self.output_map),
             latches=latches,
             gates=gates,
-            comments=self.comments
-        )
-
+            comments=self.comments)
 
     def write(self, path):
         with open(path, 'w') as f:
             f.write(repr(self))
+
+    def _eval(self, node_ref, lookup):
+        node = self.node_map[node_ref]
+        for child in node.children:
+            self._eval(child, lookup)
+
+        if isinstance(node, AndGate):
+            lookup[node_ref] = lookup[node.left] and lookup[node.right]
+        elif isinstance(node, Inverter):
+            lookup[node_ref] = not lookup[node.input]
+        elif isinstance(node, (Latch, Input)):
+            return
+        elif isinstance(node, ConstFalse):
+            lookup[node_ref] = False
+        else:
+            raise NotImplementedError
 
 
 def _to_idx(lit):
@@ -251,12 +278,10 @@ class AAG(NamedTuple):
 
     @property
     def header(self):
-        literals = chain(
-            self.inputs.values(),
-            self.outputs.values(),
-            fn.pluck(0, self.gates),
-            fn.pluck(0, self.latches.values())
-        )
+        literals = chain(self.inputs.values(),
+                         self.outputs.values(),
+                         fn.pluck(0, self.gates),
+                         fn.pluck(0, self.latches.values()))
         max_idx = max(map(_to_idx, literals))
         return Header(max_idx, *map(len, self[:-1]))
 
@@ -298,59 +323,37 @@ class AAG(NamedTuple):
         return out
 
     def _to_aig(self):
-        lits = set(chain(
-            self.inputs.values(),
-            self.outputs.values(),
-            chain(*self.gates),
-            fn.pluck(0, self.latches.values()),
-            fn.pluck(1, self.latches.values()),
-        ))
-        
+        lits = set(
+            chain(
+                self.inputs.values(),
+                self.outputs.values(),
+                chain(*self.gates),
+                fn.pluck(0, self.latches.values()),
+                fn.pluck(1, self.latches.values()),
+            ))
+
         lookup = {lit: str(uuid1()) for lit in lits}
         input_map = fn.walk_values(lookup.get, self.inputs)
         output_map = fn.walk_values(lookup.get, self.outputs)
         latch_map = fn.walk_values(lambda x: lookup[x[0]], self.latches)
         node_map = fn.merge(
-            {ref: Input() for ref in input_map.values()},
-            {lookup[out]: AndGate(lookup[left], lookup[right]) 
-             for out, left, right in self.gates},
-            {lookup[out]: AndGate(lookup[left], lookup[right]) 
-             for out, left, right in self.latches},
-            {lookup[lit]: Inverter(lookup[lit & -2]) 
-             for lit in lits if lit & 1}
-        )
+            {ref: Input()
+             for ref in input_map.values()}, {
+                 lookup[out]: AndGate(lookup[left], lookup[right])
+                 for out, left, right in self.gates
+             }, {
+                 lookup[lit]: Latch(lookup[lit2], bool(init))
+                 for lit, lit2, init in self.latches.values()
+             }, {
+                 lookup[lit]: Inverter(lookup[lit & -2])
+                 for lit in lits if lit & 1
+             })
         return AIG(
             input_map=input_map,
             output_map=output_map,
             latch_map=latch_map,
             node_map=node_map,
-            comments=self.comments
-        )
-
-
-    @property
-    def eval_order_and_gate_lookup(self):
-        deps = {a & -2: {b & -2, c & -2} for a, b, c in self.gates}
-        deps.update(
-            {a & -2: {b & -2}
-             for _, (a, b, _) in self.latches.items()})
-
-        lookup = {v[0] & -2: ('AND', v) for v in self.gates}
-        lookup.update(
-            {v[0] & -2: ('LATCH', (v, k))
-             for k, v in self.latches.items()})
-        return list(toposort(deps)), lookup
-
-
-def _dependency_graph(nodes):
-    queue, deps = list(nodes), defaultdict(set)
-    while queue:
-        node = queue.pop()
-        children = node.children
-        queue.extend(children)
-        deps[node].update(children)
-
-    return deps
+            comments=self.comments)
 
 
 def par_compose(aig1, aig2, check_precondition=True):
@@ -360,7 +363,6 @@ def par_compose(aig1, aig2, check_precondition=True):
 
     interface = aig1.inputs & aig2.inputs
     if interface:  # Need to split wire.
-        import pdb; pdb.set_trace()
         renames1 = {i: str(uuid1()) for i in interface}
         renames2 = {i: str(uuid1()) for i in interface}
         aig1 = aig1['i', renames1]
@@ -371,16 +373,13 @@ def par_compose(aig1, aig2, check_precondition=True):
         output_map=aig1.output_map.update(aig2.output_map),
         latch_map=aig1.latch_map.update(aig2.latch_map),
         node_map=aig1.node_map.update(aig2.node_map),
-        comments=aig1.comments + aig2.comments
-    )
+        comments=aig1.comments + aig2.comments)
 
     if interface:
-        res >>= tee({i: (renames1[i], renames2[i]) for i in interface})
+        split = common.tee({i: (renames1[i], renames2[i]) for i in interface})
+        res = split >> res
+
     return res
-
-
-def _omit(mapping, keys):
-    return {k: v for k, v in mapping.items() if k not in keys}
 
 
 def seq_compose(aig1, aig2, check_precondition=True):
@@ -396,26 +395,23 @@ def seq_compose(aig1, aig2, check_precondition=True):
     new_refs = {aig2.input_map[i]: aig1.output_map[i] for i in interface}
     node_map2 = _omit(aig2.node_map, set(new_refs.keys()))
 
+    def lookup(ref):
+        return new_refs.get(ref, ref)
+
     def _update_node_ref(node):
         if isinstance(node, AndGate):
-            return AndGate(
-                new_refs.get(node.left, node.left),
-                new_refs.get(node.right, node.right)
-            )
+            return AndGate(lookup(node.left), lookup(node.right))
         elif isinstance(node, (Latch, Inverter)):
-            return node._replace(
-                input=new_refs.get(node.input, node.input)
-            )
+            return node._replace(input=lookup(node.input))
         return node
-    
-    node_map2 = fn.walk_values(_update_node_ref, node_map2)
 
+    node_map2 = _walk_values(_update_node_ref, node_map2)
+    latch_map2 = _walk_values(lookup, aig2.latch_map)
+    input_map2 = _walk_values(lookup, _omit(aig2.input_map, interface))
+    output_map2 = pmap(_walk_values(lookup, aig2.output_map))
     return AIG(
-        input_map=aig1.input_map.update(
-            _omit(aig2.input_map, interface)),
-        output_map=aig2.output_map.update(
-            _omit(aig1.output_map, interface)),
-        latch_map=aig1.latch_map.update(aig2.latch_map),
+        input_map=aig1.input_map.update(input_map2),
+        latch_map=aig1.latch_map.update(latch_map2),
         node_map=aig1.node_map.update(node_map2),
-        comments=aig1.comments + aig2.comments
-    )
+        output_map=output_map2.update(_omit(aig1.output_map, interface)),
+        comments=aig1.comments + aig2.comments)
