@@ -5,7 +5,7 @@ from hypothesis_cfg import ContextFreeGrammarStrategy
 from lenses import bind
 from parsimonious import Grammar, NodeVisitor
 
-from aiger import aig, common
+from aiger import common
 
 CIRC_GRAMMAR = Grammar(u'''
 phi =  and / neg / vyest / AP
@@ -19,25 +19,12 @@ EOL = "\\n"
 ''')
 
 
-def atomic_pred(a, out=None):
-    if out is None:
-        out = f'l{uuid1()}'
-
-    return aig.AIG(
-        inputs=frozenset([a]),
-        top_level=frozenset([(out, aig.Input(a))]),
-        comments=())
+def atomic_pred(a):
+    return common.identity([a], outputs=[str(uuid1())])
 
 
-def vyesterday(a, out, latch_name=None):
-    if latch_name is None:
-        latch_name = f'l{uuid1()}'
-
-    latch = aig.Latch(latch_name, aig.Input(a), True)
-    return aig.AIG(
-        inputs=frozenset([a]),
-        top_level=frozenset([(out, latch)]),
-        comments=())
+def vyesterday(a):
+    return common.delay({a: True})
 
 
 class CircVisitor(NodeVisitor):
@@ -53,7 +40,7 @@ class CircVisitor(NodeVisitor):
     def visit_and(self, _, children):
         _, _, left, _, _, _, right, _, _ = children
         combined = left | right
-        return combined >> common.and_gate(combined.outputs, str(uuid1()))
+        return combined >> common.and_gate(combined.outputs)
 
     def visit_neg(self, _, children):
         _, _, phi = children
@@ -62,7 +49,7 @@ class CircVisitor(NodeVisitor):
     def visit_vyest(self, _, children):
         _, _, phi = children
         (out, ) = phi.outputs
-        return phi >> vyesterday(out, str(uuid1()))
+        return phi >> vyesterday(out)
 
 
 def parse(circ_str: str):
@@ -91,9 +78,9 @@ GRAMMAR = {
 
 def make_circuit(term):
     circ_str = ''.join(term)
-    return bind(parse(circ_str)).comments.set([circ_str])
+    return bind(parse(circ_str)).comments.set((circ_str,))
 
 
 Circuits = st.builds(make_circuit,
                      ContextFreeGrammarStrategy(
-                         GRAMMAR, max_length=15, start='psi'))
+                         GRAMMAR, max_length=5, start='psi'))
