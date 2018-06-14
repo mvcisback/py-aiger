@@ -27,7 +27,7 @@ class AndGate(NamedTuple):
 
     @property
     def children(self):
-        return (self.left, self.right)
+        return {self.left, self.right}
 
 
 class Latch(NamedTuple):
@@ -36,7 +36,7 @@ class Latch(NamedTuple):
 
     @property
     def children(self):
-        return (self.input, )
+        return {self.input}
 
 
 class Inverter(NamedTuple):
@@ -44,20 +44,20 @@ class Inverter(NamedTuple):
 
     @property
     def children(self):
-        return (self.input, )
+        return {self.input}
 
 
 # Enables filtering for Input via lens library.
 class Input(NamedTuple):
     @property
     def children(self):
-        return ()
+        return set()
 
 
 class ConstFalse(NamedTuple):
     @property
     def children(self):
-        return ()
+        return set()
 
 
 Node = Union[AndGate, Latch, ConstFalse, Inverter, Input]
@@ -195,14 +195,19 @@ class AIG(NamedTuple):
 
     def _to_aag(self):
         # Compute ref -> lit map.
-        refs = set(
+        refs = list(
             chain(
                 self.input_map.values(),
                 self.latch_map.values(),
                 (k for k, v in self.node_map.items()
-                 if not isinstance(v, Inverter)),
+                 if not isinstance(v, (Inverter, ConstFalse))),
             ))
         ref_to_lit = {ref: (idx + 1) << 1 for idx, ref in enumerate(refs)}
+
+        # Make all ConstFalses map to 0.
+        for ref, node in self.node_map.items():
+            if isinstance(node, ConstFalse):
+                ref_to_lit[ref] = 0
 
         # Propogate lits to inverters.
         # Toposort inverters.
@@ -211,6 +216,7 @@ class AIG(NamedTuple):
             for ref, node in self.node_map.items()
             if isinstance(node, Inverter)
         }
+
         eval_order = list(toposort(inverter_map))
         for ref in eval_order:
             if ref in ref_to_lit:

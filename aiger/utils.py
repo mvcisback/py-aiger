@@ -1,10 +1,10 @@
-from itertools import chain
 from math import exp, log
 
 import click
+from toposort import toposort_flatten as toposort
 
-from aiger import parser
-from aiger.common import AAG
+import aiger
+
 
 try:
     from dd.cudd import BDD
@@ -12,37 +12,42 @@ except ImportError:
     from dd.autoref import BDD
 
 
-def to_bdd(aag: AAG, output):
+def to_bdd(aag, output):
     assert len(aag.outputs) == 1 or (output is not None)
     assert len(aag.latches) == 0
 
     if output is None:
-        output = list(aag.outputs.keys())[0]
-
-    eval_order, gate_lookup = aag.eval_order_and_gate_lookup
-
-    inputs = aag.inputs.values()
-    assert eval_order[0] <= set(inputs) | {0, 1}
+        output = list(aag.output_map.values())[0]
+    else:
+        output = aag.output_map[output]  # Use uuid reference instead.
 
     bdd = BDD()
-    bdd.declare(*(f'x{i}' for i in inputs))
-    gate_nodes = {i: bdd.add_expr(f'x{i}') for i in inputs}
-    gate_nodes[0] = bdd.add_expr('False')
-    gate_nodes[1] = bdd.add_expr('True')
-    for gate in chain(*eval_order[1:]):
-        out, i1, i2 = gate_lookup[gate]
-        f1 = ~gate_nodes[i1 & -2] if i1 & 1 else gate_nodes[i1 & -2]
-        f2 = ~gate_nodes[i2 & -2] if i2 & 1 else gate_nodes[i2 & -2]
-        gate_nodes[out] = f1 & f2
+    input_refs_to_var = {
+        ref: f'x{i}' for i, ref in enumerate(aag.input_map.values())
+    }
+    bdd.declare(*input_refs_to_var.values())
 
-    out = aag.outputs[output]
-    return (~gate_nodes[out & -2] if out & 1 else gate_nodes[out & -2]), bdd
+    deps = {k: v.children for k, v in aag.node_map.items()}
+    gate_nodes = {}
+    for ref in toposort(deps):
+        gate = aag.node_map[ref]
+
+        if isinstance(gate, aiger.aig.ConstFalse):
+            gate_nodes[ref] = bdd.add_expr('False')
+        elif isinstance(gate, aiger.aig.Inverter):
+            gate_nodes[ref] = ~gate_nodes[gate.input]
+        elif isinstance(gate, aiger.aig.Input):
+            gate_nodes[ref] = bdd.add_expr(input_refs_to_var[ref])
+        elif isinstance(gate, aiger.aig.AndGate):
+            gate_nodes[ref] = gate_nodes[gate.left] & gate_nodes[gate.right]
+
+    return gate_nodes[output], bdd
 
 
 def count(aag, output=None):
     f, bdd = to_bdd(aag, output)
 
-    n = aag.header.num_inputs
+    n = len(aag.inputs)
     return f.count(n)
 
 
@@ -50,7 +55,7 @@ def count(aag, output=None):
 @click.argument('path', type=click.Path(exists=True))
 @click.option('--percent', is_flag=True)
 def parse_and_count(path, percent):
-    aag = parser.load(path)
+    aag = aiger.parser.load(path)
     num_models = count(aag)
     if percent:
         print(exp(log(num_models) - aag.header.num_inputs))
@@ -63,7 +68,7 @@ def parse_and_count(path, percent):
 @click.argument('path2', type=click.Path(exists=True))
 @click.argument('dest', type=click.Path(exists=False))
 def parse_and_compose(path1, path2, dest):
-    aag1, aag2 = map(parser.load, (path1, path2))
+    aag1, aag2 = map(aiger.parser.load, (path1, path2))
 
     with open(dest, 'w') as f:
         f.write((aag1 >> aag2).dump())
@@ -74,7 +79,7 @@ def parse_and_compose(path1, path2, dest):
 @click.argument('path2', type=click.Path(exists=True))
 @click.argument('dest', type=click.Path(exists=False))
 def parse_and_parcompose(path1, path2, dest):
-    aag1, aag2 = map(parser.load, (path1, path2))
+    aag1, aag2 = map(aiger.parser.load, (path1, path2))
 
     with open(dest, 'w') as f:
         f.write((aag1 | aag2).dump())
