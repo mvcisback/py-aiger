@@ -2,16 +2,16 @@ from uuid import uuid1
 
 import hypothesis.strategies as st
 from hypothesis_cfg import ContextFreeGrammarStrategy
-from lenses import bind
 from parsimonious import Grammar, NodeVisitor
 
 from aiger import common
 
 CIRC_GRAMMAR = Grammar(u'''
-phi =  and / neg / vyest / AP
+phi =  and / neg / vyest / zero / AP
 and = "(" _ phi _ "&" _ phi _ ")"
 neg = "~" _ phi
 vyest = "Z" _ phi
+zero = "0"
 
 _ = ~r" "*
 AP = ~r"[a-zA-z]" ~r"[a-zA-Z\d]*"
@@ -36,6 +36,9 @@ class CircVisitor(NodeVisitor):
 
     def visit_AP(self, node, _):
         return atomic_pred(node.text)
+
+    def visit_zero(self, node, _):
+        return common.source({str(uuid1()): False})
 
     def visit_and(self, _, children):
         _, _, left, _, _, _, right, _, _ = children
@@ -72,13 +75,14 @@ GRAMMAR = {
         ('j', ),
         ('k', ),
         ('l', ),
+        ('0', ),
     ),
 }
 
 
 def make_circuit(term):
     circ_str = ''.join(term)
-    return bind(parse(circ_str)).comments.set((circ_str,))
+    return parse(circ_str)._replace(comments=(circ_str,))
 
 
 Circuits = st.builds(make_circuit,
