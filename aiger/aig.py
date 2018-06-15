@@ -338,7 +338,8 @@ class AAG(NamedTuple):
                 fn.pluck(1, self.latches.values()),
             ))
 
-        lookup = {lit: str(uuid1()) for lit in lits}
+        lookup = {lit: str(uuid1()) for lit in lits | {0, 1}}
+
         input_map = fn.walk_values(lookup.get, self.inputs)
         output_map = fn.walk_values(lookup.get, self.outputs)
         latch_map = fn.walk_values(lambda x: lookup[x[0]], self.latches)
@@ -354,6 +355,10 @@ class AAG(NamedTuple):
                  lookup[lit]: Inverter(lookup[lit & -2])
                  for lit in lits if lit & 1
              })
+
+        if lits & {0, 1}:
+            node_map[lookup[0]] = ConstFalse()
+
         return AIG(
             input_map=pmap(input_map),
             output_map=pmap(output_map),
