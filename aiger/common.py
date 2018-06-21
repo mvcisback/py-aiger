@@ -21,8 +21,8 @@ def _and(left_right):
 
 
 def and_gate(inputs, output=None):
-    output = f'#and_output#{hash(tuple(inputs))}' if output is None else output        
-    
+    output = f'#and_output#{hash(tuple(inputs))}' if output is None else output
+
     return aig.AIG(
         inputs=frozenset(inputs),
         latches=frozenset(),
@@ -79,8 +79,7 @@ def sink(inputs):
         inputs=frozenset(inputs),
         latches=frozenset(),
         node_map=frozenset(),
-        comments=()
-    )
+        comments=())
 
 
 def tee(outputs):

@@ -27,7 +27,7 @@ class AndGate(NamedTuple):
         return (self.left, self.right)
 
     def __hash__(self):
-        return hash(id(self))
+        return id(self)
 
 
 class Latch(NamedTuple):
@@ -40,7 +40,7 @@ class Latch(NamedTuple):
         return (self.input, )
 
     def __hash__(self):
-        return hash(id(self))
+        return id(self)
 
 
 class Inverter(NamedTuple):
@@ -51,7 +51,7 @@ class Inverter(NamedTuple):
         return (self.input, )
 
     def __hash__(self):
-        return hash(id(self))
+        return id(self)
 
 
 # Enables filtering for Input via lens library.
@@ -161,10 +161,7 @@ class AIG(NamedTuple):
             if not _new_cones:
                 break
 
-            
-
         raise NotImplementedError
-
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO:
@@ -229,12 +226,10 @@ class AAG(NamedTuple):
 
     @property
     def header(self):
-        literals = chain(
-            self.inputs.values(),
-            self.outputs.values(),
-            fn.pluck(0, self.gates),
-            fn.pluck(0, self.latches.values())
-        )
+        literals = chain(self.inputs.values(),
+                         self.outputs.values(),
+                         fn.pluck(0, self.gates),
+                         fn.pluck(0, self.latches.values()))
         max_idx = max(map(_to_idx, literals))
         return Header(max_idx, *map(len, self[:-1]))
 
@@ -281,7 +276,7 @@ class AAG(NamedTuple):
         lookup = {_to_idx(l): Input(n) for n, l in self.inputs.items()}
         # TODO: include latches
         lookup[0] = ConstFalse()
-        latches=set()
+        latches = set()
         for gate in fn.cat(eval_order[1:]):
             kind, gate = gate_lookup[gate]
 
@@ -333,10 +328,11 @@ def _to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
         return aag, max_idx, lit_map
 
     # Recurse to update get aag for subtrees.
-    children = fn.cat(g.children for g in gates)
-    children = [c for c in children if c not in lit_map]
-    aag, max_idx, lit_map = _to_aag(
-        children, aag, max_idx=max_idx, lit_map=lit_map)
+    for c in fn.mapcat(lambda g: g.children, gates):
+        if c in lit_map:
+            continue
+        aag, max_idx, lit_map = _to_aag(
+            [c], aag, max_idx=max_idx, lit_map=lit_map)
 
     # Update aag with current level.
     for gate in gates:
@@ -361,7 +357,6 @@ def _to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
         elif isinstance(gate, Latch):
             encoded = (lit_map[gate], lit_map[gate.input], int(gate.initial))
             aag.latches[gate.name] = encoded
-
 
         elif isinstance(gate, Input):
             aag.inputs[gate.name] = lit_map[gate]
@@ -389,8 +384,7 @@ def par_compose(aig1, aig2, check_precondition=True):
         inputs=aig1.inputs | aig2.inputs,
         latches=aig1.latches | aig2.latches,
         node_map=aig1.node_map | aig2.node_map,
-        comments=()
-    )
+        comments=())
 
 
 def _update_inputs(gate, f):
@@ -404,8 +398,42 @@ def _update_inputs(gate, f):
         return gate._replace(left=left, right=right)
     elif isinstance(gate, ConstFalse):
         return gate
-    
+
     raise NotImplementedError
+
+
+def _is_const_true(node):
+    return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
+
+
+def sub_inputs(node, sub):
+    if isinstance(node, AndGate):
+        left = sub_inputs(node.left, sub)
+        right = sub_inputs(node.right, sub)
+        if ConstFalse() in (left, right):
+            return ConstFalse()
+        elif _is_const_true(left):
+            return right
+        elif _is_const_true(right):
+            return left
+        else:
+            return node._replace(left=left, right=right)
+
+    elif isinstance(node, Inverter):
+        child = sub_inputs(node.input, sub)
+        if isinstance(child, Inverter):
+            return child.input
+        else:
+            return node._replace(input=child)
+
+    elif isinstance(node, Latch):
+        return node._replace(input=sub_inputs(node.input, sub))
+
+    elif isinstance(node, Input):
+
+        return sub.get(node.name, node)
+
+    return ConstFalse()
 
 
 def seq_compose(aig1, aig2, check_precondition=True):
@@ -417,14 +445,9 @@ def seq_compose(aig1, aig2, check_precondition=True):
         assert not (aig1.outputs - interface) & aig2.outputs
         assert not aig1.latches & aig2.latches
 
-
     lookup = dict(aig1.node_map)
-
-    def sub(input_sig):
-        return lookup.get(input_sig.name, input_sig)
-
     composed = frozenset(
-        (name, _update_inputs(cone, lookup)) for name, cone in aig2.node_map)
+        (name, sub_inputs(cone, lookup)) for name, cone in aig2.node_map)
 
     passthrough = frozenset(
         (k, v) for k, v in aig1.node_map if k not in interface)
