@@ -2,6 +2,7 @@ from collections import defaultdict
 from itertools import chain
 from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union, Mapping, List
+from uuid import uuid1
 
 import funcy as fn
 import lenses.hooks  # TODO: remove on next lenses version release.
@@ -153,21 +154,33 @@ class AIG(NamedTuple):
 
     def cutlatches(self, latches):
         # TODO: assert relabels won't collide with existing labels.
-        aig = self
-        new_cones = []
-        while True:
-            _latch_lens = bind(aig).Recur()
-            _new_cones = _latch_lens.collect()
-            if not _new_cones:
-                break
+        visited, l_map, aig = set(), {}, self
+        while visited != aig.outputs:
+            # Focus on next front of latches.
+            _active_nodes = bind(aig).node_map.Each().Filter(
+                lambda x: x[0] not in visited)
+            _latch_lens = _active_nodes[1].Recur(Latch).input.Filter(
+                lambda x: x in latches)
 
-        raise NotImplementedError
+            # Turn focused latches into inputs and update visited
+            l_map.update({str(uuid1()): l for l in _latch_lens.collect()})
+            aig = _latch_lens.modify(lambda x: Input(l_map[x.name]))
+            visited |= set(_active_nodes[0].collect())
+
+            # Create new outputs
+            new_cones = {(l_map[l.name], l.input)
+                         for l in _latch_lens.collect()}
+            aig = aig._replace(node_map=aig.node_map | new_cones)
+
+        aig = aig._replace(
+            inputs=aig.inputs | set(l_map.keys()), latches=frozenset())
+        return aig, l_map
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO:
         # - Check for name collisions.
         latches = self.latches
-        aag0 = self.cutlatches({l.name for l in latches})
+        aag0, l_map = self.cutlatches({l for l in latches})
 
         def _unroll():
             prev = aag0
@@ -177,11 +190,11 @@ class AIG(NamedTuple):
 
         unrolled = reduce(seq_compose, _unroll())
         if init:
-            latch_source = {f"{l.name}##time_0": l.initial for l in latches}
-            unrolled = common.source(latch_source) >> unrolled
+            source = {f"{n}##time_0": l.initial for n, l in l_map.items()}
+            unrolled = common.source(source) >> unrolled
 
         if omit_latches:
-            latch_names = [f"{l.name}##time_{horizon}" for l in latches]
+            latch_names = [f"{n}##time_{horizon}" for n, l in l_map.items()]
             unrolled = unrolled >> common.sink(latch_names)
 
         return unrolled
