@@ -118,6 +118,7 @@ class AIG(NamedTuple):
 
     def __call__(self, inputs, latches=None):
         # TODO: Implement partial evaluation.
+        # TODO: Implement via DFS. In practice this was faster for _to_aag
         if latches is None:
             latches = dict()
 
@@ -400,7 +401,8 @@ def par_compose(aig1, aig2, check_precondition=True):
         inputs=aig1.inputs | aig2.inputs,
         latches=aig1.latches | aig2.latches,
         node_map=aig1.node_map | aig2.node_map,
-        comments=aig1.comments + ('|',) + aig2.comments)
+        comments=aig1.comments + ('|', ) + aig2.comments)
+
 
 def _is_const_true(node):
     return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
@@ -456,4 +458,4 @@ def seq_compose(aig1, aig2, check_precondition=True):
         inputs=aig1.inputs | (aig2.inputs - interface),
         latches=aig1.latches | aig2.latches,
         node_map=composed | passthrough,
-        comments=aig1.comments + ('>>',) + aig2.comments)
+        comments=aig1.comments + ('>>', ) + aig2.comments)

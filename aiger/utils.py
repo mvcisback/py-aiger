@@ -2,10 +2,8 @@ from math import exp, log
 
 import click
 import funcy as fn
-from toposort import toposort_flatten as toposort
 
 import aiger
-
 
 try:
     from dd.cudd import BDD
@@ -25,9 +23,7 @@ def to_bdd(aag, output):
         output = node_map[output]  # By name instead.
 
     bdd = BDD()
-    input_refs_to_var = {
-        ref: f'x{i}' for i, ref in enumerate(aag.inputs)
-    }
+    input_refs_to_var = {ref: f'x{i}' for i, ref in enumerate(aag.inputs)}
     bdd.declare(*input_refs_to_var.values())
 
     gate_nodes = {}
