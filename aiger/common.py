@@ -27,7 +27,7 @@ def and_gate(inputs, output=None):
         inputs=frozenset(inputs),
         latches=frozenset(),
         node_map=frozenset(((output, _map_tree(inputs, f=_and)), )),
-        comments=())
+        comments=(' ∧ '.join(inputs),))
 
 
 def identity(inputs, outputs=None):
@@ -38,7 +38,7 @@ def identity(inputs, outputs=None):
         inputs=frozenset(inputs),
         latches=frozenset(),
         node_map=frozenset(zip(outputs, map(aig.Input, inputs))),
-        comments=())
+        comments=('identity',))
 
 
 def empty():
@@ -59,7 +59,7 @@ def bit_flipper(inputs, outputs=None):
         inputs=frozenset(inputs),
         latches=frozenset(),
         node_map=frozenset(zip(outputs, map(_inverted_input, inputs))),
-        comments=())
+        comments=('~',))
 
 
 def _const(val):
@@ -71,7 +71,7 @@ def source(outputs):
         inputs=frozenset(),
         latches=frozenset(),
         node_map=frozenset((k, _const(v)) for k, v in outputs.items()),
-        comments=())
+        comments=('source',))
 
 
 def sink(inputs):
@@ -79,7 +79,7 @@ def sink(inputs):
         inputs=frozenset(inputs),
         latches=frozenset(),
         node_map=frozenset(),
-        comments=())
+        comments=('sink',))
 
 
 def tee(outputs):
@@ -90,7 +90,7 @@ def tee(outputs):
         inputs=frozenset(outputs),
         latches=frozenset(),
         node_map=frozenset.union(*starmap(tee_output, outputs.items())),
-        comments=())
+        comments=('T',))
 
 
 def or_gate(inputs, output=None):

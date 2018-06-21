@@ -152,28 +152,31 @@ class AIG(NamedTuple):
         next(sim)
         return [sim.send(inputs) for inputs in input_seq]
 
-    def cutlatches(self, latches):
+    def cutlatches(self, latches, check_postcondition=True):
         # TODO: assert relabels won't collide with existing labels.
+        # Focus on next front of latches.
         visited, l_map, aig = set(), {}, self
-        while visited != aig.outputs:
-            # Focus on next front of latches.
+        while True:
             _active_nodes = bind(aig).node_map.Each().Filter(
                 lambda x: x[0] not in visited)
-            _latch_lens = _active_nodes[1].Recur(Latch).input.Filter(
-                lambda x: x in latches)
+            _latch_lens = _active_nodes[1].Recur(Latch).Filter(
+                lambda x: x.name in latches)
 
-            # Turn focused latches into inputs and update visited
-            l_map.update({str(uuid1()): l for l in _latch_lens.collect()})
-            aig = _latch_lens.modify(lambda x: Input(l_map[x.name]))
-            visited |= set(_active_nodes[0].collect())
+            _latches = _latch_lens.collect()
+            if not _latches:
+                break
+
+            _active = _active_nodes[0].collect()
 
             # Create new outputs
-            new_cones = {(l_map[l.name], l.input)
-                         for l in _latch_lens.collect()}
+            l_map.update({l: str(uuid1()) for l in _latches})
+            new_cones = {(l_map[l], l.input) for l in _latches}
+            aig = _latch_lens.modify(lambda x: Input(l_map[x]))
             aig = aig._replace(node_map=aig.node_map | new_cones)
+            visited |= set(_active)
 
         aig = aig._replace(
-            inputs=aig.inputs | set(l_map.keys()), latches=frozenset())
+            inputs=aig.inputs | set(l_map.values()), latches=frozenset())
         return aig, l_map
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
@@ -190,11 +193,11 @@ class AIG(NamedTuple):
 
         unrolled = reduce(seq_compose, _unroll())
         if init:
-            source = {f"{n}##time_0": l.initial for n, l in l_map.items()}
+            source = {f"{n}##time_0": l.initial for l, n in l_map.items()}
             unrolled = common.source(source) >> unrolled
 
         if omit_latches:
-            latch_names = [f"{n}##time_{horizon}" for n, l in l_map.items()]
+            latch_names = [f"{n}##time_{horizon}" for l, n in l_map.items()]
             unrolled = unrolled >> common.sink(latch_names)
 
         return unrolled
@@ -397,23 +400,7 @@ def par_compose(aig1, aig2, check_precondition=True):
         inputs=aig1.inputs | aig2.inputs,
         latches=aig1.latches | aig2.latches,
         node_map=aig1.node_map | aig2.node_map,
-        comments=())
-
-
-def _update_inputs(gate, f):
-    if isinstance(gate, Input):
-        return f.get(gate.name, gate)
-    elif isinstance(gate, (Inverter, Latch)):
-        return gate._replace(input=_update_inputs(gate.input, f))
-    elif isinstance(gate, AndGate):
-        left = _update_inputs(gate.left, f)
-        right = _update_inputs(gate.right, f)
-        return gate._replace(left=left, right=right)
-    elif isinstance(gate, ConstFalse):
-        return gate
-
-    raise NotImplementedError
-
+        comments=aig1.comments + ('|',) + aig2.comments)
 
 def _is_const_true(node):
     return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
@@ -469,4 +456,4 @@ def seq_compose(aig1, aig2, check_precondition=True):
         inputs=aig1.inputs | (aig2.inputs - interface),
         latches=aig1.latches | aig2.latches,
         node_map=composed | passthrough,
-        comments=())
+        comments=aig1.comments + ('>>',) + aig2.comments)
