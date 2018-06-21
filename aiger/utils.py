@@ -1,10 +1,9 @@
 from math import exp, log
 
 import click
-from toposort import toposort_flatten as toposort
+import funcy as fn
 
 import aiger
-
 
 try:
     from dd.cudd import BDD
@@ -16,30 +15,27 @@ def to_bdd(aag, output):
     assert len(aag.outputs) == 1 or (output is not None)
     assert len(aag.latches) == 0
 
+    node_map = dict(aag.node_map)
+
     if output is None:
-        output = list(aag.output_map.values())[0]
+        output = node_map[fn.first(aag.outputs)]
     else:
-        output = aag.output_map[output]  # Use uuid reference instead.
+        output = node_map[output]  # By name instead.
 
     bdd = BDD()
-    input_refs_to_var = {
-        ref: f'x{i}' for i, ref in enumerate(aag.input_map.values())
-    }
+    input_refs_to_var = {ref: f'x{i}' for i, ref in enumerate(aag.inputs)}
     bdd.declare(*input_refs_to_var.values())
 
-    deps = {k: v.children for k, v in aag.node_map.items()}
     gate_nodes = {}
-    for ref in toposort(deps):
-        gate = aag.node_map[ref]
-
+    for gate in fn.cat(aag._eval_order):
         if isinstance(gate, aiger.aig.ConstFalse):
-            gate_nodes[ref] = bdd.add_expr('False')
+            gate_nodes[gate] = bdd.add_expr('False')
         elif isinstance(gate, aiger.aig.Inverter):
-            gate_nodes[ref] = ~gate_nodes[gate.input]
+            gate_nodes[gate] = ~gate_nodes[gate.input]
         elif isinstance(gate, aiger.aig.Input):
-            gate_nodes[ref] = bdd.add_expr(input_refs_to_var[ref])
+            gate_nodes[gate] = bdd.add_expr(input_refs_to_var[gate.name])
         elif isinstance(gate, aiger.aig.AndGate):
-            gate_nodes[ref] = gate_nodes[gate.left] & gate_nodes[gate.right]
+            gate_nodes[gate] = gate_nodes[gate.left] & gate_nodes[gate.right]
 
     return gate_nodes[output], bdd
 

@@ -4,7 +4,7 @@ be installed."""
 import tempfile
 from subprocess import PIPE, call
 
-import aiger.bv as bv
+from aiger import bv
 from aiger import parser
 
 
@@ -39,9 +39,10 @@ def simplify(expr):
     if not simp_aig_string:  # could not simplify file
         return None
 
-    aig = parser.parse(simp_aig_string)
-    del aig.comments[:]  # remove ABC's comments
-    aig.comments.extend([f'simplified'] + bv._indent(expr.aig.comments))
+    aig = parser.parse(simp_aig_string)._replace(
+        # remove ABC's comments
+        comments=[f'simplified'] + bv._indent(expr.aig.comments)
+    )
     return bv.BV(expr.size, (expr.variables, aig), name=expr.name())
 
 
