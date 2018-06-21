@@ -26,6 +26,9 @@ class AndGate(NamedTuple):
     def children(self):
         return (self.left, self.right)
 
+    def __hash__(self):
+        return hash(id(self))
+
 
 class Latch(NamedTuple):
     input: 'Node'
@@ -36,6 +39,9 @@ class Latch(NamedTuple):
     def children(self):
         return (self.input, )
 
+    def __hash__(self):
+        return hash(id(self))
+
 
 class Inverter(NamedTuple):
     input: 'Node'
@@ -43,6 +49,9 @@ class Inverter(NamedTuple):
     @property
     def children(self):
         return (self.input, )
+
+    def __hash__(self):
+        return hash(id(self))
 
 
 # Enables filtering for Input via lens library.
