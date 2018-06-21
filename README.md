@@ -7,6 +7,12 @@
 [![codecov](https://codecov.io/gh/mvcisback/py-aiger/branch/master/graph/badge.svg)](https://codecov.io/gh/mvcisback/py-aiger)
 [![PyPI version shields.io](https://img.shields.io/pypi/v/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
 [![PyPI license](https://img.shields.io/pypi/l/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
+
+# About Py-Aiger
+
+1. Q: How is Py-Aiger pronounced? A: Like "pie" + "grrr".
+2. Q: Why python? Aren't you worried about performance?! A: No. The goals of this library are expressibility, ease of use, and hackability.
+
 # Installation
 
 `$ pip install py-aiger`
