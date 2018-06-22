@@ -12,3 +12,4 @@ pytest-flake8==0.9
 pytest==3.2.3
 toposort==1.5
 pytest-sugar==0.9.1
+codecov==2.0.9
