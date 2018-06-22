@@ -15,7 +15,6 @@ def simplify(expr):
 
     call(["cp", f.name, f.name + ".aag"])
     call(["aigtoaig", f.name + ".aag", f.name + ".aig"], stdout=PIPE)
-    print(expr.aig.comments)
     call(
         [
             "abc", "-c",
