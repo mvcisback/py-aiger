@@ -112,3 +112,10 @@ def test_le(a, b):
 def test_ge(a, b):
     e = (BV(4, a) >= BV(4, b))
     assert e() == (a >= b)
+
+
+@settings(max_examples=20, timeout=unlimited)
+@given(st.integers(-8, 7))
+def test_reverse(a):
+    e = BV(4, a)
+    assert e() == (e.reverse().reverse())()
