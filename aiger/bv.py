@@ -166,8 +166,8 @@ class BV(object):
         adder = _adder_circuit(
             self.size, output=outname, left=self.name(), right=other.name())
         adder >>= aiger.sink([outname + '_carry'])
-        add_other = other.aig >> adder
-        result = self.aig >> add_other
+        inputs = self.aig | other.aig
+        result = inputs >> adder
         all_vars = self.variables + other.variables
         res = BV(self.size, (all_vars, result), name=outname)
 
@@ -236,7 +236,7 @@ class BV(object):
         return res
 
     def reverse(self):
-        comments = self.aig.comments.copy()
+        comments = self.aig.comments
         res = self[::-1]
 
         # nice comments
