@@ -63,7 +63,7 @@ def test_ite(n, data):
 
     circ = common.ite('test', inputs1, inputs0, outputs)
     assert len(circ.outputs) == n
-    
+
     _inputs = {'test': data.draw(st.booleans())}
     _inputs.update({i: data.draw(st.booleans()) for i in inputs0})
     _inputs.update({i: data.draw(st.booleans()) for i in inputs1})
