@@ -29,7 +29,7 @@ def and_gate(inputs, output=None):
         inputs=frozenset(inputs),
         latches=frozenset(),
         node_map=frozenset(((output, _map_tree(inputs, f=_and)), )),
-        comments=(' ∧ '.join(inputs),))
+        comments=(' ∧ '.join(inputs), ))
 
 
 def identity(inputs, outputs=None):
@@ -40,7 +40,7 @@ def identity(inputs, outputs=None):
         inputs=frozenset(inputs),
         latches=frozenset(),
         node_map=frozenset(zip(outputs, map(aig.Input, inputs))),
-        comments=('identity',))
+        comments=('identity', ))
 
 
 def empty():
@@ -61,7 +61,7 @@ def bit_flipper(inputs, outputs=None):
         inputs=frozenset(inputs),
         latches=frozenset(),
         node_map=frozenset(zip(outputs, map(_inverted_input, inputs))),
-        comments=('~',))
+        comments=('~', ))
 
 
 def _const(val):
@@ -73,7 +73,7 @@ def source(outputs):
         inputs=frozenset(),
         latches=frozenset(),
         node_map=frozenset((k, _const(v)) for k, v in outputs.items()),
-        comments=('source',))
+        comments=('source', ))
 
 
 def sink(inputs):
@@ -81,7 +81,7 @@ def sink(inputs):
         inputs=frozenset(inputs),
         latches=frozenset(),
         node_map=frozenset(),
-        comments=('sink',))
+        comments=('sink', ))
 
 
 def tee(outputs):
@@ -92,7 +92,7 @@ def tee(outputs):
         inputs=frozenset(outputs),
         latches=frozenset(),
         node_map=frozenset.union(*starmap(tee_output, outputs.items())),
-        comments=('T',))
+        comments=('T', ))
 
 
 def or_gate(inputs, output=None):
@@ -102,19 +102,20 @@ def or_gate(inputs, output=None):
     return bit_flipper(inputs) >> circ >> bit_flipper([output])
 
 
-def _ite(test: str, in1: str, in0: str, output:str=None):
+def _ite(test: str, in1: str, in0: str, output: str = None):
     "test -> in1 /\ ~test -> in0"
     assert len({test, in0, in1}) == 3
 
     true_out = bit_flipper([test]) >> or_gate([test, in1], 'true_out')
     false_out = or_gate([test, in0], 'false_out')
-    return (true_out | false_out) >> and_gate(['true_out', 'false_out'], output)
+    return (true_out | false_out) >> and_gate(['true_out', 'false_out'],
+                                              output)
 
 
 def ite(test, inputs1, inputs0, outputs):
     assert len(inputs1) > 0
     assert len(inputs1) == len(inputs0) == len(outputs)
-    assert len({test} | set(inputs1) | set(inputs0)) == 2*len(inputs0) + 1
-    
+    assert len({test} | set(inputs1) | set(inputs0)) == 2 * len(inputs0) + 1
+
     ites = [_ite(test, *args) for args in zip(inputs1, inputs0, outputs)]
     return reduce(op.or_, ites)
