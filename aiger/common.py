@@ -1,5 +1,7 @@
 # TODO: factor out common parts of seq_compose and par_compose
+import operator as op
 from itertools import starmap
+from functools import reduce
 
 import funcy as fn
 
@@ -98,3 +100,21 @@ def or_gate(inputs, output=None):
     circ = and_gate(inputs, output)
 
     return bit_flipper(inputs) >> circ >> bit_flipper([output])
+
+
+def _ite(test: str, in1: str, in0: str, output:str=None):
+    "test -> in1 /\ ~test -> in0"
+    assert len({test, in0, in1}) == 3
+
+    true_out = bit_flipper([test]) >> or_gate([test, in1], 'true_out')
+    false_out = or_gate([test, in0], 'false_out')
+    return (true_out | false_out) >> and_gate(['true_out', 'false_out'], output)
+
+
+def ite(test, inputs1, inputs0, outputs):
+    assert len(inputs1) > 0
+    assert len(inputs1) == len(inputs0) == len(outputs)
+    assert len({test} | set(inputs1) | set(inputs0)) == 2*len(inputs0) + 1
+    
+    ites = [_ite(test, *args) for args in zip(inputs1, inputs0, outputs)]
+    return reduce(op.or_, ites)

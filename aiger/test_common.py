@@ -55,6 +55,27 @@ def test_or2(aag1, aag2, data):
     assert v12 == v3
 
 
+@given(st.integers(1, 5), st.data())
+def test_ite(n, data):
+    inputs0 = [f'i0_{idx}' for idx in range(n)]
+    inputs1 = [f'i1_{idx}' for idx in range(n)]
+    outputs = [f'o{idx}' for idx in range(n)]
+
+    circ = common.ite('test', inputs1, inputs0, outputs)
+    assert len(circ.outputs) == n
+    
+    _inputs = {'test': data.draw(st.booleans())}
+    _inputs.update({i: data.draw(st.booleans()) for i in inputs0})
+    _inputs.update({i: data.draw(st.booleans()) for i in inputs1})
+
+    res, _ = circ(_inputs)
+    for i0, i1, out in zip(inputs0, inputs1, outputs):
+        if _inputs['test']:
+            assert res[out] == _inputs[i1]
+        else:
+            assert res[out] == _inputs[i0]
+
+
 @given(aigh.Circuits, st.data())
 def test_flipper(aag1, data):
     aag2 = aag1 >> common.bit_flipper(aag1.outputs)
