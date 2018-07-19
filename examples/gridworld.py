@@ -1,6 +1,3 @@
-from functools import reduce
-import operator as op
-
 import aiger as aig
 from aiger.bv import BV
 
