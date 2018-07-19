@@ -31,19 +31,6 @@ class AndGate(NamedTuple):
         return id(self)
 
 
-class Latch(NamedTuple):
-    input: 'Node'
-    name: str
-    initial: bool
-
-    @property
-    def children(self):
-        return (self.input, )
-
-    def __hash__(self):
-        return id(self)
-
-
 class Inverter(NamedTuple):
     input: 'Node'
 
@@ -64,19 +51,28 @@ class Input(NamedTuple):
         return ()
 
 
+class LatchIn(NamedTuple):
+    name: str
+    initial: bool
+
+    @property
+    def children(self):
+        return ()
+
+
 class ConstFalse(NamedTuple):
     @property
     def children(self):
         return ()
 
 
-Node = Union[AndGate, Latch, ConstFalse, Inverter, Input]
+Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn]
 
 
 class AIG(NamedTuple):
-    latches: FrozenSet[str]  # TODO: use internal names to make relabels fast.
     inputs: FrozenSet[str]  # TODO: use internal names to make relabels fast.
     node_map: FrozenSet[Tuple[str, Node]]
+    latch_map: FrozenSet[Tuple[str, Node]]
     comments: Tuple[str]
 
     def __repr__(self):
@@ -87,7 +83,7 @@ class AIG(NamedTuple):
             return super().__getitem__(others)
 
         kind, relabels = others
-        if kind not in {'i', 'o'}:
+        if kind not in {'i', 'o', 'l'}:
             raise NotImplementedError
 
         def _relabel(n):
@@ -96,6 +92,8 @@ class AIG(NamedTuple):
         return {
             'i': lens.Fork(lens.Recur(Input).name, lens.inputs.Each()),
             'o': lens.node_map.Each()[0],
+            # TODO: Test this lens.
+            'l': lens.Fork(lens.Recur(LatchIn).name, lens.latch_map.Each()[0]),
         }.get(kind).modify(_relabel)(self)
 
     @property
@@ -103,8 +101,16 @@ class AIG(NamedTuple):
         return frozenset(fn.pluck(0, self.node_map))
 
     @property
+    def latches(self):
+        return frozenset(fn.pluck(0, self.latch_map))
+
+    @property
     def cones(self):
         return frozenset(fn.pluck(1, self.node_map))
+
+    @property
+    def latch_cones(self):
+        return frozenset(fn.pluck(1, self.latch_map))
 
     def __rshift__(self, other):
         return seq_compose(self, other)
@@ -114,7 +120,7 @@ class AIG(NamedTuple):
 
     @property
     def _eval_order(self):
-        return list(toposort(_dependency_graph(self.cones)))
+        return list(toposort(_dependency_graph(self.cones | self.latch_cones)))
 
     def __call__(self, inputs, latches=None):
         # TODO: Implement partial evaluation.
@@ -123,14 +129,12 @@ class AIG(NamedTuple):
             latches = dict()
 
         lookup = dict(inputs)  # Copy inputs as initial lookup table.
-        latch_outputs = {}
         for node in fn.cat(self._eval_order):
             if isinstance(node, AndGate):
                 lookup[node] = lookup[node.left] and lookup[node.right]
             elif isinstance(node, Inverter):
                 lookup[node] = not lookup[node.input]
-            elif isinstance(node, Latch):
-                latch_outputs[node.name] = lookup[node.input]
+            elif isinstance(node, LatchIn):
                 lookup[node] = latches.get(node.name, node.initial)
             elif isinstance(node, Input):
                 lookup[node] = lookup[node.name]
@@ -140,6 +144,7 @@ class AIG(NamedTuple):
                 raise NotImplementedError
 
         outputs = {name: lookup[node] for name, node in self.node_map}
+        latch_outputs = {name: lookup[node] for name, node in self.latch_map}
         return outputs, latch_outputs
 
     def simulator(self, latches=None):
@@ -154,31 +159,38 @@ class AIG(NamedTuple):
         return [sim.send(inputs) for inputs in input_seq]
 
     def cutlatches(self, latches, check_postcondition=True):
-        # TODO: assert relabels won't collide with existing labels.
-        # Focus on next front of latches.
-        visited, l_map, aig = set(), {}, self
-        while True:
-            _active_nodes = bind(aig).node_map.Each().Filter(
-                lambda x: x[0] not in visited)
-            _latch_lens = _active_nodes[1].Recur(Latch).Filter(
-                lambda x: x.name in latches)
+        ilatch_lens = bind(self).Recur(LatchIn).Filter(lambda x: x.name in latches)
+        
+        l_map = {n: (str(uuid1()), init) for n, init in ilatch_lens.collect()}
+        
+        assert len(set(fn.pluck(0, l_map.values())) 
+                   & (self.inputs | self.outputs)) == 0
+        
+        aig = ilatch_lens.modify(lambda x: Input(l_map[x.name][0]))
 
-            _latches = _latch_lens.collect()
-            if not _latches:
-                break
-
-            _active = _active_nodes[0].collect()
-
-            # Create new outputs
-            l_map.update({l: str(uuid1()) for l in _latches})
-            new_cones = {(l_map[l], l.input) for l in _latches}
-            aig = _latch_lens.modify(lambda x: Input(l_map[x]))
-            aig = aig._replace(node_map=aig.node_map | new_cones)
-            visited |= set(_active)
-
+        new_cones = {(l_map[k][0], v) for k, v in aig.latch_map 
+                     if k in latches}
         aig = aig._replace(
-            inputs=aig.inputs | set(l_map.values()), latches=frozenset())
+            node_map=aig.node_map | new_cones,
+            inputs=aig.inputs | {n for n, _ in l_map.values()},
+            latch_map={(k, v) for k, v in aig.latch_map if k not in latches}
+        )
+
         return aig, l_map
+
+    def feedback(self, inputs, outputs, initials=None, latches=None):
+        if latches is None:
+            latches = inputs
+        
+        if initials is None:
+            initials = [False for _ in inputs]
+
+        assert len(inputs) == len(initials) == len(outputs) == len(latches)
+        assert len(set(inputs) & self.inputs) != 0
+        assert len(set(outputs) & self.outputs) != 0
+        
+        raise NotImplementedError
+        
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO:
@@ -194,21 +206,27 @@ class AIG(NamedTuple):
 
         unrolled = reduce(seq_compose, _unroll())
         if init:
-            source = {f"{n}##time_0": l.initial for l, n in l_map.items()}
+            source = {f"{n}##time_0": init for n, init in l_map.values()}
             unrolled = common.source(source) >> unrolled
 
         if omit_latches:
-            latch_names = [f"{n}##time_{horizon}" for l, n in l_map.items()]
+            latch_names = [f"{n}##time_{horizon-1}" for n, _ in l_map.values()]
             unrolled = unrolled >> common.sink(latch_names)
 
         return unrolled
 
     def _to_aag(self):
         aag, _, l_map = _to_aag(
-            self.cones,
+            self.cones | self.latch_cones,
             AAG({}, {}, {}, [], self.comments),
         )
+
+        # Update cone maps.
         aag.outputs.update({k: l_map[cone] for k, cone in self.node_map})
+        for name, cone in self.latch_map:
+            lit, _, init = aag.latches[name]
+            aag.latches[name] = lit, l_map[cone], init
+
         return aag
 
     def write(self, path):
@@ -306,8 +324,8 @@ class AAG(NamedTuple):
             if kind == 'AND':
                 output = AndGate(*sources)
             else:
-                output = Latch(input=sources[0], initial=init, name=name)
-                latches.add((name, output))
+                output = LatchIn(initial=init, name=name)
+                latches.add((name, sources[0]))
 
             lookup[_to_idx(out)] = output
 
@@ -319,7 +337,7 @@ class AAG(NamedTuple):
 
         return AIG(
             inputs=frozenset(self.inputs),
-            latches=frozenset(self.latches),
+            latch_map=frozenset(latches),
             node_map=frozenset(top_level),
             comments=self.comments)
 
@@ -371,8 +389,8 @@ def _to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
             encoded = tuple(map(lit_map.get, (gate, gate.left, gate.right)))
             aag.gates.append(encoded)
 
-        elif isinstance(gate, Latch):
-            encoded = (lit_map[gate], lit_map[gate.input], int(gate.initial))
+        elif isinstance(gate, LatchIn):
+            encoded = (lit_map[gate], None, int(gate.initial))
             aag.latches[gate.name] = encoded
 
         elif isinstance(gate, Input):
@@ -399,7 +417,7 @@ def par_compose(aig1, aig2, check_precondition=True):
 
     return AIG(
         inputs=aig1.inputs | aig2.inputs,
-        latches=aig1.latches | aig2.latches,
+        latch_map=aig1.latch_map | aig2.latch_map,
         node_map=aig1.node_map | aig2.node_map,
         comments=aig1.comments + ('|', ) + aig2.comments)
 
@@ -428,8 +446,8 @@ def sub_inputs(node, sub):
         else:
             return node._replace(input=child)
 
-    elif isinstance(node, Latch):
-        return node._replace(input=sub_inputs(node.input, sub))
+    elif isinstance(node, LatchIn):
+        return node
 
     elif isinstance(node, Input):
 
@@ -451,11 +469,14 @@ def seq_compose(aig1, aig2, check_precondition=True):
     composed = frozenset(
         (name, sub_inputs(cone, lookup)) for name, cone in aig2.node_map)
 
+    composed_lmap = frozenset(
+        (name, sub_inputs(cone, lookup)) for name, cone in aig2.latch_map)
+
     passthrough = frozenset(
         (k, v) for k, v in aig1.node_map if k not in interface)
 
     return AIG(
         inputs=aig1.inputs | (aig2.inputs - interface),
-        latches=aig1.latches | aig2.latches,
+        latch_map=aig1.latch_map | composed_lmap,
         node_map=composed | passthrough,
         comments=aig1.comments + ('>>', ) + aig2.comments)

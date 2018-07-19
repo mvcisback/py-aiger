@@ -27,7 +27,7 @@ def and_gate(inputs, output=None):
 
     return aig.AIG(
         inputs=frozenset(inputs),
-        latches=frozenset(),
+        latch_map=frozenset(),
         node_map=frozenset(((output, _map_tree(inputs, f=_and)), )),
         comments=(' ∧ '.join(inputs), ))
 
@@ -38,7 +38,7 @@ def identity(inputs, outputs=None):
 
     return aig.AIG(
         inputs=frozenset(inputs),
-        latches=frozenset(),
+        latch_map=frozenset(),
         node_map=frozenset(zip(outputs, map(aig.Input, inputs))),
         comments=('identity', ))
 
@@ -59,7 +59,7 @@ def bit_flipper(inputs, outputs=None):
 
     return aig.AIG(
         inputs=frozenset(inputs),
-        latches=frozenset(),
+        latch_map=frozenset(),
         node_map=frozenset(zip(outputs, map(_inverted_input, inputs))),
         comments=('~', ))
 
@@ -71,7 +71,7 @@ def _const(val):
 def source(outputs):
     return aig.AIG(
         inputs=frozenset(),
-        latches=frozenset(),
+        latch_map=frozenset(),
         node_map=frozenset((k, _const(v)) for k, v in outputs.items()),
         comments=('source', ))
 
@@ -79,7 +79,7 @@ def source(outputs):
 def sink(inputs):
     return aig.AIG(
         inputs=frozenset(inputs),
-        latches=frozenset(),
+        latch_map=frozenset(),
         node_map=frozenset(),
         comments=('sink', ))
 
@@ -90,7 +90,7 @@ def tee(outputs):
 
     return aig.AIG(
         inputs=frozenset(outputs),
-        latches=frozenset(),
+        latch_map=frozenset(),
         node_map=frozenset.union(*starmap(tee_output, outputs.items())),
         comments=('T', ))
 
@@ -119,3 +119,23 @@ def ite(test, inputs1, inputs0, outputs):
 
     ites = [_ite(test, *args) for args in zip(inputs1, inputs0, outputs)]
     return reduce(op.or_, ites)
+
+
+def delay(inputs, initials, latches=None, outputs=None):
+    if outputs is None:
+        outputs = inputs
+
+    if latches is None:
+        latches = inputs
+
+    assert len(inputs) == len(initials) == len(outputs) == len(latches)
+
+    _inputs = fn.lmap(aig.Input, inputs)
+    _latches = [
+        aig.LatchIn(initial=lv, name=n) for lv, n in zip(initials, latches)
+    ]
+    return aig.AIG(
+        inputs=frozenset(inputs),
+        latch_map=frozenset(zip(latches, _inputs)),
+        node_map=frozenset(zip(outputs, _latches)),
+        comments=('delay', ))

@@ -111,6 +111,10 @@ aig1 >> aiger.bit_flipper(inputs=aag1.outputs)
 
 # Flip inputs.
 aiger.bit_flipper(inputs=aag1.inputs) >> aig1
+
+# ITE circuit
+# ['o1', 'o2'] = ['i1', 'i2'] if 'test' Else ['i3', 'i4'] 
+aiger.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 ```
 
 # Scripts
