@@ -181,7 +181,11 @@ class AIG(NamedTuple):
 
         return aig, l_map
 
-    def feedback(self, inputs, outputs, initials=None, latches=None, 
+    def feedback(self,
+                 inputs,
+                 outputs,
+                 initials=None,
+                 latches=None,
                  keep_outputs=False):
         if latches is None:
             latches = inputs
@@ -198,19 +202,16 @@ class AIG(NamedTuple):
         aig = bind(self).Recur(Input). \
             Filter(lambda x: x.name in inputs). \
             modify(lambda x: LatchIn(in2latch[x.name], initial_map[x.name]))
-        
-        _latch_map, node_map = fn.lsplit(
-            lambda x: x[0] in outputs, aig.node_map
-        )
+
+        _latch_map, node_map = fn.lsplit(lambda x: x[0] in outputs,
+                                         aig.node_map)
         out2latch = {oname: lname for oname, lname in zip(outputs, latches)}
         _latch_map = {(out2latch[k], v) for k, v in _latch_map}
 
         return aig._replace(
             node_map=aig.node_map if keep_outputs else frozenset(node_map),
             latch_map=aig.latch_map | _latch_map,
-            inputs=aig.inputs - set(inputs)
-        )
-
+            inputs=aig.inputs - set(inputs))
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO:

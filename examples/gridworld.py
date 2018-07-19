@@ -1,7 +1,6 @@
 from functools import reduce
 import operator as op
 
-
 import aiger as aig
 from aiger.bv import BV
 
@@ -18,7 +17,7 @@ def _gridworld1d(n, state_name='x', start=0):
     adder_bv = (state_bv + delta_bv).rename(state_name)
 
     start = decode_start(start, n)
-    
+
     adder_aig = adder_bv.aig.feedback(
         inputs=state_bv.names,
         outputs=adder_bv.names,
@@ -39,4 +38,3 @@ def gridworld2d(n, starts=None):
     xworld = _gridworld1d(n, 'x', starts[0])
     yworld = _gridworld1d(n, 'y', starts[1])
     return xworld | yworld
-
