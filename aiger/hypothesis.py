@@ -33,7 +33,7 @@ def atomic_pred(a, out=None):
 def vyesterday(a, out, latch_name=None):
     if latch_name is None:
         latch_name = str(uuid1())
-    
+
     return common.delay([a], [True], [latch_name], [out])
 
 
@@ -88,7 +88,7 @@ GRAMMAR = {
 
 def make_circuit(term):
     circ_str = ''.join(term)
-    return bind(parse(circ_str)).comments.set((circ_str,))
+    return bind(parse(circ_str)).comments.set((circ_str, ))
 
 
 Circuits = st.builds(make_circuit,

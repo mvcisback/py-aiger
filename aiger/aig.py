@@ -159,38 +159,40 @@ class AIG(NamedTuple):
         return [sim.send(inputs) for inputs in input_seq]
 
     def cutlatches(self, latches, check_postcondition=True):
-        ilatch_lens = bind(self).Recur(LatchIn).Filter(lambda x: x.name in latches)
-        
+        ilatch_lens = bind(self).Recur(LatchIn).Filter(
+            lambda x: x.name in latches)
+
         l_map = {n: (str(uuid1()), init) for n, init in ilatch_lens.collect()}
-        
-        assert len(set(fn.pluck(0, l_map.values())) 
-                   & (self.inputs | self.outputs)) == 0
-        
+
+        assert len(
+            set(fn.pluck(0, l_map.values()))
+            & (self.inputs | self.outputs)) == 0
+
         aig = ilatch_lens.modify(lambda x: Input(l_map[x.name][0]))
 
-        new_cones = {(l_map[k][0], v) for k, v in aig.latch_map 
-                     if k in latches}
+        new_cones = {(l_map[k][0], v)
+                     for k, v in aig.latch_map if k in latches}
         aig = aig._replace(
             node_map=aig.node_map | new_cones,
-            inputs=aig.inputs | {n for n, _ in l_map.values()},
-            latch_map={(k, v) for k, v in aig.latch_map if k not in latches}
-        )
+            inputs=aig.inputs | {n
+                                 for n, _ in l_map.values()},
+            latch_map={(k, v)
+                       for k, v in aig.latch_map if k not in latches})
 
         return aig, l_map
 
     def feedback(self, inputs, outputs, initials=None, latches=None):
         if latches is None:
             latches = inputs
-        
+
         if initials is None:
             initials = [False for _ in inputs]
 
         assert len(inputs) == len(initials) == len(outputs) == len(latches)
         assert len(set(inputs) & self.inputs) != 0
         assert len(set(outputs) & self.outputs) != 0
-        
+
         raise NotImplementedError
-        
 
     def unroll(self, horizon, *, init=True, omit_latches=True):
         # TODO:
