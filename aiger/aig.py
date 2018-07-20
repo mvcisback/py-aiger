@@ -174,18 +174,14 @@ class AIG(NamedTuple):
                      for k, v in aig.latch_map if k in latches}
         aig = aig._replace(
             node_map=aig.node_map | new_cones,
-            inputs=aig.inputs | {n
-                                 for n, _ in l_map.values()},
-            latch_map={(k, v)
-                       for k, v in aig.latch_map if k not in latches})
+            inputs=aig.inputs | {n for n, _ in l_map.values()},
+            latch_map={
+                (k, v) for k, v in aig.latch_map if k not in latches
+            })
 
         return aig, l_map
 
-    def feedback(self,
-                 inputs,
-                 outputs,
-                 initials=None,
-                 latches=None,
+    def feedback(self, inputs, outputs, initials=None, latches=None,
                  keep_outputs=False):
         if latches is None:
             latches = inputs
