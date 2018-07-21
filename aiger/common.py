@@ -29,7 +29,35 @@ def and_gate(inputs, output=None):
         inputs=frozenset(inputs),
         latch_map=frozenset(),
         node_map=frozenset(((output, _map_tree(inputs, f=_and)), )),
-        comments=(' ∧ '.join(inputs), ))
+        comments=(' and '.join(inputs), ))
+
+
+def or_gate(inputs, output=None):
+    output = f'#or_output#{hash(tuple(inputs))}' if output is None else output
+    circ = and_gate(inputs, output)
+
+    return bit_flipper(inputs) >> circ >> bit_flipper([output])
+
+
+def _xor(left_right):
+    if len(left_right) == 1:
+        return left_right[0]
+
+    return aig.AndGate(
+        aig.Inverter(aig.AndGate(*left_right)),  # Both True
+        aig.Inverter(aig.AndGate(*map(aig.Inverter, left_right)))  # Both False
+    )
+    
+
+def parity_gate(inputs, output=None):
+    # TODO:
+    output = f'#parity#{hash(tuple(inputs))}' if output is None else output
+
+    return aig.AIG(
+        inputs=frozenset(inputs),
+        latch_map=frozenset(),
+        node_map=frozenset(((output, _map_tree(inputs, f=_xor)), )),
+        comments=(' xor '.join(inputs), ))
 
 
 def identity(inputs, outputs=None):
@@ -93,13 +121,6 @@ def tee(outputs):
         latch_map=frozenset(),
         node_map=frozenset.union(*starmap(tee_output, outputs.items())),
         comments=('T', ))
-
-
-def or_gate(inputs, output=None):
-    output = f'#or_output#{hash(tuple(inputs))}' if output is None else output
-    circ = and_gate(inputs, output)
-
-    return bit_flipper(inputs) >> circ >> bit_flipper([output])
 
 
 def _ite(test: str, in1: str, in0: str, output: str = None):
