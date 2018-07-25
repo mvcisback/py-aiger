@@ -47,7 +47,7 @@ def _xor(left_right):
         aig.Inverter(aig.AndGate(*left_right)),  # Both True
         aig.Inverter(aig.AndGate(*map(aig.Inverter, left_right)))  # Both False
     )
-    
+
 
 def parity_gate(inputs, output=None):
     # TODO:
