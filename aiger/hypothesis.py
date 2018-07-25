@@ -25,7 +25,7 @@ def atomic_pred(a, out=None):
 
     return aig.AIG(
         inputs=frozenset([a]),
-        latches=frozenset(),
+        latch_map=frozenset(),
         node_map=frozenset([(out, aig.Input(a))]),
         comments=())
 
@@ -34,12 +34,7 @@ def vyesterday(a, out, latch_name=None):
     if latch_name is None:
         latch_name = str(uuid1())
 
-    latch = aig.Latch(input=aig.Input(a), initial=True, name=latch_name)
-    return aig.AIG(
-        inputs=frozenset([a]),
-        latches=frozenset({latch_name}),
-        node_map=frozenset([(out, latch)]),
-        comments=())
+    return common.delay([a], [True], [latch_name], [out])
 
 
 class CircVisitor(NodeVisitor):
@@ -93,7 +88,7 @@ GRAMMAR = {
 
 def make_circuit(term):
     circ_str = ''.join(term)
-    return bind(parse(circ_str)).comments.set((circ_str,))
+    return bind(parse(circ_str)).comments.set((circ_str, ))
 
 
 Circuits = st.builds(make_circuit,

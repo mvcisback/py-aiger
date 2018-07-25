@@ -469,6 +469,10 @@ class BV(object):
         m = {self.name(i): f'{name}[{i}]' for i in range(self.size)}
         return BV(self.size, (self.variables, self.aig['o', m]), name=name)
 
+    @property
+    def names(self):
+        return [self.name(i) for i in range(self.size)]
+
     def __call__(self, args=None, signed=True, interpreted=True):
         '''
         Eval for unsigned integers:

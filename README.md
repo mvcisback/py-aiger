@@ -43,6 +43,17 @@ aag3 = aag1 >> aag2
 aig4 = aag1 | aag2
 ```
 
+## Adding Feedback (inserts a delay)
+```python
+# Connect output y to input x with delay (initialized to True).
+aig5 = aig1.feedback(
+    inputs=['x'],
+    outputs=['y'],
+    initials=[True],
+    keep_outputs=True
+)
+```
+
 ## Count solutions
 ```python
 # Assume 1 output. This could be passed as an argument in the future.
@@ -111,6 +122,10 @@ aig1 >> aiger.bit_flipper(inputs=aag1.outputs)
 
 # Flip inputs.
 aiger.bit_flipper(inputs=aag1.inputs) >> aig1
+
+# ITE circuit
+# ['o1', 'o2'] = ['i1', 'i2'] if 'test' Else ['i3', 'i4'] 
+aiger.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 ```
 
 # Scripts
