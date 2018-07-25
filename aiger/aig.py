@@ -19,6 +19,10 @@ def _frozenset_from_iter(self, iterable):
     return frozenset(iterable)
 
 
+def timed_name(name, time):
+    return f"{name}##time_{time}"
+
+
 class AndGate(NamedTuple):
     left: 'Node'  # TODO: replace with Node once 3.7 lands.
     right: 'Node'
@@ -218,16 +222,16 @@ class AIG(NamedTuple):
         def _unroll():
             prev = aag0
             for t in range(1, horizon + 1):
-                tmp = prev['i', {k: f"{k}##time_{t-1}" for k in aag0.inputs}]
-                yield tmp['o', {k: f"{k}##time_{t}" for k in aag0.outputs}]
+                tmp = prev['i', {k: timed_name(k, t-1) for k in aag0.inputs}]
+                yield tmp['o', {k: timed_name(k, t) for k in aag0.outputs}]
 
         unrolled = reduce(seq_compose, _unroll())
         if init:
-            source = {f"{n}##time_0": init for n, init in l_map.values()}
+            source = {timed_name(n, 0): init for n, init in l_map.values()}
             unrolled = common.source(source) >> unrolled
 
         if omit_latches:
-            latch_names = [f"{n}##time_{horizon-1}" for n, _ in l_map.values()]
+            latch_names = [timed_name(n, horizon-1) for n, _ in l_map.values()]
             unrolled = unrolled >> common.sink(latch_names)
 
         return unrolled
