@@ -31,3 +31,6 @@ def test_sink_aag():
     assert len(circ._to_aag().inputs) != 0
     assert len(circ._to_aag().outputs) == 0
     assert len(circ._to_aag().latches) == 0
+    circ2 = circ._to_aag()._to_aig()
+    assert circ.inputs == circ2.inputs
+    assert circ.outputs == circ2.outputs

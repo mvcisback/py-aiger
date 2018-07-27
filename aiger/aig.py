@@ -242,22 +242,17 @@ class AIG(NamedTuple):
             AAG({}, {}, {}, [], self.comments),
         )
 
+        # Check that all inputs have a lit.
+        for name in filter(lambda x: x not in aag.inputs, self.inputs):
+            aag.inputs[name] = l_map[name] = 2*max_idx
+            max_idx += 1
+
         # Update cone maps.
         aag.outputs.update({k: l_map[cone] for k, cone in self.node_map})
         for name, cone in self.latch_map:
             lit, _, init = aag.latches[name]
             aag.latches[name] = lit, l_map[cone], init
 
-        # Check that all inputs, latches have a lit.
-        for name in self.inputs | self.latches:
-            if name in l_map:
-                continue
-
-            l_map[name] = 2*max_idx
-            max_idx += 1
-
-        aag.inputs.update({name: l_map[name] for name in self.inputs})
-        aag.latches.update({name: l_map[name] for name in self.latches})
         return aag
 
     def write(self, path):
