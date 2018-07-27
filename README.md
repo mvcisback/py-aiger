@@ -1,5 +1,5 @@
 <figure>
-  <img src="logo_text.svg" alt="py-aiger logo" width=300px>
+  <img src="assets/logo_text.svg" alt="py-aiger logo" width=300px>
   <figcaption>pyAiger: A python library for manipulating sequential and inverter gates.</figcaption>
 </figure>
 
