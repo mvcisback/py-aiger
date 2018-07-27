@@ -120,8 +120,7 @@ def test_feedback(aag1, data):
         inputs=['##test##'],
         outputs=['##test##'],
         initials=[True],
-        keep_outputs=False
-    )
+        keep_outputs=False)
 
     assert aag3.outputs == aag1.outputs
     assert aag3.inputs == aag1.inputs
@@ -153,14 +152,13 @@ def test_cutlatches(aag1, data):
 
     test_inputs = {i: data.draw(st.booleans()) for i in aag1.inputs}
     test_latch_ins = {l: data.draw(st.booleans()) for l in aag1.latches}
-    test_inputs2 = fn.merge(
-        test_inputs,
-        {lmap[k][0]: v for k,v in test_latch_ins.items()}
-    )
+    test_inputs2 = fn.merge(test_inputs,
+                            {lmap[k][0]: v
+                             for k, v in test_latch_ins.items()})
     out_vals, latch_vals = aag1(test_inputs, latches=test_latch_ins)
     out_vals2, _ = aag2(test_inputs2)
     assert fn.project(out_vals2, aag1.outputs) == out_vals
-    latch_vals2 = {k: out_vals2[v] for k, (v,_) in lmap.items()}
+    latch_vals2 = {k: out_vals2[v] for k, (v, _) in lmap.items()}
     assert latch_vals == latch_vals2
 
 
@@ -168,13 +166,14 @@ def test_cutlatches(aag1, data):
 def test_unroll_simulate(aag1, horizon, data):
     # TODO
     aag2 = aag1.unroll(horizon)
-    assert horizon*len(aag1.inputs) == len(aag2.inputs)
-    assert horizon*len(aag1.outputs) == len(aag2.outputs)
+    assert horizon * len(aag1.inputs) == len(aag2.inputs)
+    assert horizon * len(aag1.outputs) == len(aag2.outputs)
 
     test_inputs = [{f'{i}': data.draw(st.booleans())
                     for i in aag1.inputs} for _ in range(horizon)]
 
     time = -1
+
     def unroll_keys(inputs):
         nonlocal time
         time += 1
