@@ -55,6 +55,20 @@ def test_or2(aag1, aag2, data):
     assert v12 == v3
 
 
+@given(st.data())
+def test_source(data):
+    circ = common.source({'x': True, 'y': False})
+    assert len(circ.inputs) == 0
+    assert circ({})[0] == {'x': True, 'y': False}
+
+
+@given(st.data())
+def test_sink(data):
+    circ = common.sink(['x', 'y'])
+    test_input = {i: data.draw(st.booleans()) for i in circ.inputs}
+    assert circ(test_input)[0] == dict()
+
+
 @given(st.integers(1, 5), st.data())
 def test_ite(n, data):
     inputs0 = [f'i0_{idx}' for idx in range(n)]
