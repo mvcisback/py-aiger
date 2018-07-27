@@ -1,6 +1,7 @@
 import hypothesis.strategies as st
 from hypothesis import given
 
+import aiger
 from aiger import bv
 from aiger import bv_utils
 from aiger import hypothesis as aigh
@@ -23,3 +24,10 @@ def test_aig_to_aag2():
     assert circ.outputs == circ2.outputs
 
     bv_utils.simplify(expr)  # smoke test
+
+
+def test_sink_aag():
+    circ = aiger.common.sink(['x', 'y'])
+    assert len(circ._to_aag().inputs) != 0
+    assert len(circ._to_aag().outputs) == 0
+    assert len(circ._to_aag().latches) == 0

@@ -237,7 +237,7 @@ class AIG(NamedTuple):
         return unrolled
 
     def _to_aag(self):
-        aag, _, l_map = _to_aag(
+        aag, max_idx, l_map = _to_aag(
             self.cones | self.latch_cones,
             AAG({}, {}, {}, [], self.comments),
         )
@@ -248,6 +248,16 @@ class AIG(NamedTuple):
             lit, _, init = aag.latches[name]
             aag.latches[name] = lit, l_map[cone], init
 
+        # Check that all inputs, latches have a lit.
+        for name in self.inputs | self.latches:
+            if name in l_map:
+                continue
+
+            l_map[name] = 2*max_idx
+            max_idx += 1
+
+        aag.inputs.update({name: l_map[name] for name in self.inputs})
+        aag.latches.update({name: l_map[name] for name in self.latches})
         return aag
 
     def write(self, path):
@@ -286,7 +296,7 @@ class AAG(NamedTuple):
                          self.outputs.values(),
                          fn.pluck(0, self.gates),
                          fn.pluck(0, self.latches.values()))
-        max_idx = max(map(_to_idx, literals))
+        max_idx = max(map(_to_idx, literals), default=0)
         return Header(max_idx, *map(len, self[:-1]))
 
     def __repr__(self):
