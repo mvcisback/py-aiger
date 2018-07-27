@@ -143,16 +143,38 @@ def test_relabel(aag1):
         aag1['z', {}]
 
 
+@given(aigh.Circuits, st.data())
+def test_cutlatches(aag1, data):
+    aag2, lmap = aag1.cutlatches(aag1.latches)
+
+    assert aag2.inputs >= aag1.inputs
+    assert aag2.outputs >= aag1.outputs
+    assert len(aag2.latches) == 0
+
+    test_inputs = {i: data.draw(st.booleans()) for i in aag1.inputs}
+    test_latch_ins = {l: data.draw(st.booleans()) for l in aag1.latches}
+    test_inputs2 = fn.merge(
+        test_inputs,
+        {lmap[k][0]: v for k,v in test_latch_ins.items()}
+    )
+    out_vals, latch_vals = aag1(test_inputs, latches=test_latch_ins)
+    out_vals2, _ = aag2(test_inputs2)
+    assert fn.project(out_vals2, aag1.outputs) == out_vals
+    latch_vals2 = {k: out_vals2[v] for k, (v,_) in lmap.items()}
+    assert latch_vals == latch_vals2
+
+
 @given(aigh.Circuits, st.integers(min_value=1, max_value=4), st.data())
 def test_unroll_simulate(aag1, horizon, data):
     # TODO
     aag2 = aag1.unroll(horizon)
+    assert horizon*len(aag1.inputs) == len(aag2.inputs)
+    assert horizon*len(aag1.outputs) == len(aag2.outputs)
 
     test_inputs = [{f'{i}': data.draw(st.booleans())
                     for i in aag1.inputs} for _ in range(horizon)]
 
     time = -1
-
     def unroll_keys(inputs):
         nonlocal time
         time += 1
@@ -162,5 +184,7 @@ def test_unroll_simulate(aag1, horizon, data):
 
         return fn.walk_keys(unroll_key, inputs)
 
-    *_, (out1, _) = aag1.simulate(test_inputs)
-    out2, _ = aag2(fn.merge(*map(unroll_keys, test_inputs)))
+    # Check the number of trues and falses match up.
+    sum1 = sum(sum(x.values()) for x, _ in aag1.simulate(test_inputs))
+    sum2 = sum(aag2(fn.merge(*map(unroll_keys, test_inputs)))[0].values())
+    assert sum1 == sum2

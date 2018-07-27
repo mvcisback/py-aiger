@@ -231,7 +231,7 @@ class AIG(NamedTuple):
             unrolled = common.source(source) >> unrolled
 
         if omit_latches:
-            latch_names = [timed_name(n, horizon-1) for n, _ in l_map.values()]
+            latch_names = [timed_name(n, horizon) for n, _ in l_map.values()]
             unrolled = unrolled >> common.sink(latch_names)
 
         return unrolled
