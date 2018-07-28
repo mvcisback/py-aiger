@@ -29,7 +29,7 @@ symbol_kind = ("i" / "o" / "l")
 symbol_name = (~r".")+
 
 comments = "c" EOL comment+
-comment = (~r".")+ EOL?
+comment = (~r".")* EOL?
 
 _ = ~r" "+
 id = ~r"\d"+

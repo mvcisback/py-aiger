@@ -112,7 +112,10 @@ def sink(inputs):
         comments=('sink', ))
 
 
-def tee(outputs):
+def tee(outputs=None):
+    if not outputs:
+        return empty()
+
     def tee_output(name, renames):
         return frozenset((r, aig.Input(name)) for r in renames)
 
