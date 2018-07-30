@@ -8,6 +8,14 @@
 [![PyPI version shields.io](https://img.shields.io/pypi/v/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
 [![PyPI license](https://img.shields.io/pypi/l/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
 
+# Table of Context
+- [About](#About-Py-Aiger)
+- [Installation](#Installation)
+- [Sequential Circuit DSL](#Sequential-Circuit-DSL)
+- [Boolean Expr DSL](#Boolean-Expression-DSL)
+- [Scripts](#Scripts)
+
+
 # About Py-Aiger
 
 1. Q: How is Py-Aiger pronounced? A: Like "pie" + "grrr".
@@ -22,7 +30,7 @@ or as a developer:
 `$ python setup.py develop`
 
 
-# Usage
+# Sequential Circuit DSL
 
 ```python
 import aiger
@@ -128,6 +136,31 @@ aiger.bit_flipper(inputs=aag1.inputs) >> aig1
 aiger.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 ```
 
+
+# Boolean Expression DSL
+While powerful, when writing combinatorial circuits, the Sequential
+Circuit DSL came be somewhat clumsy. For this common usecase, we have
+developed the Boolean Expression DSL. All circuits generated this way
+have a single output.
+
+```python
+import aiger
+x, y = aiger.atom('x'), aiger.atom('y')
+expr1 = x & y  # circuit with inputs 'x', 'y' and 1 output computing x AND y.
+expr2 = x | y  # logical or.
+expr3 = x ^ y  # logical xor.
+expr4 = x == y  # logical ==, xnor.
+expr5 = x.implies(y)
+expr6 = ~x  # logical negation.
+
+# Atoms can be constants.
+expr7 = x & aiger.atom(True)  # Equivilent to just x.
+expr8 = x & aiger.atom(False)  # Equivilent to const False.
+
+# And you can inspect the AIG if needed.
+circ = x.aig
+```
+
 # Scripts
 
 Installing py-aiger should install two commandline scripts:
@@ -139,39 +172,3 @@ Installing py-aiger should install two commandline scripts:
 These are meant to augment the
 [aiger](fmv.jku.at/aiger/aiger-1.9.9.tar.gz) library. Ideally, we
 would someday like feature parity.
-
-
-# TODO
-- [ ] Document.
-- [X] Publish on pypi.
-- [X] Setup continuous integration
-- [ ] Support parser full the new aiger features 1.9.3.
-  - [X] Latch Initialization
-  - [ ] TODO: fill out with other feaures.
-- [ ] Symbolic circuits: Composition returns a function that composes using the rules defined.
-- [ ] qaiger
-- [ ] Make dd an optional dependency (maybe move counting stuff out of
-      py-aiger).
-- [ ] Officially support Bit Vector extensions.
-
-
-# aiger.utils and aiger.bv_utils
-
-`aiger.utils` and `aiger.bv_utils` contain a number of helper
-functions that depend on external tools.
-
-- For better bdd performance we recommend installing `dd` with cudd.
-  See https://github.com/johnyf/dd#cython-bindings for details.
-
-- To use simplification, make sure abc and aigtoaig are in your path.
-
-    TODO: remove this constraint.
-
-
-# Proposed API
-
-```
-# Partial evaluation
-# TODO
-aig3({x=True}) # New aiger circuit
-```
