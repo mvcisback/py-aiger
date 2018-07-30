@@ -9,11 +9,11 @@
 [![PyPI license](https://img.shields.io/pypi/l/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
 
 # Table of Context
-- [About](#About-Py-Aiger)
-- [Installation](#Installation)
-- [Sequential Circuit DSL](#Sequential-Circuit-DSL)
-- [Boolean Expr DSL](#Boolean-Expression-DSL)
-- [Scripts](#Scripts)
+- [About](#about-py-aiger)
+- [Installation](#installation)
+- [Sequential Circuit DSL](#sequential-circuit-dsl)
+- [Boolean Expr DSL](#boolean-expression-dsl)
+- [Scripts](#scripts)
 
 
 # About Py-Aiger
