@@ -1,11 +1,9 @@
-from uuid import uuid1
-
 import hypothesis.strategies as st
 from hypothesis_cfg import ContextFreeGrammarStrategy
 from lenses import bind
 from parsimonious import Grammar, NodeVisitor
 
-from aiger import aig, common
+from aiger import common, expr
 
 CIRC_GRAMMAR = Grammar(u'''
 phi =  and / neg / vyest / AP
@@ -19,24 +17,6 @@ EOL = "\\n"
 ''')
 
 
-def atomic_pred(a, out=None):
-    if out is None:
-        out = str(uuid1())
-
-    return aig.AIG(
-        inputs=frozenset([a]),
-        latch_map=frozenset(),
-        node_map=frozenset([(out, aig.Input(a))]),
-        comments=())
-
-
-def vyesterday(a, out, latch_name=None):
-    if latch_name is None:
-        latch_name = str(uuid1())
-
-    return common.delay([a], [True], [latch_name], [out])
-
-
 class CircVisitor(NodeVisitor):
     def generic_visit(self, _, children):
         return children
@@ -45,25 +25,27 @@ class CircVisitor(NodeVisitor):
         return children[0]
 
     def visit_AP(self, node, _):
-        return atomic_pred(node.text)
+        return expr.atom(node.text)
 
     def visit_and(self, _, children):
-        _, _, left, _, _, _, right, _, _ = children
-        combined = left | right
-        return combined >> common.and_gate(combined.outputs, str(uuid1()))
+        return children[2] & children[6]
 
     def visit_neg(self, _, children):
-        _, _, phi = children
-        return phi >> common.bit_flipper(phi.outputs)
+        return ~children[2]
 
     def visit_vyest(self, _, children):
         _, _, phi = children
-        (out, ) = phi.outputs
-        return phi >> vyesterday(out, str(uuid1()))
+        aig = phi.aig >> common.delay(
+            inputs=phi.aig.outputs,
+            initials=[True],
+            latches=[common._fresh()],
+            outputs=[common._fresh()]
+        )
+        return expr.BoolExpr(aig)
 
 
 def parse(circ_str: str):
-    return CircVisitor().visit(CIRC_GRAMMAR.parse(circ_str))
+    return CircVisitor().visit(CIRC_GRAMMAR.parse(circ_str)).aig
 
 
 GRAMMAR = {

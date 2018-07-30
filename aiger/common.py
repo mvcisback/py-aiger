@@ -2,10 +2,15 @@
 import operator as op
 from itertools import starmap
 from functools import reduce
+from uuid import uuid1
 
 import funcy as fn
 
 from aiger import aig
+
+
+def _fresh():
+    return str(uuid1())
 
 
 def _map_tree(inputs, f):
