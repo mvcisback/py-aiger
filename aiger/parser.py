@@ -118,6 +118,6 @@ def parse(aag_str: str, rule: str = "aag", to_aig=True):
     return aag._to_aig() if to_aig else aag
 
 
-def load(path: str, rule: str = "aag"):
+def load(path: str, rule: str = "aag", to_aig=True):
     with open(path, 'r') as f:
-        return parse(''.join(f.readlines()))
+        return parse(''.join(f.readlines()), to_aig=to_aig)

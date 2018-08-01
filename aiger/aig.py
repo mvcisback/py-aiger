@@ -244,7 +244,6 @@ class AIG(NamedTuple):
     def _to_aag(self):
         aag, max_idx, l_map = _to_aag(
             self.cones | self.latch_cones,
-            dict(self.latch2init),
             AAG({}, {}, {}, [], self.comments),
         )
 
@@ -255,9 +254,17 @@ class AIG(NamedTuple):
 
         # Update cone maps.
         aag.outputs.update({k: l_map[cone] for k, cone in self.node_map})
+        latch2init = dict(self.latch2init)
         for name, cone in self.latch_map:
-            lit, _, init = aag.latches[name]
-            aag.latches[name] = lit, l_map[cone], init
+            if name not in l_map:
+                lit = l_map[name] = 2 * max_idx
+                max_idx += 1
+            else:
+                lit = l_map[LatchIn(name)]
+
+            init = latch2init[name]
+            ilit = l_map[cone]
+            aag.latches[name] = lit, ilit, init
 
         return aag
 
@@ -400,7 +407,7 @@ class AAG(NamedTuple):
         return list(toposort(deps)), list(toposort(latch_deps))
 
 
-def _to_aag(gates, latch2init, aag: AAG = None, *, max_idx=1, lit_map=None):
+def _to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
     if lit_map is None:
         lit_map = {}
 
@@ -412,7 +419,7 @@ def _to_aag(gates, latch2init, aag: AAG = None, *, max_idx=1, lit_map=None):
         if c in lit_map:
             continue
         aag, max_idx, lit_map = _to_aag(
-            [c], latch2init, aag, max_idx=max_idx, lit_map=lit_map
+            [c], aag, max_idx=max_idx, lit_map=lit_map
         )
 
     # Update aag with current level.
@@ -434,10 +441,6 @@ def _to_aag(gates, latch2init, aag: AAG = None, *, max_idx=1, lit_map=None):
         if isinstance(gate, AndGate):
             encoded = tuple(map(lit_map.get, (gate, gate.left, gate.right)))
             aag.gates.append(encoded)
-
-        elif isinstance(gate, LatchIn):
-            encoded = (lit_map[gate], None, int(latch2init[gate.name]))
-            aag.latches[gate.name] = encoded
 
         elif isinstance(gate, Input):
             aag.inputs[gate.name] = lit_map[gate]
