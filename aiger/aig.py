@@ -163,19 +163,15 @@ class AIG(NamedTuple):
         return [sim.send(inputs) for inputs in input_seq]
 
     def cutlatches(self, latches, check_postcondition=True):
-        ilatch_lens = bind(self).Recur(LatchIn) \
-                                .Filter(lambda x: x.name in latches)
-
-        latch2init = dict(self.latch2init)
-        l_map = {
-            n: (cmn._fresh(), latch2init[n]) for (n,) in ilatch_lens.collect()
-        }
+        l_map = {n: (cmn._fresh(), init) for (n, init) in self.latch2init}
 
         assert len(
             set(fn.pluck(0, l_map.values())) & (self.inputs | self.outputs)
         ) == 0
 
-        aig = ilatch_lens.modify(lambda x: Input(l_map[x.name][0]))
+        aig = bind(self).Recur(LatchIn) \
+                        .Filter(lambda x: x.name in latches) \
+                        .modify(lambda x: Input(l_map[x.name][0]))
 
         _cones = {(l_map[k][0], v) for k, v in aig.latch_map if k in latches}
         aig = aig._replace(
@@ -242,28 +238,29 @@ class AIG(NamedTuple):
         return unrolled
 
     def _to_aag(self):
-        aag, max_idx, l_map = _to_aag(
+        aag, max_idx, lit_map = _to_aag(
             self.cones | self.latch_cones,
             AAG({}, {}, {}, [], self.comments),
         )
 
         # Check that all inputs have a lit.
         for name in filter(lambda x: x not in aag.inputs, self.inputs):
-            aag.inputs[name] = l_map[name] = 2 * max_idx
+            aag.inputs[name] = lit_map[name] = 2 * max_idx
             max_idx += 1
 
         # Update cone maps.
-        aag.outputs.update({k: l_map[cone] for k, cone in self.node_map})
+        aag.outputs.update({k: lit_map[cone] for k, cone in self.node_map})
         latch2init = dict(self.latch2init)
         for name, cone in self.latch_map:
-            if name not in l_map:
-                lit = l_map[name] = 2 * max_idx
+            latch = LatchIn(name)
+            if latch not in lit_map:
+                lit = lit_map[latch] = 2 * max_idx
                 max_idx += 1
             else:
-                lit = l_map[LatchIn(name)]
+                lit = lit_map[latch]
 
-            init = latch2init[name]
-            ilit = l_map[cone]
+            init = int(latch2init[name])
+            ilit = lit_map[cone]
             aag.latches[name] = lit, ilit, init
 
         return aag
