@@ -1,5 +1,5 @@
 git+git://github.com/mvcisback/hypothesis-cfg.git@master#egg=hypothesis_cfg
-bidict==0.14.0
+bidict==0.17.2
 blessings==1.6
 click==6.7
 dd==0.5.3
