@@ -25,6 +25,11 @@
 
 # Ecosystem
 
+<figure>
+  <img src="assets/pyaiger_eco.svg" alt="py-aiger ecosystem" width="100%">
+  <figcaption>Boxes are clickable!</figcaption>
+</figure>
+
 ![PyAiger Ecosystem](assets/pyaiger_eco.svg)
 
 # Installation
