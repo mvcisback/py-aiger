@@ -30,8 +30,6 @@
   <figcaption>Boxes are clickable!</figcaption>
 </figure>
 
-![PyAiger Ecosystem](assets/pyaiger_eco.svg)
-
 # Installation
 
 `$ pip install py-aiger`
