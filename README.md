@@ -8,7 +8,7 @@
 [![PyPI version shields.io](https://img.shields.io/pypi/v/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
 [![PyPI license](https://img.shields.io/pypi/l/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
 
-# Table of Content
+# Table of Contents
 - [About](#about-py-aiger)
 - [Installation](#installation)
 - [Sequential Circuit DSL](#sequential-circuit-dsl)
