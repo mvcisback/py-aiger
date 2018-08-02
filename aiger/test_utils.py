@@ -1,6 +1,5 @@
 from uuid import uuid1
 
-import hypothesis.strategies as st
 from hypothesis import given, settings, unlimited
 
 import aiger
