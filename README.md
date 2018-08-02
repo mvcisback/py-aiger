@@ -179,12 +179,12 @@ would someday like feature parity.
 
 # Citing
 
-@misc{marcell_vazquez_chanlatte_2018_1326225,
-  author       = {Marcell Vazquez-Chanlatte and
-                  Markus N. Rabe},
-  title        = {mvcisback/py-aiger: Alpha},
-  month        = aug,
-  year         = 2018,
-  doi          = {10.5281/zenodo.1326225},
-  url          = {https://doi.org/10.5281/zenodo.1326225}
-}
+> @misc{marcell_vazquez_chanlatte_2018_1326225,
+>  author       = {Marcell Vazquez-Chanlatte and
+>                  Markus N. Rabe},
+>  title        = {mvcisback/py-aiger: Alpha},
+>  month        = aug,
+>  year         = 2018,
+>  doi          = {10.5281/zenodo.1326225},
+>  url          = {https://doi.org/10.5281/zenodo.1326225}
+> }
