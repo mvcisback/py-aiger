@@ -12,6 +12,7 @@
 # Table of Contents
 - [About](#about-py-aiger)
 - [Installation](#installation)
+- [Ecosystem](#ecosystem)
 - [Boolean Expr DSL](#boolean-expression-dsl)
 - [Sequential Circuit DSL](#sequential-circuit-dsl)
 - [Scripts](#scripts)
