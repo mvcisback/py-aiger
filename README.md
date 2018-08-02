@@ -26,8 +26,8 @@
 # Ecosystem
 
 <figure>
-  <img src="assets/pyaiger_eco.svg" alt="py-aiger ecosystem" width="100%">
-  <figcaption>Boxes are clickable!</figcaption>
+ <img src="assets/pyaiger_eco.svg" alt="py-aiger ecosystem" width="100%">
+  <figcaption>Overview of the pyaiger ecosystem/stack. <a href="http://github.com/mvcisback/py-aiger-bv">pyAiger-BV</a> is an wrapper around pyAiger that supports grouping and ordering inputs, latches, and outputs. This enables working at the word (or BitVector) level.</figcaption>
 </figure>
 
 # Installation
