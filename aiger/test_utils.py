@@ -6,7 +6,6 @@ from hypothesis import given, settings, unlimited
 import aiger
 from aiger import hypothesis as aigh
 from aiger import utils as aigu
-from aiger.bv import BV
 
 
 @given(aigh.Circuits)
@@ -41,8 +40,11 @@ def test_count_and(circ1, circ2):
     assert count1 * count2 == count3
 
 
+"""
+TODO: move to py-aiger-anaylsis.
 @settings(max_examples=20, timeout=unlimited)
 @given(st.integers(-8, 7))
 def test_count_le(i):
     circ = BV(4, 'x') < BV(4, i)
     assert aigu.count(circ.aig) == i + 8
+"""
