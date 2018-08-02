@@ -8,7 +8,7 @@
 [![PyPI version shields.io](https://img.shields.io/pypi/v/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
 [![PyPI license](https://img.shields.io/pypi/l/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
 
-# Table of Context
+# Table of Content
 - [About](#about-py-aiger)
 - [Installation](#installation)
 - [Sequential Circuit DSL](#sequential-circuit-dsl)
@@ -19,7 +19,7 @@
 # About Py-Aiger
 
 1. Q: How is Py-Aiger pronounced? A: Like "pie" + "grrr".
-2. Q: Why python? Aren't you worried about performance?! A: No. The goals of this library are expressibility, ease of use, and hackability.
+2. Q: Why python? Aren't you worried about performance?! A: No. The goals of this library are expressivity, ease of use, and hackability.
 
 # Installation
 
@@ -28,6 +28,32 @@
 or as a developer:
 
 `$ python setup.py develop`
+
+
+
+# Boolean Expression DSL
+While powerful, when writing combinatorial circuits, the Sequential
+Circuit DSL came be somewhat clumsy. For this common usecase, we have
+developed the Boolean Expression DSL. All circuits generated this way
+have a single output.
+
+```python
+import aiger
+x, y = aiger.atom('x'), aiger.atom('y')
+expr1 = x & y  # circuit with inputs 'x', 'y' and 1 output computing x AND y.
+expr2 = x | y  # logical or.
+expr3 = x ^ y  # logical xor.
+expr4 = x == y  # logical ==, xnor.
+expr5 = x.implies(y)
+expr6 = ~x  # logical negation.
+
+# Atoms can be constants.
+expr7 = x & aiger.atom(True)  # Equivilent to just x.
+expr8 = x & aiger.atom(False)  # Equivilent to const False.
+
+# And you can inspect the AIG if needed.
+circ = x.aig
+```
 
 
 # Sequential Circuit DSL
@@ -136,30 +162,6 @@ aiger.bit_flipper(inputs=aag1.inputs) >> aig1
 aiger.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 ```
 
-
-# Boolean Expression DSL
-While powerful, when writing combinatorial circuits, the Sequential
-Circuit DSL came be somewhat clumsy. For this common usecase, we have
-developed the Boolean Expression DSL. All circuits generated this way
-have a single output.
-
-```python
-import aiger
-x, y = aiger.atom('x'), aiger.atom('y')
-expr1 = x & y  # circuit with inputs 'x', 'y' and 1 output computing x AND y.
-expr2 = x | y  # logical or.
-expr3 = x ^ y  # logical xor.
-expr4 = x == y  # logical ==, xnor.
-expr5 = x.implies(y)
-expr6 = ~x  # logical negation.
-
-# Atoms can be constants.
-expr7 = x & aiger.atom(True)  # Equivilent to just x.
-expr8 = x & aiger.atom(False)  # Equivilent to const False.
-
-# And you can inspect the AIG if needed.
-circ = x.aig
-```
 
 # Scripts
 
