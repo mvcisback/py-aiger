@@ -4,7 +4,7 @@ blessings==1.7
 click==6.7
 dd==0.5.4
 funcy==1.10.3
-hypothesis==3.32.1
+hypothesis==3.66.23
 lenses==0.4.0
 parsimonious==0.8.0
 pytest-cov==2.5.1
