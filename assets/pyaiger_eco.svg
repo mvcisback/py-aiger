@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="471.60147"
+   height="181.82399"
+   version="1.1"
+   content="&lt;mxfile userAgent=&quot;Mozilla/5.0 (X11; Linux x86_64; rv:61.0) Gecko/20100101 Firefox/61.0&quot; version=&quot;9.0.2&quot; editor=&quot;www.draw.io&quot; type=&quot;device&quot;&gt;&lt;diagram id=&quot;a4f7b927-bf6f-a037-d619-35606d9a5958&quot; name=&quot;Page-1&quot;&gt;7VjbctowEP0aHtPxBYzzGAhpH9pOpnTS9lHYi61Gtqgsbv36rmzJF+yk0JimnYEHsM6uVtLu8ZHQwJ0mu7eCrOIPPAQ2cKxwN3BvB45je94IfxSyLxDftwogEjTUThUwpz9Bg8ZtTUPIGo6ScybpqgkGPE0hkA2MCMG3TbclZ81RVySCFjAPCGujX2goY72KkVXh74BGsRnZtrRlQYLHSPB1qscbOO4y/xTmhJhY2j+LSci3NcidDdyp4FwWT8luCkzl1qSt6Hf3hLWct4BUHtPBKTpsCFuDmXE+L7k3uchXA8rfGriTbUwlzFckUNYtVh+xWCYMWzY+MrIANimTMOWMCzSlPEX/SSYFfwQDYm58Z+F6XmkxucY0TJaUsZpnOAI/HCqcp/KOJJQpan2mCdLEsT7CFr8/8YSk2kVzyrZ1uxbKyj+IE0Yj9L8NMFmAxolOBggJuycTapdlQvoDT0CKPbroDte6sJr4rqfb24pGQ1P8uEYh40c0c6MyclU9fNAF7C6m21FMj0mdgUZVvR9rbgxXWZ6rG3Rw3dWuMuJTpH7v9zc0wgTpYDiNIl5hbREGkyebrGjWXZOhXmANtQqiSkHxtbzRhoSGoRqmk4ZNoj7PxB5Z1ANpHOu6yRq/zRp73MEapwfWjF9XArzAh8XyKAkg4C+D/08CrHYxETyPBPivJAF9jHE1ebhIzLkkpjyhGFY6Hay0zyQxJu5FY86kMc7wL2qM3XVoPE0A7HGXAEyofMDTPCbQsWa7lYAsozzNTPCFONSbi0z0LhO+1yRW1/n1XCoxepJXId38Oa16Iif+/wQsx/M7IML5XJvoPzD9jvfpyCVc/g6+4H0qt9lnDoP29bmE2nvpC+U4fTCyO0p5pLTmfCm3mFIl+wHP9pmE5ATRP4q2l63g5K1gOGxQdzgct6jrus6Z9oJxq4IQRjDXTS5kzCOeEjar0EmwFps81SozAU9ooNNeqzrsqPyq4DfjkW5+M6YUJ1m3qbYxlhd1vy9jJomQN+oW8gC7o2q9eQRIQ+MRMIK6HBSgdlEjfgcp97rWZC05QtWy33O+6uRxnQQdKto3w1RRTuWXAEYk3TT7dZFFd73nNNcZI6nuAS+tA75lfC0C0L3qd5+nBsKaRSBbgXLuluvpojM2qyvcwr26J3dnvwA=&lt;/diagram&gt;&lt;/mxfile&gt;"
+   id="svg1480"
+   sodipodi:docname="pyaiger_eco.svg"
+   inkscape:version="0.92.2 2405546, 2018-03-11">
+  <metadata
+     id="metadata1484">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="2878"
+     inkscape:window-height="1567"
+     id="namedview1482"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:zoom="3.6494753"
+     inkscape:cx="270.19736"
+     inkscape:cy="115.32257"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="g1478" />
+  <defs
+     id="defs1434" />
+  <g
+     transform="translate(29.838383)"
+     id="g1478">
+    <a
+       id="a4618"
+       xlink:href="https://github.com/mvcisback/py-aiger">
+      <g
+         id="g4616">
+        <rect
+           x="-28.459286"
+           y="120.87984"
+           width="469.10223"
+           height="59.88829"
+           pointer-events="none"
+           id="rect1436"
+           style="fill:#d5e8d4;stroke:#82b366;stroke-width:2.11171079" />
+      </g>
+    </a>
+    <a
+       id="a4622"
+       xlink:href="https://github.com/mvcisback/py-aiger-bv">
+      <rect
+         style="fill:#dae8fc;stroke:#6c8ebf;stroke-width:2.0392015"
+         id="rect1444"
+         pointer-events="none"
+         height="59.960796"
+         width="239.26108"
+         y="61.0196"
+         x="-28.818781" />
+    </a>
+    <a
+       id="a909"
+       xlink:title=""
+       xlink:href="https://github.com/mvcisback/py-aiger-bv/blob/master/aigerbv/expr.py">
+      <rect
+         style="fill:#dae8fc;stroke:#6c8ebf;stroke-width:2.0359652"
+         id="rect1452"
+         pointer-events="none"
+         height="59.964035"
+         width="238.48929"
+         y="1.0179826"
+         x="-28.8204" />
+    </a>
+    <a
+       id="a4625"
+       xlink:href="https://github.com/mvcisback/py-aiger/blob/master/aiger/expr.py">
+      <rect
+         style="fill:#d5e8d4;stroke:#82b366;stroke-width:2.19164729"
+         id="rect1460"
+         pointer-events="none"
+         height="59.759689"
+         width="229.07507"
+         y="61.120155"
+         x="211.56787" />
+    </a>
+    <path
+       d="m 215.16162,161 q 0,0 0,0"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path1474"
+       inkscape:connector-curvature="0"
+       style="fill:none;stroke:#000000;stroke-width:2;stroke-miterlimit:10" />
+    <path
+       d="M 215.16162,161 Z"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path1476"
+       inkscape:connector-curvature="0"
+       style="fill:#000000;stroke:#000000;stroke-width:2;stroke-miterlimit:10" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.66666603px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+       x="-26.453432"
+       y="20.817959"
+       id="text1488"><tspan
+         sodipodi:role="line"
+         id="tspan1486"
+         x="-26.453432"
+         y="20.817959"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.66666603px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start">(B)it(V)ector Expressions</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.66666603px;line-height:1.25;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+       x="217.73242"
+       y="80.894203"
+       id="text1488-0"><tspan
+         sodipodi:role="line"
+         id="tspan1486-2"
+         x="217.73242"
+         y="80.894203"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.66666603px;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start">Boolean Expressions</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.33333302px;line-height:1.25;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+       x="33.314316"
+       y="46.075798"
+       id="text2168"><tspan
+         sodipodi:role="line"
+         id="tspan2166"
+         x="33.314316"
+         y="46.075798">aigerbv.expr</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.33333302px;line-height:1.25;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+       x="280.6593"
+       y="104.43526"
+       id="text2172"><tspan
+         sodipodi:role="line"
+         id="tspan2170"
+         x="280.6593"
+         y="104.43526">aiger.expr</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.66666603px;line-height:1.25;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+       x="162.25833"
+       y="143.41109"
+       id="text1488-0-2"><tspan
+         sodipodi:role="line"
+         id="tspan1486-2-5"
+         x="162.25833"
+         y="143.41109"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.66666603px;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start">PyAiger</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.33333302px;line-height:1.25;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+       x="181.58127"
+       y="168.8246"
+       id="text2194"><tspan
+         sodipodi:role="line"
+         id="tspan2192"
+         x="181.58127"
+         y="168.8246">aiger</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.66666603px;line-height:1.25;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+       x="27.431276"
+       y="80.245346"
+       id="text1488-0-2-6"><tspan
+         sodipodi:role="line"
+         id="tspan1486-2-5-4"
+         x="27.431276"
+         y="80.245346"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.66666603px;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start">PyAiger-BV</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.33333302px;line-height:1.25;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+       x="53.059101"
+       y="106.19296"
+       id="text2168-9"><tspan
+         sodipodi:role="line"
+         id="tspan2166-7"
+         x="53.059101"
+         y="106.19296">aigerbv</tspan></text>
+  </g>
+</svg>
