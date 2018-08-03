@@ -2,14 +2,15 @@ git+git://github.com/mvcisback/hypothesis-cfg.git@master#egg=hypothesis_cfg
 bidict==0.17.2
 blessings==1.7
 click==6.7
+codecov==2.0.15
 dd==0.5.4
 funcy==1.10.3
 hypothesis==3.66.24
 lenses==0.4.0
 parsimonious==0.8.1
-pytest-cov==2.5.1
-pytest-flake8==0.9
-pytest==3.2.3
+pytest==3.2.3 # pyup: ignore
+pytest-cov==2.5.1 # pyup: ignore
+pytest-flake8==0.9 # pyup: ignore
+pytest-sugar==0.9.1 # pyup: ignore
+pytest-xdist==1.22.5 # pyup: ignore
 toposort==1.5
-pytest-sugar==0.9.1
-codecov==2.0.15
