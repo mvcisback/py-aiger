@@ -3,9 +3,5 @@ python:
   - "3.6"
 install: "pip install -r requirements.txt"
 script: pytest --flake8 --cov=aiger --cov-report=html
-cache:
-  apt: true
-  directories:
-    - ${HOME}/.cache/pip
 after_success:
   - codecov
