@@ -8,9 +8,9 @@ funcy==1.10.3
 hypothesis==3.66.23
 lenses==0.4.0
 parsimonious==0.8.1
-pytest==3.2.3
-pytest-cov==2.5.1
-pytest-flake8==0.9
-pytest-sugar==0.9.1
-pytest-xdist==1.22.5
+pytest==3.2.3 # pyup: ignore
+pytest-cov==2.5.1 # pyup: ignore
+pytest-flake8==0.9 # pyup: ignore
+pytest-sugar==0.9.1 # pyup: ignore
+pytest-xdist==1.22.5 # pyup: ignore
 toposort==1.5
