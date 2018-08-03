@@ -188,7 +188,6 @@ class AIG(NamedTuple):
             latch_map={(k, v) for k, v in latch_map if k not in latches},
             latch2init={(k, v) for k, v in self.latch2init if k not in latches}
         )
-
         return aig, l_map
 
     def feedback(
@@ -454,9 +453,14 @@ def _to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
 
 
 def _dependency_graph(nodes):
-    queue, deps = list(nodes), defaultdict(set)
+    queue, deps, visited = list(nodes), defaultdict(set), set()
     while queue:
         node = queue.pop()
+        if node in visited:
+            continue
+        else:
+            visited.add(node)
+
         children = node.children
         queue.extend(children)
         deps[node].update(children)
