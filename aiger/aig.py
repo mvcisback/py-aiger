@@ -520,7 +520,7 @@ def seq_compose(aig1, aig2, check_precondition=True):
         assert not aig1.latches & aig2.latches
 
     lookup = dict(aig1.node_map)
-    
+
     def sub(node):
         if isinstance(node, Input):
             return lookup.get(node.name, node)
