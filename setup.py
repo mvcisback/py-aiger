@@ -25,7 +25,7 @@ setup(
         'parsimonious',
         'dd',
         'toposort',
-        'pysat',
+        'pyton-sat',
     ],
     packages=find_packages(),
 )
