@@ -1,0 +1,15 @@
+import hypothesis.strategies as st
+from hypothesis import given
+
+from aiger import atom
+from aiger.analysis import *
+
+x, y = atom('x'), atom('y')
+expr_sat = x | y
+expr_unsat = expr_sat & ~ expr_sat
+
+def test_satisfiable():
+    assert satisfiable(expr_sat)
+
+def test_unsatisfiable():
+    assert not satisfiable(expr_unsat)
