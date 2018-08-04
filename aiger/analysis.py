@@ -54,10 +54,9 @@ def tseitin(e):
                 gates[gate] = symbol_table[gate.name]
         elif isinstance(gate, aiger.aig.AndGate):
             gates[gate] = fresh_var()
-            clauses.append(
-                [-gates[gate.left], -gates[gate.right], gates[gate]])
-            clauses.append([gates[gate.left], -gates[gate]])
-            clauses.append([gates[gate.right], -gates[gate]])
+            clauses.append([-gates[gate.left], -gates[gate.right],  gates[gate]])  # noqa
+            clauses.append([ gates[gate.left],                     -gates[gate]])  # noqa
+            clauses.append([                    gates[gate.right], -gates[gate]])  # noqa
 
     clauses.append([gates[output]])
 
