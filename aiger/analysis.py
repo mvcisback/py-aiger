@@ -11,6 +11,7 @@ from pysat.solvers import Lingeling
 
 import funcy as fn
 
+
 def tseitin(e):
     if isinstance(e, aiger.AIG):
         aig = e
@@ -19,7 +20,7 @@ def tseitin(e):
     else:
         assert False  # unknown type of input
 
-    assert len(aig.outputs) == 1 or (output is not None)
+    assert len(aig.outputs) == 1
     assert len(aig.latches) == 0
 
     node_map = dict(aig.node_map)
@@ -31,6 +32,7 @@ def tseitin(e):
     gates = {}         # maps gates to tseitin variables
 
     max_var = 0
+
     def fresh_var():
         nonlocal max_var
         max_var += 1
@@ -52,9 +54,10 @@ def tseitin(e):
                 gates[gate] = symbol_table[gate.name]
         elif isinstance(gate, aiger.aig.AndGate):
             gates[gate] = fresh_var()
-            clauses.append([-gates[gate.left], -gates[gate.right],  gates[gate]])
-            clauses.append([ gates[gate.left],                     -gates[gate]])
-            clauses.append([                    gates[gate.right], -gates[gate]])
+            clauses.append(
+                [-gates[gate.left], -gates[gate.right], gates[gate]])
+            clauses.append([gates[gate.left], -gates[gate]])
+            clauses.append([gates[gate.right], -gates[gate]])
 
     clauses.append([gates[output]])
 
@@ -66,8 +69,8 @@ def satisfiable(aig):
     clauses, _, _ = tseitin(aig)
     for clause in clauses:
         formula.append(clause)
-    with Lingeling(bootstrap_with=formula.clauses, with_proof=False) as l:
-        return l.solve()
+    with Lingeling(bootstrap_with=formula.clauses) as ling:
+        return ling.solve()
 
 
 # def count(aig, variables=None):
