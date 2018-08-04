@@ -1,7 +1,7 @@
 
 """
-This module provides basic operations on aig circuits, such as satisfiability
-queries, model counting, and quantifier elimination.
+This module provides basic operations on aig circuits, such as
+satisfiability queries, model counting, and quantifier elimination.
 """
 
 import aiger
@@ -52,18 +52,19 @@ def tseitin(e):
                 gates[gate] = symbol_table[gate.name]
         elif isinstance(gate, aiger.aig.AndGate):
             gates[gate] = fresh_var()
-            clauses.append([- gates[gate.left], - gates[gate.right],   gates[gate]])
-            clauses.append([  gates[gate.left],                      - gates[gate]])
-            clauses.append([                      gates[gate.right], - gates[gate]])
+            clauses.append([-gates[gate.left], -gates[gate.right],  gates[gate]])
+            clauses.append([ gates[gate.left],                     -gates[gate]])
+            clauses.append([                    gates[gate.right], -gates[gate]])
 
     clauses.append([gates[output]])
 
-    return clauses
+    return clauses, symbol_table, max_var
 
 
 def satisfiable(aig):
     formula = CNF()
-    for clause in tseitin(aig):
+    clauses, _, _ = tseitin(aig)
+    for clause in clauses:
         formula.append(clause)
     with Lingeling(bootstrap_with=formula.clauses, with_proof=False) as l:
         return l.solve()
