@@ -20,3 +20,7 @@ def test_unsatisfiable():
 
 def test_unsatisfiable_2():
     assert not satisfiable(atom(False))
+
+
+def test_unsatisfiable_aig():
+    assert not satisfiable(expr_unsat.aig)

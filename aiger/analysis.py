@@ -13,12 +13,11 @@ import funcy as fn
 
 
 def tseitin(e):
+    assert isinstance(e, aiger.AIG) or isinstance(e, BoolExpr)
     if isinstance(e, aiger.AIG):
         aig = e
-    elif isinstance(e, BoolExpr):
+    else:  # isinstance(e, BoolExpr)
         aig = e.aig
-    else:
-        assert False  # unknown type of input
 
     assert len(aig.outputs) == 1
     assert len(aig.latches) == 0
