@@ -25,7 +25,7 @@
 
 1. Q: How is Py-Aiger pronounced? A: Like "pie" + "grrr".
 2. Q: Why python? Aren't you worried about performance?! A: No. The goals of this library are ease of use and hackability. 
-3. Q: No, I'm really concerned about performance! A: This library is not suited to implement logic solvers. For the creation and manipulation of circuits with many thousands of gates in between solver calls, the performance of more than enough.
+3. Q: No, I'm really concerned about performance! A: This library is not suited to implement logic solvers. For everything else, such as the creation and manipulation of circuits with many thousands of gates in between solver calls, the library is really fast enough.
 4. Q: Where does the name come from? A: <a href="http://fmv.jku.at/aiger/">Aiger</a> is a popular circuit format. The format is used in <a href="http://fmv.jku.at/hwmcc17/">hardware model checking</a>, <a href="http://www.syntcomp.org/">synthesis</a>, and is supported by <a href="https://github.com/berkeley-abc/abc">ABC</a>. The name is a combination of AIG (standing for <a href="https://en.wikipedia.org/wiki/And-inverter_graph">And-Inverter-Graph</a>) and the austrian mountain <a href="https://en.wikipedia.org/wiki/Eiger">Eiger</a>.
 
 # Ecosystem
