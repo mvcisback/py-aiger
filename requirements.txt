@@ -8,6 +8,7 @@ funcy==1.10.3
 hypothesis==3.66.24
 lenses==0.4.0
 parsimonious==0.8.1
+python-sat==0.1.3.dev13
 pytest==3.2.3 # pyup: ignore
 pytest-cov==2.5.1 # pyup: ignore
 pytest-flake8==0.9 # pyup: ignore
