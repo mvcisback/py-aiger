@@ -21,7 +21,7 @@
 - [Citing](#citing)
 
 
-# About Py-Aiger
+# About PyAiger
 
 1. Q: How is Py-Aiger pronounced? A: Like "pie" + "grrr".
 2. Q: Why python? Aren't you worried about performance?! A: No. The goals of this library are expressivity, ease of use, and hackability.
