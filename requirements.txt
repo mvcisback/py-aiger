@@ -5,7 +5,7 @@ click==6.7
 codecov==2.0.15
 dd==0.5.4
 funcy==1.10.3
-hypothesis==3.66.27
+hypothesis==3.66.28
 lenses==0.4.0
 parsimonious==0.8.1
 pytest==3.2.3 # pyup: ignore
