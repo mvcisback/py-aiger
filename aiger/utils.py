@@ -1,5 +1,4 @@
 import click
-import funcy as fn
 
 import aiger
 

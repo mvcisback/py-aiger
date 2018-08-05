@@ -22,7 +22,6 @@ setup(
         'funcy',
         'lenses',
         'parsimonious',
-        'dd',
         'toposort',
     ],
     packages=find_packages(),
