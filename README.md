@@ -1,6 +1,6 @@
 <figure>
   <img src="assets/logo_text.svg" alt="py-aiger logo" width=300px>
-  <figcaption>pyAiger: A python library for manipulating sequential and inverter gates.</figcaption>
+  <figcaption>pyAiger: A python library for manipulating sequential and combinatorial circuits.</figcaption>
 </figure>
 
 [![Build Status](https://travis-ci.org/mvcisback/py-aiger.svg?branch=master)](https://travis-ci.org/mvcisback/py-aiger)
@@ -25,7 +25,9 @@
 # About PyAiger
 
 1. Q: How is Py-Aiger pronounced? A: Like "pie" + "grrr".
-2. Q: Why python? Aren't you worried about performance?! A: No. The goals of this library are expressivity, ease of use, and hackability.
+2. Q: Why python? Aren't you worried about performance?! A: No. The goals of this library are ease of use and hackability. 
+3. Q: No, I'm really concerned about performance! A: This library is not suited to implement logic solvers. For everything else, such as the creation and manipulation of circuits with many thousands of gates in between solver calls, the library is really fast enough.
+4. Q: Where does the name come from? A: <a href="http://fmv.jku.at/aiger/">Aiger</a> is a popular circuit format. The format is used in <a href="http://fmv.jku.at/hwmcc17/">hardware model checking</a>, <a href="http://www.syntcomp.org/">synthesis</a>, and is supported by <a href="https://github.com/berkeley-abc/abc">ABC</a>. The name is a combination of AIG (standing for <a href="https://en.wikipedia.org/wiki/And-inverter_graph">And-Inverter-Graph</a>) and the austrian mountain <a href="https://en.wikipedia.org/wiki/Eiger">Eiger</a>.
 
 # Ecosystem
 
@@ -46,7 +48,7 @@ or as a developer:
 
 # Boolean Expression DSL
 While powerful, when writing combinatorial circuits, the Sequential
-Circuit DSL came be somewhat clumsy. For this common usecase, we have
+Circuit DSL can be somewhat clumsy. For this common usecase, we have
 developed the Boolean Expression DSL. All circuits generated this way
 have a single output.
 
