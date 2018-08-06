@@ -13,7 +13,6 @@ setup(
     entry_points={
         'console_scripts': [
             'aigseqcompose = aiger.utils:parse_and_compose',
-            'aigcount = aiger.utils:parse_and_count',
             'aigparcompose = aiger.utils:parse_and_parcompose',
         ],
     },
@@ -23,7 +22,6 @@ setup(
         'funcy',
         'lenses',
         'parsimonious',
-        'dd',
         'toposort',
     ],
     packages=find_packages(),
