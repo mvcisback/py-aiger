@@ -1,6 +1,9 @@
 <figure>
   <img src="assets/logo_text.svg" alt="py-aiger logo" width=300px>
-  <figcaption>pyAiger: A python library for manipulating sequential and inverter gates.</figcaption>
+  <figcaption>
+      pyAiger: A python library for manipulating sequential and
+      combinatorial circuits.
+  </figcaption>
 </figure>
 
 [![Build Status](https://travis-ci.org/mvcisback/py-aiger.svg?branch=master)](https://travis-ci.org/mvcisback/py-aiger)
@@ -65,6 +68,9 @@ expr8 = x & aiger.atom(False)  # Equivilent to const False.
 
 # And you can inspect the AIG if needed.
 circ = x.aig
+
+# And of course, you can get a BoolExpr from a single output aig.
+expr9 = aiger.BoolExpr(circ)
 ```
 
 
