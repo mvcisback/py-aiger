@@ -18,6 +18,7 @@
 - [Boolean Expr DSL](#boolean-expression-dsl)
 - [Sequential Circuit DSL](#sequential-circuit-dsl)
 - [Scripts](#scripts)
+- [Related Projects](#related-projects)
 - [Citing](#citing)
 
 
@@ -176,18 +177,21 @@ aiger.bit_flipper(inputs=aag1.inputs) >> aig1
 aiger.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 ```
 
-
 # Scripts
 
 Installing py-aiger should install two commandline scripts:
 
 - aigseqcompose
 - aigparcompose
-- aigcount
 
 These are meant to augment the
 [aiger](fmv.jku.at/aiger/aiger-1.9.9.tar.gz) library. Ideally, we
 would someday like feature parity.
+
+# Related Projects
+
+- [pyAig](https://bitbucket.org/sterin/pyaig): Another python library
+  for working with AIGER circuits.
 
 # Citing
 
