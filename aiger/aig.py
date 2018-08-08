@@ -294,15 +294,12 @@ class AIG(NamedTuple):
 
             return func(node)
 
-
-        node_map = frozenset(
-            (name, _mod(cone)) for name, cone in self.node_map
+        node_map = ((name, _mod(cone)) for name, cone in self.node_map)
+        latch_map = ((name, _mod(cone)) for name, cone in self.latch_map)
+        return self._replace(
+            node_map=frozenset(node_map),
+            latch_map=frozenset(latch_map)
         )
-
-        latch_map = frozenset(
-            (name, _mod(cone)) for name, cone in self.latch_map
-        )
-        return self._replace(node_map=node_map, latch_map=latch_map)
 
 
 def _to_idx(lit):
