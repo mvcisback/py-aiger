@@ -276,7 +276,6 @@ class AIG(NamedTuple):
         with open(path, 'w') as f:
             f.write(repr(self))
 
-
     def _modify_leafs(self, func):
         node_map = frozenset(
             (name, _modify_leafs(cone, func)) for name, cone in self.node_map
@@ -530,8 +529,8 @@ def seq_compose(aig1, aig2, check_precondition=True):
     assert not aig1.latches & aig2.latches
 
     passthrough = {(k, v) for k, v in aig1.node_map if k not in interface}
-
     lookup = dict(aig1.node_map)
+
     def sub(node):
         if isinstance(node, Input):
             return lookup.get(node.name, node)
