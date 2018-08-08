@@ -4,18 +4,9 @@ from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union, Mapping, List
 
 import funcy as fn
-import lenses.hooks  # TODO: remove on next lenses version release.
-from lenses import bind, lens
 from toposort import toposort
 
 from aiger import common as cmn
-
-
-# TODO: Remove on next lenses lenses version release.
-# Needed because 0.4 does not know about frozensets.
-@lenses.hooks.from_iter.register(frozenset)
-def _frozenset_from_iter(self, iterable):
-    return frozenset(iterable)
 
 
 def timed_name(name, time):
@@ -68,6 +59,10 @@ class ConstFalse(NamedTuple):
         return ()
 
 
+def _is_const_true(node):
+    return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
+
+
 Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn]
 
 
@@ -86,18 +81,20 @@ class AIG(NamedTuple):
             return super().__getitem__(others)
 
         kind, relabels = others
-        if kind not in {'i', 'o', 'l'}:
-            raise NotImplementedError
+        assert kind in {'i', 'o', 'l'}
 
-        def _relabel(n):
-            return relabels.get(n, n)
+        basis = {
+            'i': self.inputs, 'o': self.outputs, 'l': self.latches
+        }.get(kind)
+        relabels = fn.project(relabels, basis)
 
-        return {
-            'i': lens.Fork(lens.Recur(Input).name, lens.inputs.Each()),
-            'o': lens.node_map.Each()[0],
-            # TODO: Test this lens.
-            'l': lens.Fork(lens.Recur(LatchIn).name, lens.latch_map.Each()[0]),
-        }.get(kind).modify(_relabel)(self)
+        if kind == 'o':
+            relabels = {k: [v] for k, v in relabels.items()}
+            return self >> cmn.tee(relabels)
+
+        relabels = {v: [k] for k, v in relabels.items()}
+        input_kinds = (Input,) if kind == 'i' else (LatchIn,)
+        return seq_compose(cmn.tee(relabels), self, input_kinds=input_kinds)
 
     @property
     def outputs(self):
@@ -126,29 +123,19 @@ class AIG(NamedTuple):
         return list(toposort(_dependency_graph(self.cones | self.latch_cones)))
 
     def __call__(self, inputs, latches=None):
-        # TODO: Implement partial evaluation.
-        # TODO: Implement via DFS. In practice this was faster for _to_aag
         if latches is None:
             latches = dict()
+        latchins = fn.merge(dict(self.latch2init), latches)
 
-        lookup = dict(inputs)  # Copy inputs as initial lookup table.
-        latch2init = dict(self.latch2init)
-        for node in fn.cat(self._eval_order):
-            if isinstance(node, AndGate):
-                lookup[node] = lookup[node.left] and lookup[node.right]
-            elif isinstance(node, Inverter):
-                lookup[node] = not lookup[node.input]
-            elif isinstance(node, LatchIn):
-                lookup[node] = latches.get(node.name, latch2init[node.name])
-            elif isinstance(node, Input):
-                lookup[node] = lookup[node.name]
-            elif isinstance(node, ConstFalse):
-                lookup[node] = False
-            else:
-                raise NotImplementedError
+        def sub(node):
+            if isinstance(node, ConstFalse):
+                return node
+            store = inputs if isinstance(node, Input) else latchins
+            return Inverter(ConstFalse()) if store[node.name] else ConstFalse()
 
-        outputs = {name: lookup[node] for name, node in self.node_map}
-        latch_outputs = {name: lookup[node] for name, node in self.latch_map}
+        circ = self._modify_leafs(sub)
+        outputs = {n: _is_const_true(node) for n, node in circ.node_map}
+        latch_outputs = {n: _is_const_true(node) for n, node in circ.latch_map}
         return outputs, latch_outputs
 
     def simulator(self, latches=None):
@@ -174,18 +161,12 @@ class AIG(NamedTuple):
                 return Input(l_map[node.name][0])
             return node
 
-        node_map = frozenset(
-            (name, _modify_leafs(cone, sub)) for name, cone in self.node_map
-        )
-        latch_map = frozenset(
-            (name, _modify_leafs(cone, sub)) for name, cone in self.latch_map
-        )
-
-        _cones = {(l_map[k][0], v) for k, v in latch_map if k in latches}
+        circ = self._modify_leafs(sub)
+        _cones = {(l_map[k][0], v) for k, v in circ.latch_map if k in latches}
         aig = self._replace(
-            node_map=node_map | _cones,
+            node_map=circ.node_map | _cones,
             inputs=self.inputs | {n for n, _ in l_map.values()},
-            latch_map={(k, v) for k, v in latch_map if k not in latches},
+            latch_map={(k, v) for k, v in circ.latch_map if k not in latches},
             latch2init={(k, v) for k, v in self.latch2init if k not in latches}
         )
         return aig, l_map
@@ -204,9 +185,13 @@ class AIG(NamedTuple):
         assert len(set(outputs) & self.outputs) != 0
 
         in2latch = {iname: lname for iname, lname in zip(inputs, latches)}
-        aig = bind(self).Recur(Input). \
-            Filter(lambda x: x.name in inputs). \
-            modify(lambda x: LatchIn(in2latch[x.name]))
+
+        def sub(node):
+            if isinstance(node, Input) and node.name in inputs:
+                return LatchIn(in2latch[node.name])
+            return node
+
+        aig = self._modify_leafs(sub)
 
         _latch_map, node_map = fn.lsplit(
             lambda x: x[0] in outputs, aig.node_map
@@ -275,6 +260,37 @@ class AIG(NamedTuple):
     def write(self, path):
         with open(path, 'w') as f:
             f.write(repr(self))
+
+    def _modify_leafs(self, func):
+        @fn.memoize
+        def _mod(node):
+            if isinstance(node, AndGate):
+                left = _mod(node.left)
+                right = _mod(node.right)
+                if ConstFalse() in (left, right):
+                    return ConstFalse()
+                elif _is_const_true(left):
+                    return right
+                elif _is_const_true(right):
+                    return left
+                else:
+                    return node._replace(left=left, right=right)
+
+            elif isinstance(node, Inverter):
+                child = _mod(node.input)
+                if isinstance(child, Inverter):
+                    return child.input
+                else:
+                    return node._replace(input=child)
+
+            return func(node)
+
+        node_map = ((name, _mod(cone)) for name, cone in self.node_map)
+        latch_map = ((name, _mod(cone)) for name, cone in self.latch_map)
+        return self._replace(
+            node_map=frozenset(node_map),
+            latch_map=frozenset(latch_map)
+        )
 
 
 def _to_idx(lit):
@@ -482,66 +498,24 @@ def par_compose(aig1, aig2, check_precondition=True):
     )
 
 
-def _is_const_true(node):
-    return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
+def seq_compose(circ1, circ2, *, input_kinds=(Input,)):
+    interface = circ1.outputs & circ2.inputs
+    assert not (circ1.outputs - interface) & circ2.outputs
+    assert not circ1.latches & circ2.latches
 
-
-@fn.memoize
-def _modify_leafs(node, func):
-    if isinstance(node, AndGate):
-        left = _modify_leafs(node.left, func)
-        right = _modify_leafs(node.right, func)
-        if ConstFalse() in (left, right):
-            return ConstFalse()
-        elif _is_const_true(left):
-            return right
-        elif _is_const_true(right):
-            return left
-        else:
-            return node._replace(left=left, right=right)
-
-    elif isinstance(node, Inverter):
-        child = _modify_leafs(node.input, func)
-        if isinstance(child, Inverter):
-            return child.input
-        else:
-            return node._replace(input=child)
-
-    return func(node)
-
-
-def seq_compose(aig1, aig2, check_precondition=True):
-    # TODO: apply simple optimizations such as unit propogation and
-    # excluded middle.
-
-    interface = aig1.outputs & aig2.inputs
-    if check_precondition:
-        assert not (aig1.outputs - interface) & aig2.outputs
-        assert not aig1.latches & aig2.latches
-
-    lookup = dict(aig1.node_map)
+    passthrough = {(k, v) for k, v in circ1.node_map if k not in interface}
+    lookup = dict(circ1.node_map)
 
     def sub(node):
-        if isinstance(node, Input):
+        if isinstance(node, input_kinds):
             return lookup.get(node.name, node)
         return node
 
-    composed = frozenset(
-        (name, _modify_leafs(cone, sub)) for name, cone in aig2.node_map
-    )
-
-    composed_lmap = frozenset(
-        (name, _modify_leafs(cone, sub)) for name, cone in aig2.latch_map
-    )
-
-    passthrough = frozenset(
-        (k, v) for k, v in aig1.node_map if k not in interface
-    )
-
+    circ3 = circ2._modify_leafs(sub)
     return AIG(
-        inputs=aig1.inputs | (aig2.inputs - interface),
-        latch_map=aig1.latch_map | composed_lmap,
-        latch2init=aig1.latch2init | aig2.latch2init,
-        node_map=composed | passthrough,
-        comments=aig1.comments + ('>>', ) + aig2.comments
+        inputs=circ1.inputs | (circ2.inputs - interface),
+        latch_map=circ1.latch_map | circ3.latch_map,
+        latch2init=circ1.latch2init | circ2.latch2init,
+        node_map=circ3.node_map | passthrough,
+        comments=circ1.comments + ('>>', ) + circ2.comments
     )

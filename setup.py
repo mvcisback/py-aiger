@@ -20,7 +20,6 @@ setup(
         'bidict',
         'click',
         'funcy',
-        'lenses',
         'parsimonious',
         'toposort',
     ],

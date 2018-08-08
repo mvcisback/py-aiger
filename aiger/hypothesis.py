@@ -1,6 +1,5 @@
 import hypothesis.strategies as st
 from hypothesis_cfg import ContextFreeGrammarStrategy
-from lenses import bind
 from parsimonious import Grammar, NodeVisitor
 
 from aiger import common, expr
@@ -70,7 +69,7 @@ GRAMMAR = {
 
 def make_circuit(term):
     circ_str = ''.join(term)
-    return bind(parse(circ_str)).comments.set((circ_str, ))
+    return parse(circ_str)._replace(comments=(circ_str, ))
 
 
 Circuits = st.builds(make_circuit,
