@@ -67,11 +67,11 @@ Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn]
 
 
 class AIG(NamedTuple):
-    inputs: FrozenSet[str]  # TODO: use internal names to make relabels fast.
-    node_map: FrozenSet[Tuple[str, Node]]
-    latch_map: FrozenSet[Tuple[str, Node]]
-    latch2init: FrozenSet[Tuple[str, Node]]
-    comments: Tuple[str]
+    inputs: FrozenSet[str] = frozenset()
+    node_map: FrozenSet[Tuple[str, Node]] = frozenset()
+    latch_map: FrozenSet[Tuple[str, Node]] = frozenset()
+    latch2init: FrozenSet[Tuple[str, Node]] = frozenset()
+    comments: Tuple[str] = ()
 
     def __repr__(self):
         return repr(self._to_aag())

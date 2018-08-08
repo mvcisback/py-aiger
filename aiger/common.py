@@ -32,8 +32,6 @@ def and_gate(inputs, output=None):
 
     return aig.AIG(
         inputs=frozenset(inputs),
-        latch_map=frozenset(),
-        latch2init=frozenset(),
         node_map=frozenset(((output, _map_tree(inputs, f=_and)), )),
         comments=(' and '.join(inputs), ))
 
@@ -61,8 +59,6 @@ def parity_gate(inputs, output=None):
 
     return aig.AIG(
         inputs=frozenset(inputs),
-        latch_map=frozenset(),
-        latch2init=frozenset(),
         node_map=frozenset(((output, _map_tree(inputs, f=_xor)), )),
         comments=(' xor '.join(inputs), ))
 
@@ -73,14 +69,12 @@ def identity(inputs, outputs=None):
 
     return aig.AIG(
         inputs=frozenset(inputs),
-        latch_map=frozenset(),
-        latch2init=frozenset(),
         node_map=frozenset(zip(outputs, map(aig.Input, inputs))),
         comments=('identity', ))
 
 
 def empty():
-    return identity([])
+    return aig.AIG()
 
 
 def _inverted_input(name):
@@ -95,8 +89,6 @@ def bit_flipper(inputs, outputs=None):
 
     return aig.AIG(
         inputs=frozenset(inputs),
-        latch_map=frozenset(),
-        latch2init=frozenset(),
         node_map=frozenset(zip(outputs, map(_inverted_input, inputs))),
         comments=('~', ))
 
@@ -107,9 +99,6 @@ def _const(val):
 
 def source(outputs):
     return aig.AIG(
-        inputs=frozenset(),
-        latch_map=frozenset(),
-        latch2init=frozenset(),
         node_map=frozenset((k, _const(v)) for k, v in outputs.items()),
         comments=('source', ))
 
@@ -117,9 +106,6 @@ def source(outputs):
 def sink(inputs):
     return aig.AIG(
         inputs=frozenset(inputs),
-        latch_map=frozenset(),
-        latch2init=frozenset(),
-        node_map=frozenset(),
         comments=('sink', ))
 
 
@@ -132,8 +118,6 @@ def tee(outputs=None):
 
     return aig.AIG(
         inputs=frozenset(outputs),
-        latch_map=frozenset(),
-        latch2init=frozenset(),
         node_map=frozenset.union(*starmap(tee_output, outputs.items())),
         comments=('T', ))
 
