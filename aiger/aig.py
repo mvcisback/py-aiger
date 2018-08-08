@@ -174,18 +174,12 @@ class AIG(NamedTuple):
                 return Input(l_map[node.name][0])
             return node
 
-        node_map = frozenset(
-            (name, _modify_leafs(cone, sub)) for name, cone in self.node_map
-        )
-        latch_map = frozenset(
-            (name, _modify_leafs(cone, sub)) for name, cone in self.latch_map
-        )
-
-        _cones = {(l_map[k][0], v) for k, v in latch_map if k in latches}
+        circ = self._modify_leafs(sub)
+        _cones = {(l_map[k][0], v) for k, v in circ.latch_map if k in latches}
         aig = self._replace(
-            node_map=node_map | _cones,
+            node_map=circ.node_map | _cones,
             inputs=self.inputs | {n for n, _ in l_map.values()},
-            latch_map={(k, v) for k, v in latch_map if k not in latches},
+            latch_map={(k, v) for k, v in circ.latch_map if k not in latches},
             latch2init={(k, v) for k, v in self.latch2init if k not in latches}
         )
         return aig, l_map
@@ -277,12 +271,36 @@ class AIG(NamedTuple):
             f.write(repr(self))
 
     def _modify_leafs(self, func):
+        @fn.memoize
+        def _mod(node):
+            if isinstance(node, AndGate):
+                left = _mod(node.left)
+                right = _mod(node.right)
+                if ConstFalse() in (left, right):
+                    return ConstFalse()
+                elif _is_const_true(left):
+                    return right
+                elif _is_const_true(right):
+                    return left
+                else:
+                    return node._replace(left=left, right=right)
+
+            elif isinstance(node, Inverter):
+                child = _mod(node.input)
+                if isinstance(child, Inverter):
+                    return child.input
+                else:
+                    return node._replace(input=child)
+
+            return func(node)
+
+
         node_map = frozenset(
-            (name, _modify_leafs(cone, func)) for name, cone in self.node_map
+            (name, _mod(cone)) for name, cone in self.node_map
         )
 
         latch_map = frozenset(
-            (name, _modify_leafs(cone, func)) for name, cone in self.latch_map
+            (name, _mod(cone)) for name, cone in self.latch_map
         )
         return self._replace(node_map=node_map, latch_map=latch_map)
 
@@ -496,34 +514,7 @@ def _is_const_true(node):
     return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
 
 
-@fn.memoize
-def _modify_leafs(node, func):
-    if isinstance(node, AndGate):
-        left = _modify_leafs(node.left, func)
-        right = _modify_leafs(node.right, func)
-        if ConstFalse() in (left, right):
-            return ConstFalse()
-        elif _is_const_true(left):
-            return right
-        elif _is_const_true(right):
-            return left
-        else:
-            return node._replace(left=left, right=right)
-
-    elif isinstance(node, Inverter):
-        child = _modify_leafs(node.input, func)
-        if isinstance(child, Inverter):
-            return child.input
-        else:
-            return node._replace(input=child)
-
-    return func(node)
-
-
 def seq_compose(aig1, aig2, check_precondition=True):
-    # TODO: apply simple optimizations such as unit propogation and
-    # excluded middle.
-
     interface = aig1.outputs & aig2.inputs
     assert not (aig1.outputs - interface) & aig2.outputs
     assert not aig1.latches & aig2.latches
