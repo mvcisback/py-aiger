@@ -116,30 +116,23 @@ class AIG(NamedTuple):
     def _eval_order(self):
         return list(toposort(_dependency_graph(self.cones | self.latch_cones)))
 
-    def __call__(self, inputs, latches=None):
-        # TODO: Implement partial evaluation.
-        # TODO: Implement via DFS. In practice this was faster for _to_aag
+    def __call__(self, inputs, latches=None, *, as_aig=False):
         if latches is None:
             latches = dict()
+        latchins = fn.merge(dict(self.latch2init), latches)
 
-        lookup = dict(inputs)  # Copy inputs as initial lookup table.
-        latch2init = dict(self.latch2init)
-        for node in fn.cat(self._eval_order):
-            if isinstance(node, AndGate):
-                lookup[node] = lookup[node.left] and lookup[node.right]
-            elif isinstance(node, Inverter):
-                lookup[node] = not lookup[node.input]
-            elif isinstance(node, LatchIn):
-                lookup[node] = latches.get(node.name, latch2init[node.name])
-            elif isinstance(node, Input):
-                lookup[node] = lookup[node.name]
-            elif isinstance(node, ConstFalse):
-                lookup[node] = False
-            else:
-                raise NotImplementedError
+        def sub(node):
+            if isinstance(node, ConstFalse):
+                return node
+            store = inputs if isinstance(node, Input) else latchins
+            return Inverter(ConstFalse()) if store[node.name] else ConstFalse()
 
-        outputs = {name: lookup[node] for name, node in self.node_map}
-        latch_outputs = {name: lookup[node] for name, node in self.latch_map}
+        circ = self._modify_leafs(sub)
+        if as_aig or circ.inputs:
+            return circ
+
+        outputs = {n: _is_const_true(node) for n, node in circ.node_map}
+        latch_outputs = {n: _is_const_true(node) for n, node in circ.latch_map}
         return outputs, latch_outputs
 
     def simulator(self, latches=None):
