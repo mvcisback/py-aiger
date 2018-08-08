@@ -68,6 +68,10 @@ class ConstFalse(NamedTuple):
         return ()
 
 
+def _is_const_true(node):
+    return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
+
+
 Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn]
 
 
@@ -507,28 +511,24 @@ def par_compose(aig1, aig2, check_precondition=True):
     )
 
 
-def _is_const_true(node):
-    return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
+def seq_compose(circ1, circ2, *, input_kinds=(Input,)):
+    interface = circ1.outputs & circ2.inputs
+    assert not (circ1.outputs - interface) & circ2.outputs
+    assert not circ1.latches & circ2.latches
 
-
-def seq_compose(aig1, aig2, check_precondition=True):
-    interface = aig1.outputs & aig2.inputs
-    assert not (aig1.outputs - interface) & aig2.outputs
-    assert not aig1.latches & aig2.latches
-
-    passthrough = {(k, v) for k, v in aig1.node_map if k not in interface}
-    lookup = dict(aig1.node_map)
+    passthrough = {(k, v) for k, v in circ1.node_map if k not in interface}
+    lookup = dict(circ1.node_map)
 
     def sub(node):
-        if isinstance(node, Input):
+        if isinstance(node, input_kinds):
             return lookup.get(node.name, node)
         return node
 
-    circ3 = aig2._modify_leafs(sub)
+    circ3 = circ2._modify_leafs(sub)
     return AIG(
-        inputs=aig1.inputs | (aig2.inputs - interface),
-        latch_map=aig1.latch_map | circ3.latch_map,
-        latch2init=aig1.latch2init | aig2.latch2init,
+        inputs=circ1.inputs | (circ2.inputs - interface),
+        latch_map=circ1.latch_map | circ3.latch_map,
+        latch2init=circ1.latch2init | circ2.latch2init,
         node_map=circ3.node_map | passthrough,
-        comments=aig1.comments + ('>>', ) + aig2.comments
+        comments=circ1.comments + ('>>', ) + circ2.comments
     )
