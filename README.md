@@ -4,6 +4,7 @@
       pyAiger: A python library for manipulating sequential and
       combinatorial circuits.
   </figcaption>
+
 </figure>
 
 [![Build Status](https://travis-ci.org/mvcisback/py-aiger.svg?branch=master)](https://travis-ci.org/mvcisback/py-aiger)
@@ -21,13 +22,16 @@
 - [Boolean Expr DSL](#boolean-expression-dsl)
 - [Sequential Circuit DSL](#sequential-circuit-dsl)
 - [Scripts](#scripts)
+- [Related Projects](#related-projects)
 - [Citing](#citing)
 
 
 # About PyAiger
 
 1. Q: How is Py-Aiger pronounced? A: Like "pie" + "grrr".
-2. Q: Why python? Aren't you worried about performance?! A: No. The goals of this library are expressivity, ease of use, and hackability.
+2. Q: Why python? Aren't you worried about performance?! A: No. The goals of this library are ease of use and hackability. 
+3. Q: No, I'm really concerned about performance! A: This library is not suited to implement logic solvers. For everything else, such as the creation and manipulation of circuits with many thousands of gates in between solver calls, the library is really fast enough.
+4. Q: Where does the name come from? A: <a href="http://fmv.jku.at/aiger/">Aiger</a> is a popular circuit format. The format is used in <a href="http://fmv.jku.at/hwmcc17/">hardware model checking</a>, <a href="http://www.syntcomp.org/">synthesis</a>, and is supported by <a href="https://github.com/berkeley-abc/abc">ABC</a>. The name is a combination of AIG (standing for <a href="https://en.wikipedia.org/wiki/And-inverter_graph">And-Inverter-Graph</a>) and the austrian mountain <a href="https://en.wikipedia.org/wiki/Eiger">Eiger</a>.
 
 # Ecosystem
 
@@ -48,7 +52,7 @@ or as a developer:
 
 # Boolean Expression DSL
 While powerful, when writing combinatorial circuits, the Sequential
-Circuit DSL came be somewhat clumsy. For this common usecase, we have
+Circuit DSL can be somewhat clumsy. For this common usecase, we have
 developed the Boolean Expression DSL. All circuits generated this way
 have a single output.
 
@@ -180,18 +184,21 @@ aiger.bit_flipper(inputs=aag1.inputs) >> aig1
 aiger.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 ```
 
-
 # Scripts
 
 Installing py-aiger should install two commandline scripts:
 
 - aigseqcompose
 - aigparcompose
-- aigcount
 
 These are meant to augment the
 [aiger](fmv.jku.at/aiger/aiger-1.9.9.tar.gz) library. Ideally, we
 would someday like feature parity.
+
+# Related Projects
+
+- [pyAig](https://bitbucket.org/sterin/pyaig): Another python library
+  for working with AIGER circuits.
 
 # Citing
 
