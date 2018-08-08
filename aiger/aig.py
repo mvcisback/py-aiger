@@ -4,18 +4,9 @@ from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union, Mapping, List
 
 import funcy as fn
-import lenses.hooks  # TODO: remove on next lenses version release.
-from lenses import bind, lens
 from toposort import toposort
 
 from aiger import common as cmn
-
-
-# TODO: Remove on next lenses lenses version release.
-# Needed because 0.4 does not know about frozensets.
-@lenses.hooks.from_iter.register(frozenset)
-def _frozenset_from_iter(self, iterable):
-    return frozenset(iterable)
 
 
 def timed_name(name, time):
@@ -90,18 +81,14 @@ class AIG(NamedTuple):
             return super().__getitem__(others)
 
         kind, relabels = others
-        if kind not in {'i', 'o', 'l'}:
-            raise NotImplementedError
+        assert kind in {'i', 'o', 'l'}
 
-        def _relabel(n):
-            return relabels.get(n, n)
-
-        return {
-            'i': lens.Fork(lens.Recur(Input).name, lens.inputs.Each()),
-            'o': lens.node_map.Each()[0],
-            # TODO: Test this lens.
-            'l': lens.Fork(lens.Recur(LatchIn).name, lens.latch_map.Each()[0]),
-        }.get(kind).modify(_relabel)(self)
+        if kind == 'o':
+            relabels = {k: [v] for k, v in relabels.items()}
+            return self >> cmn.tee(relabels)
+        relabels = {v: [k] for k, v in relabels.items()}
+        input_kinds = (Input,) if kind == 'i' else (LatchIn,)
+        return seq_compose(cmn.tee(relabels), self, input_kinds=input_kinds)
 
     @property
     def outputs(self):
@@ -202,9 +189,13 @@ class AIG(NamedTuple):
         assert len(set(outputs) & self.outputs) != 0
 
         in2latch = {iname: lname for iname, lname in zip(inputs, latches)}
-        aig = bind(self).Recur(Input). \
-            Filter(lambda x: x.name in inputs). \
-            modify(lambda x: LatchIn(in2latch[x.name]))
+
+        def sub(node):
+            if isinstance(node, Input) and node.name in inputs:
+                return LatchIn(in2latch[node.name])
+            return node
+
+        aig = self._modify_leafs(sub)
 
         _latch_map, node_map = fn.lsplit(
             lambda x: x[0] in outputs, aig.node_map

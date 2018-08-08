@@ -152,7 +152,7 @@ def test_relabel(aag1):
     new_outputs = {k: f'{k}#2' for k in aag1.outputs}
     assert set(aag1['o', new_outputs].outputs) == set(new_outputs.values())
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(AssertionError):
         aag1['z', {}]
 
 
