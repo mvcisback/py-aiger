@@ -83,9 +83,15 @@ class AIG(NamedTuple):
         kind, relabels = others
         assert kind in {'i', 'o', 'l'}
 
+        basis = {
+            'i': self.inputs, 'o': self.outputs, 'l': self.latches
+        }.get(kind)
+        relabels = fn.project(relabels, basis)
+
         if kind == 'o':
             relabels = {k: [v] for k, v in relabels.items()}
             return self >> cmn.tee(relabels)
+
         relabels = {v: [k] for k, v in relabels.items()}
         input_kinds = (Input,) if kind == 'i' else (LatchIn,)
         return seq_compose(cmn.tee(relabels), self, input_kinds=input_kinds)
