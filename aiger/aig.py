@@ -277,6 +277,17 @@ class AIG(NamedTuple):
             f.write(repr(self))
 
 
+    def _modify_leafs(self, func):
+        node_map = frozenset(
+            (name, _modify_leafs(cone, func)) for name, cone in self.node_map
+        )
+
+        latch_map = frozenset(
+            (name, _modify_leafs(cone, func)) for name, cone in self.latch_map
+        )
+        return self._replace(node_map=node_map, latch_map=latch_map)
+
+
 def _to_idx(lit):
     """AAG format uses least significant bit to encode an inverter.
     The index is thus the interal literal shifted by one bit."""
@@ -515,33 +526,22 @@ def seq_compose(aig1, aig2, check_precondition=True):
     # excluded middle.
 
     interface = aig1.outputs & aig2.inputs
-    if check_precondition:
-        assert not (aig1.outputs - interface) & aig2.outputs
-        assert not aig1.latches & aig2.latches
+    assert not (aig1.outputs - interface) & aig2.outputs
+    assert not aig1.latches & aig2.latches
+
+    passthrough = {(k, v) for k, v in aig1.node_map if k not in interface}
 
     lookup = dict(aig1.node_map)
-
     def sub(node):
         if isinstance(node, Input):
             return lookup.get(node.name, node)
         return node
 
-    composed = frozenset(
-        (name, _modify_leafs(cone, sub)) for name, cone in aig2.node_map
-    )
-
-    composed_lmap = frozenset(
-        (name, _modify_leafs(cone, sub)) for name, cone in aig2.latch_map
-    )
-
-    passthrough = frozenset(
-        (k, v) for k, v in aig1.node_map if k not in interface
-    )
-
+    circ3 = aig2._modify_leafs(sub)
     return AIG(
         inputs=aig1.inputs | (aig2.inputs - interface),
-        latch_map=aig1.latch_map | composed_lmap,
+        latch_map=aig1.latch_map | circ3.latch_map,
         latch2init=aig1.latch2init | aig2.latch2init,
-        node_map=composed | passthrough,
+        node_map=circ3.node_map | passthrough,
         comments=aig1.comments + ('>>', ) + aig2.comments
     )
