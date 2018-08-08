@@ -116,7 +116,7 @@ class AIG(NamedTuple):
     def _eval_order(self):
         return list(toposort(_dependency_graph(self.cones | self.latch_cones)))
 
-    def __call__(self, inputs, latches=None, *, as_aig=False):
+    def __call__(self, inputs, latches=None):
         if latches is None:
             latches = dict()
         latchins = fn.merge(dict(self.latch2init), latches)
@@ -128,9 +128,6 @@ class AIG(NamedTuple):
             return Inverter(ConstFalse()) if store[node.name] else ConstFalse()
 
         circ = self._modify_leafs(sub)
-        if as_aig or circ.inputs:
-            return circ
-
         outputs = {n: _is_const_true(node) for n, node in circ.node_map}
         latch_outputs = {n: _is_const_true(node) for n, node in circ.latch_map}
         return outputs, latch_outputs
