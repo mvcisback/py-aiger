@@ -4,7 +4,7 @@ DESC = 'A python library for manipulating sequential and-inverter gates.'
 
 setup(
     name='py-aiger',
-    version='0.5.0',
+    version='1.0.0.alpha',
     description=DESC,
     url='http://github.com/mvcisback/py-aiger',
     author='Marcell Vazquez-Chanlatte',
