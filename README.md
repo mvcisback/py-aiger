@@ -203,13 +203,12 @@ would someday like feature parity.
 # Citing
 
 ```
-@misc{marcell_vazquez_chanlatte_2018_1326225,
- author       = {Marcell Vazquez-Chanlatte and
-                  Markus N. Rabe},
-  title        = {mvcisback/py-aiger: Alpha},
+@misc{marcell_vazquez_chanlatte_2018_1342134,
+  author       = {Marcell Vazquez-Chanlatte},
+  title        = {mvcisback/py-aiger: v1.0.0},
   month        = aug,
   year         = 2018,
-  doi          = {10.5281/zenodo.1326225},
-  url          = {https://doi.org/10.5281/zenodo.1326225}
+  doi          = {10.5281/zenodo.1342134},
+  url          = {https://doi.org/10.5281/zenodo.1342134}
 }
 ```
