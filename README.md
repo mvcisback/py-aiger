@@ -99,7 +99,7 @@ aag3 = aag1 >> aag2
 aig4 = aag1 | aag2
 ```
 
-## Adding Feedback (inserts a delay)
+## Circuits with Latches/Feedback/Delay
 ```python
 # Connect output y to input x with delay (initialized to True).
 aig5 = aig1.feedback(
