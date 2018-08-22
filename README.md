@@ -101,7 +101,8 @@ aig4 = aag1 | aag2
 
 ## Circuits with Latches/Feedback/Delay
 ```python
-# Connect output y to input x with delay (initialized to True).
+# Connect output y to input x with delay, initialized to True.
+# (Default initialization is False.)
 aig5 = aig1.feedback(
     inputs=['x'],
     outputs=['y'],
