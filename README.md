@@ -111,12 +111,6 @@ aig5 = aig1.feedback(
 )
 ```
 
-## Count solutions
-```python
-# Assume 1 output. This could be passed as an argument in the future.
-print(utils.count(aag3))
-```
-
 ## Relabeling
 ```python
 # Relabel input 'x' to 'z'.
