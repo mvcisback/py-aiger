@@ -99,21 +99,16 @@ aag3 = aag1 >> aag2
 aig4 = aag1 | aag2
 ```
 
-## Adding Feedback (inserts a delay)
+## Circuits with Latches/Feedback/Delay
 ```python
-# Connect output y to input x with delay (initialized to True).
+# Connect output y to input x with delay, initialized to True.
+# (Default initialization is False.)
 aig5 = aig1.feedback(
     inputs=['x'],
     outputs=['y'],
     initials=[True],
     keep_outputs=True
 )
-```
-
-## Count solutions
-```python
-# Assume 1 output. This could be passed as an argument in the future.
-print(utils.count(aag3))
 ```
 
 ## Relabeling
