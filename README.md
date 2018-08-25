@@ -84,19 +84,19 @@ expr9 = aiger.BoolExpr(circ)
 import aiger
 from aiger import utils
 
-
-aag1 = aiger.load(path_to_aag1_file)
-aag2 = aiger.load(path_to_aag2_file)
+# Parser for ascii AIGER format.
+aig1 = aiger.load(path_to_aig1_file.aag)
+aig2 = aiger.load(path_to_aig2_file.aag)
 ```
 
 ## Sequential composition
 ```python
-aag3 = aag1 >> aag2
+aig3 = aig1 >> aig2
 ```
 
 ## Parallel composition
 ```python
-aig4 = aag1 | aag2
+aig4 = aig1 | aig2
 ```
 
 ## Circuits with Latches/Feedback/Delay
@@ -120,7 +120,7 @@ aig1['i', {'x': 'z'}]
 aig1['o', {'y': 'w'}]
 
 # Relabel latches 'l1' to 'l2'.
-aig1['o', {'l1': 'l2'}]
+aig1['l', {'l1': 'l2'}]
 ```
 
 ## Evaluation
@@ -148,13 +148,13 @@ aig4 = aig3.unroll(steps=10, init=True)
 ## Useful circuits
 ```python
 # Fix input x to be False.
-aag4 = aiger.source({'x': False}) >> aag3
+aig4 = aiger.source({'x': False}) >> aig3
 
 # Remove output y. 
-aag4 = aag3 >> aiger.sink(['y'])
+aig4 = aig3 >> aiger.sink(['y'])
 
 # Create duplicate w of output y.
-aag4 = aag3 >> aiger.tee({'y': ['y', 'w']})
+aig4 = aig3 >> aiger.tee({'y': ['y', 'w']})
 
 # Make an AND gate.
 aiger.and_gate(['x', 'y'], out='name')
@@ -163,16 +163,16 @@ aiger.and_gate(['x', 'y'], out='name')
 aiger.or_gate(['x', 'y'])  # Default output name is #or_output.
 
 # And outputs.
-aig1 >> aiger.and_gate(aag1.outputs) # Default output name is #and_output.
+aig1 >> aiger.and_gate(aig1.outputs) # Default output name is #and_output.
 
 # Or outputs.
-aig1 >> aiger.or_gate(inputs=aag1.outputs, output='my_output')
+aig1 >> aiger.or_gate(inputs=aig1.outputs, output='my_output')
 
 # Flip outputs.
-aig1 >> aiger.bit_flipper(inputs=aag1.outputs)
+aig1 >> aiger.bit_flipper(inputs=aig1.outputs)
 
 # Flip inputs.
-aiger.bit_flipper(inputs=aag1.inputs) >> aig1
+aiger.bit_flipper(inputs=aig1.inputs) >> aig1
 
 # ITE circuit
 # ['o1', 'o2'] = ['i1', 'i2'] if 'test' Else ['i3', 'i4'] 
