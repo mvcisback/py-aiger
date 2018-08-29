@@ -198,12 +198,12 @@ would someday like feature parity.
 # Citing
 
 ```
-@misc{marcell_vazquez_chanlatte_2018_1342134,
+@misc{pyAiger,
   author       = {Marcell Vazquez-Chanlatte},
-  title        = {mvcisback/py-aiger: v1.0.0},
+  title        = {mvcisback/py-aiger},
   month        = aug,
   year         = 2018,
-  doi          = {10.5281/zenodo.1342134},
-  url          = {https://doi.org/10.5281/zenodo.1342134}
+  doi          = {10.5281/zenodo.1326224},
+  url          = {https://doi.org/10.5281/zenodo.1326224}
 }
 ```
