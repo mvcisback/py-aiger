@@ -81,9 +81,7 @@ class AIG:
         return repr(self._to_aag())
 
     def __getitem__(self, others):
-        if not isinstance(others, tuple):
-            return super().__getitem__(others)
-
+        assert isinstance(others, tuple) and len(others) == 2
         kind, relabels = others
         assert kind in {'i', 'o', 'l'}
 
