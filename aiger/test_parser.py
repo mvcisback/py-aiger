@@ -52,7 +52,7 @@ def test_sink_aag():
 
 @given(aigh.Circuits, st.data())
 def test_dummylatches_aag(circ, ddata):
-    circ2 = circ._replace(
+    circ2 = circ.evolve(
         latch2init={common._fresh(): False}
     )
     circ3 = circ._to_aag()._to_aig()
