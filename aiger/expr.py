@@ -1,12 +1,14 @@
-from typing import NamedTuple, Union
+from typing import Union
 
+import attr
 import funcy as fn
 
 from aiger import aig
 from aiger import common as cmn
 
 
-class BoolExpr(NamedTuple):
+@attr.s(frozen=True, slots=True, cmp=False, auto_attribs=True)
+class BoolExpr:
     aig: aig.AIG
 
     def __call__(self, inputs):

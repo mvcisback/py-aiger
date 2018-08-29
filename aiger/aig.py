@@ -2,6 +2,7 @@ from collections import defaultdict
 from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union
 
+import attr
 import funcy as fn
 from toposort import toposort
 
@@ -66,7 +67,8 @@ def _is_const_true(node):
 Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn]
 
 
-class AIG(NamedTuple):
+@attr.s(frozen=True, slots=True, auto_attribs=True, repr=False)
+class AIG:
     inputs: FrozenSet[str] = frozenset()
     node_map: FrozenSet[Tuple[str, Node]] = frozenset()
     latch_map: FrozenSet[Tuple[str, Node]] = frozenset()
@@ -79,9 +81,7 @@ class AIG(NamedTuple):
         return repr(self._to_aag())
 
     def __getitem__(self, others):
-        if not isinstance(others, tuple):
-            return super().__getitem__(others)
-
+        assert isinstance(others, tuple) and len(others) == 2
         kind, relabels = others
         assert kind in {'i', 'o', 'l'}
 
@@ -97,6 +97,9 @@ class AIG(NamedTuple):
         relabels = {v: [k] for k, v in relabels.items()}
         input_kinds = (Input,) if kind == 'i' else (LatchIn,)
         return seq_compose(cmn.tee(relabels), self, input_kinds=input_kinds)
+
+    def evolve(self, **kwargs):
+        return attr.evolve(self, **kwargs)
 
     @property
     def outputs(self):
@@ -165,7 +168,7 @@ class AIG(NamedTuple):
 
         circ = self._modify_leafs(sub)
         _cones = {(l_map[k][0], v) for k, v in circ.latch_map if k in latches}
-        aig = self._replace(
+        aig = self.evolve(
             node_map=circ.node_map | _cones,
             inputs=self.inputs | {n for n, _ in l_map.values()},
             latch_map={(k, v) for k, v in circ.latch_map if k not in latches},
@@ -201,7 +204,7 @@ class AIG(NamedTuple):
         out2latch = {oname: lname for oname, lname in zip(outputs, latches)}
         _latch_map = {(out2latch[k], v) for k, v in _latch_map}
         l2init = frozenset((n, val) for n, val in zip(latches, initials))
-        return aig._replace(
+        return aig.evolve(
             inputs=aig.inputs - set(inputs),
             node_map=aig.node_map if keep_outputs else frozenset(node_map),
             latch_map=aig.latch_map | _latch_map,
@@ -261,7 +264,7 @@ class AIG(NamedTuple):
 
         node_map = ((name, _mod(cone)) for name, cone in self.node_map)
         latch_map = ((name, _mod(cone)) for name, cone in self.latch_map)
-        return self._replace(
+        return self.evolve(
             node_map=frozenset(node_map),
             latch_map=frozenset(latch_map)
         )

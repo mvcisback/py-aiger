@@ -69,7 +69,7 @@ GRAMMAR = {
 
 def make_circuit(term):
     circ_str = ''.join(term)
-    return parse(circ_str)._replace(comments=(circ_str, ))
+    return parse(circ_str).evolve(comments=(circ_str, ))
 
 
 Circuits = st.builds(make_circuit,
