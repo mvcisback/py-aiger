@@ -13,7 +13,7 @@
 
 [![PyPI version](https://badge.fury.io/py/py-aiger.svg)](https://badge.fury.io/py/py-aiger)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![DOI](https://zenodo.org/badge/130783753.svg)](https://zenodo.org/badge/latestdoi/130783753)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1405781.svg)](https://doi.org/10.5281/zenodo.1405781)
 
 # Table of Contents
 - [About](#about-py-aiger)
