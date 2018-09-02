@@ -11,9 +11,9 @@
 [![codecov](https://codecov.io/gh/mvcisback/py-aiger/branch/master/graph/badge.svg)](https://codecov.io/gh/mvcisback/py-aiger)
 [![Updates](https://pyup.io/repos/github/mvcisback/py-aiger/shield.svg)](https://pyup.io/repos/github/mvcisback/py-aiger/)
 
-[![PyPI version shields.io](https://img.shields.io/pypi/v/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
-[![PyPI license](https://img.shields.io/pypi/l/py-aiger.svg)](https://pypi.python.org/pypi/py-aiger/)
-[![DOI](https://zenodo.org/badge/130783753.svg)](https://zenodo.org/badge/latestdoi/130783753)
+[![PyPI version](https://badge.fury.io/py/py-aiger.svg)](https://badge.fury.io/py/py-aiger)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1405781.svg)](https://doi.org/10.5281/zenodo.1405781)
 
 # Table of Contents
 - [About](#about-py-aiger)
@@ -198,12 +198,12 @@ would someday like feature parity.
 # Citing
 
 ```
-@misc{marcell_vazquez_chanlatte_2018_1342134,
+@misc{pyAiger,
   author       = {Marcell Vazquez-Chanlatte},
-  title        = {mvcisback/py-aiger: v1.0.0},
+  title        = {mvcisback/py-aiger},
   month        = aug,
   year         = 2018,
-  doi          = {10.5281/zenodo.1342134},
-  url          = {https://doi.org/10.5281/zenodo.1342134}
+  doi          = {10.5281/zenodo.1326224},
+  url          = {https://doi.org/10.5281/zenodo.1326224}
 }
 ```
