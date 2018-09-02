@@ -41,9 +41,12 @@ class BoolExpr:
     def inputs(self):
         return self.aig.inputs
 
+    def _fresh_output(self):
+        return type(self)(self.aig['o', {self.output: cmn._fresh()}])
+
 
 def _binary_gate(gate, expr1, expr2):
-    aig = expr1.aig | expr2.aig
+    aig = expr1._fresh_output().aig | expr2._fresh_output().aig
     aig >>= gate(inputs=aig.outputs, output=cmn._fresh())
     return BoolExpr(aig=aig)
 
