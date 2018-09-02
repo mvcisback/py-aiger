@@ -1,10 +1,8 @@
-from collections import defaultdict
 from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union
 
 import attr
 import funcy as fn
-from toposort import toposort
 
 from aiger import common as cmn
 from aiger import parser
@@ -122,10 +120,6 @@ class AIG:
 
     def __or__(self, other):
         return par_compose(self, other)
-
-    @property
-    def _eval_order(self):
-        return list(toposort(_dependency_graph(self.cones | self.latch_cones)))
 
     def __call__(self, inputs, latches=None):
         if latches is None:
@@ -268,22 +262,6 @@ class AIG:
             node_map=frozenset(node_map),
             latch_map=frozenset(latch_map)
         )
-
-
-def _dependency_graph(nodes):
-    queue, deps, visited = list(nodes), defaultdict(set), set()
-    while queue:
-        node = queue.pop()
-        if node in visited:
-            continue
-        else:
-            visited.add(node)
-
-        children = node.children
-        queue.extend(children)
-        deps[node].update(children)
-
-    return deps
 
 
 def par_compose(aig1, aig2, check_precondition=True):
