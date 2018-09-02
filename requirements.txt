@@ -12,3 +12,4 @@ pytest-cov==2.5.1 # pyup: ignore
 pytest-flake8==0.9 # pyup: ignore
 pytest-sugar==0.9.1 # pyup: ignore
 pytest-xdist==1.22.5 # pyup: ignore
+toposort==1.5

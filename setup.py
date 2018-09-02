@@ -22,6 +22,7 @@ setup(
         'click',
         'funcy',
         'parsimonious',
+        'toposort',
     ],
     packages=find_packages(),
 )
