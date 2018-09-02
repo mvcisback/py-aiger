@@ -51,10 +51,6 @@ def _binary_gate(gate, expr1, expr2):
     return BoolExpr(aig=aig)
 
 
-def _fresh_relabel(keys):
-    return {k: cmn._fresh() for k in keys}
-
-
 def atom(val: Union[str, bool]) -> BoolExpr:
     output = cmn._fresh()
     if isinstance(val, str):
