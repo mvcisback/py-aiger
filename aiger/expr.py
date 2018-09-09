@@ -44,6 +44,9 @@ class BoolExpr:
     def _fresh_output(self):
         return BoolExpr(self.aig['o', {self.output: cmn._fresh()}])
 
+    def select(self, expr_true, expr_false):
+        return self.implies(expr_true) & (~self).implies(expr_false)
+
 
 def _binary_gate(gate, expr1, expr2):
     aig = expr1._fresh_output().aig | expr2._fresh_output().aig
