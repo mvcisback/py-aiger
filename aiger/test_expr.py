@@ -14,6 +14,15 @@ def test_expr_and(data):
 
 
 @given(st.data())
+def test_expr_and2(data):
+    x = atom('x')
+    expr = x & x
+
+    vals = {f'{i}': data.draw(st.booleans()) for i in expr.inputs}
+    assert x(vals) == expr(vals)
+
+
+@given(st.data())
 def test_expr_or(data):
     x, y = atom('x'), atom('y')
     expr = x | y

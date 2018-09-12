@@ -1,7 +1,6 @@
 from typing import Union
 
 import attr
-import funcy as fn
 
 from aiger import aig
 from aiger import common as cmn
@@ -42,33 +41,17 @@ class BoolExpr:
     def inputs(self):
         return self.aig.inputs
 
+    def _fresh_output(self):
+        return BoolExpr(self.aig['o', {self.output: cmn._fresh()}])
+
+    def select(self, expr_true, expr_false):
+        return self.implies(expr_true) & (~self).implies(expr_false)
+
 
 def _binary_gate(gate, expr1, expr2):
-    circ1, circ2 = expr1.aig, expr2.aig
-    aig = _parcompose(circ1, circ2)
+    aig = expr1._fresh_output().aig | expr2._fresh_output().aig
     aig >>= gate(inputs=aig.outputs, output=cmn._fresh())
     return BoolExpr(aig=aig)
-
-
-def _fresh_relabel(keys):
-    return {k: cmn._fresh() for k in keys}
-
-
-def _parcompose(circ1, circ2):
-    inputs_collide = circ1.inputs & circ2.inputs
-    outputs_collide = circ1.outputs & circ2.outputs
-
-    if outputs_collide:
-        circ1 = circ1['o', _fresh_relabel(circ1.outputs)]
-        circ2 = circ2['o', _fresh_relabel(circ2.outputs)]
-
-    if not inputs_collide:
-        return circ1 | circ2
-    else:
-        subs1 = _fresh_relabel(circ1.inputs)
-        subs2 = _fresh_relabel(circ2.inputs)
-        tee = cmn.tee(fn.merge_with(tuple, subs1, subs2))
-        return tee >> (circ2['i', subs1] | circ1['i', subs2])
 
 
 def atom(val: Union[str, bool]) -> BoolExpr:

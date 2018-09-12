@@ -65,16 +65,17 @@ expr3 = x ^ y  # logical xor.
 expr4 = x == y  # logical ==, xnor.
 expr5 = x.implies(y)
 expr6 = ~x  # logical negation.
+expr7 = x.select(~x, y)  # If x then ~x else y.
 
 # Atoms can be constants.
-expr7 = x & aiger.atom(True)  # Equivilent to just x.
-expr8 = x & aiger.atom(False)  # Equivilent to const False.
+expr8 = x & aiger.atom(True)  # Equivilent to just x.
+expr9 = x & aiger.atom(False)  # Equivilent to const False.
 
 # And you can inspect the AIG if needed.
 circ = x.aig
 
 # And of course, you can get a BoolExpr from a single output aig.
-expr9 = aiger.BoolExpr(circ)
+expr10 = aiger.BoolExpr(circ)
 ```
 
 
