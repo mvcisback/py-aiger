@@ -4,7 +4,7 @@ bidict==0.17.3
 blessings==1.7
 click==6.7
 codecov==2.0.15
-funcy==1.10.3
+funcy==1.11
 hypothesis==3.66.30 # pyup: ignore
 parsimonious==0.8.1
 pytest==3.2.3 # pyup: ignore
