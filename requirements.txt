@@ -2,7 +2,7 @@ git+git://github.com/mvcisback/hypothesis-cfg.git@master#egg=hypothesis_cfg
 attrs==18.2.0
 bidict==0.17.3
 blessings==1.7
-click==6.7
+click==7.0
 codecov==2.0.15
 funcy==1.11
 hypothesis==3.66.30 # pyup: ignore
