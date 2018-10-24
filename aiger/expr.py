@@ -23,7 +23,7 @@ class BoolExpr:
         return _binary_gate(cmn.parity_gate, self, other)
 
     def __invert__(self):
-        return BoolExpr(
+        return type(self)(
             aig=self.aig >> cmn.bit_flipper(self.aig.outputs, [cmn._fresh()])
         )
 
@@ -42,7 +42,7 @@ class BoolExpr:
         return self.aig.inputs
 
     def _fresh_output(self):
-        return BoolExpr(self.aig['o', {self.output: cmn._fresh()}])
+        return type(self)(self.aig['o', {self.output: cmn._fresh()}])
 
     def select(self, expr_true, expr_false):
         return self.implies(expr_true) & (~self).implies(expr_false)
@@ -51,7 +51,7 @@ class BoolExpr:
 def _binary_gate(gate, expr1, expr2):
     aig = expr1._fresh_output().aig | expr2._fresh_output().aig
     aig >>= gate(inputs=aig.outputs, output=cmn._fresh())
-    return BoolExpr(aig=aig)
+    return type(expr1)(aig=aig)
 
 
 def atom(val: Union[str, bool]) -> BoolExpr:
