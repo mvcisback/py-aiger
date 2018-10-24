@@ -35,7 +35,7 @@ comments = "c" EOL comment+
 comment = (~r".")* EOL?
 
 _ = ~r" "+
-id = ~r"\d"+
+id = ~r"\\d"+
 EOL = "\\n"
 ''')
 

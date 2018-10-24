@@ -11,7 +11,7 @@ neg = "~" _ phi
 vyest = "Z" _ phi
 
 _ = ~r" "*
-AP = ~r"[a-zA-z]" ~r"[a-zA-Z\d]*"
+AP = ~r"[a-zA-z]" ~r"[a-zA-Z\\d]*"
 EOL = "\\n"
 ''')
 

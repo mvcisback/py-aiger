@@ -123,7 +123,7 @@ def tee(outputs=None):
 
 
 def _ite(test: str, in1: str, in0: str, output: str = None):
-    "test -> in1 /\ ~test -> in0"
+    r"test -> in1 /\ ~test -> in0"
     assert len({test, in0, in1}) == 3
 
     true_out = bit_flipper([test]) >> or_gate([test, in1], 'true_out')
