@@ -11,5 +11,5 @@ pytest==4.3.0
 pytest-cov==2.6.1
 pytest-flake8==1.0.4
 pytest-sugar==0.9.2
-pytest-xdist==1.22.5
+pytest-xdist==1.26.1
 toposort==1.5
