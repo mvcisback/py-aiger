@@ -33,13 +33,6 @@
 3. Q: No, I'm really concerned about performance! A: This library is not suited to implement logic solvers. For everything else, such as the creation and manipulation of circuits with many thousands of gates in between solver calls, the library is really fast enough.
 4. Q: Where does the name come from? A: <a href="http://fmv.jku.at/aiger/">Aiger</a> is a popular circuit format. The format is used in <a href="http://fmv.jku.at/hwmcc17/">hardware model checking</a>, <a href="http://www.syntcomp.org/">synthesis</a>, and is supported by <a href="https://github.com/berkeley-abc/abc">ABC</a>. The name is a combination of AIG (standing for <a href="https://en.wikipedia.org/wiki/And-inverter_graph">And-Inverter-Graph</a>) and the austrian mountain <a href="https://en.wikipedia.org/wiki/Eiger">Eiger</a>.
 
-# Ecosystem
-
-<figure>
- <img src="assets/pyaiger_eco.svg" alt="py-aiger ecosystem" width="80%">
-  <figcaption>Overview of the pyaiger ecosystem/stack. <a href="http://github.com/mvcisback/py-aiger-bv">pyAiger-BV</a> is an wrapper around pyAiger that supports grouping and ordering inputs, latches, and outputs. This enables working at the word (or BitVector) level.</figcaption>
-</figure>
-
 # Installation
 
 `$ pip install py-aiger`
@@ -196,9 +189,13 @@ These are meant to augment the
 [aiger](fmv.jku.at/aiger/aiger-1.9.9.tar.gz) library. Ideally, we
 would someday like feature parity.
 
-# Related Projects
+# Ecosystem
 
-## Extensions and Ecosystem
+<figure>
+ <img src="assets/pyaiger_eco.svg" alt="py-aiger ecosystem" width="80%">
+  <figcaption>Overview of the pyaiger ecosystem/stack. <a href="http://github.com/mvcisback/py-aiger-bv">pyAiger-BV</a> is an wrapper around pyAiger that supports grouping and ordering inputs, latches, and outputs. This enables working at the word (or BitVector) level.</figcaption>
+</figure>
+
 ### Stable
 - [py-aiger-bv](https://github.com/mvcisback/py-aiger-bv): Extension of pyAiger for manipulating sequential bitvector circuits.
 
@@ -209,7 +206,7 @@ would someday like feature parity.
 - [py-aiger-spectral](https://github.com/mvcisback/py-aiger-spectral): A tool for performing (Fourier) Analysis of Boolean Functions.
 - [py-aigar](https://github.com/mvcisback/py-aigar): pyAiger-Analysis: Batteries included tools for analyzing aiger circuits. 
 
-## Other
+# Related Projects
 - [pyAig](https://bitbucket.org/sterin/pyaig): Another python library
   for working with AIGER circuits.
 
