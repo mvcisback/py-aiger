@@ -58,14 +58,14 @@ have a single output.
 
 ```python
 import aiger
-x, y = aiger.atom('x'), aiger.atom('y')
+x, y, z = aiger.atom('x'), aiger.atom('y'), aiger.atom('z')
 expr1 = x & y  # circuit with inputs 'x', 'y' and 1 output computing x AND y.
 expr2 = x | y  # logical or.
 expr3 = x ^ y  # logical xor.
 expr4 = x == y  # logical ==, xnor.
 expr5 = x.implies(y)
 expr6 = ~x  # logical negation.
-expr7 = x.select(~x, y)  # If x then ~x else y.
+expr7 = aiger.ite(x, y, z)  # if x then y else z.
 
 # Atoms can be constants.
 expr8 = x & aiger.atom(True)  # Equivilent to just x.
@@ -178,6 +178,11 @@ aiger.bit_flipper(inputs=aig1.inputs) >> aig1
 # ITE circuit
 # ['o1', 'o2'] = ['i1', 'i2'] if 'test' Else ['i3', 'i4'] 
 aiger.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
+```
+
+# Extra
+```python
+eval_order(aig1)  # Returns topological ordering of circuit gates.
 ```
 
 # Scripts

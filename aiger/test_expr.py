@@ -1,7 +1,7 @@
 import hypothesis.strategies as st
 from hypothesis import given
 
-from aiger.expr import atom
+from aiger.expr import atom, ite
 
 
 @given(st.data())
@@ -65,3 +65,12 @@ def test_expr_invert(data):
 
     vals = {f'{i}': data.draw(st.booleans()) for i in expr.inputs}
     assert x(vals) == (not expr(vals))
+
+
+@given(st.data())
+def test_expr_ite(data):
+    x, y, z = map(atom, 'xyz')
+    expr = ite(x, y, z)
+
+    vals = {f'{i}': data.draw(st.booleans()) for i in expr.inputs}
+    assert expr(vals) == (vals['y'] if vals['x'] else vals['z'])
