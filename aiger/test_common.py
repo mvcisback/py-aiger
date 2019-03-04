@@ -201,3 +201,8 @@ def test_unroll_simulate(aag1, horizon, data):
     sum1 = sum(sum(x.values()) for x, _ in aag1.simulate(test_inputs))
     sum2 = sum(aag2(fn.merge(*map(unroll_keys, test_inputs)))[0].values())
     assert sum1 == sum2
+
+
+def test_eval_order_smoke():
+    circ = common.and_gate([f'x{i}' for i in range(16)], "out")
+    assert len(common.eval_order(circ)) == 2*16 - 1

@@ -1,10 +1,11 @@
-# TODO: factor out common parts of seq_compose and par_compose
 import operator as op
+from collections import defaultdict
 from itertools import starmap
 from functools import reduce
 from uuid import uuid1
 
 import funcy as fn
+from toposort import toposort
 
 from aiger import aig
 
@@ -158,3 +159,23 @@ def delay(inputs, initials, latches=None, outputs=None):
         latch2init=frozenset(zip(latches, initials)),
         node_map=frozenset(zip(outputs, _latches)),
     )
+
+
+def _dependency_graph(nodes):
+    queue, deps, visited = list(nodes), defaultdict(set), set()
+    while queue:
+        node = queue.pop()
+        if node in visited:
+            continue
+        else:
+            visited.add(node)
+
+        children = node.children
+        queue.extend(children)
+        deps[node].update(children)
+
+    return deps
+
+
+def eval_order(circ):
+    return fn.lcat(toposort(_dependency_graph(circ.cones | circ.latch_cones)))
