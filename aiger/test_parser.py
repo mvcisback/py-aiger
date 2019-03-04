@@ -1,7 +1,7 @@
 from tempfile import NamedTemporaryFile
 
 import hypothesis.strategies as st
-from hypothesis import given
+from hypothesis import given, settings
 
 import aiger
 from aiger import common
@@ -9,6 +9,7 @@ from aiger import hypothesis as aigh
 from aiger import parser as aigp
 
 
+@settings(deadline=500)
 @given(aigh.Circuits, st.data())
 def test_load(circ, data):
     with NamedTemporaryFile() as f:
