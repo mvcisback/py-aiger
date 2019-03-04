@@ -199,11 +199,15 @@ would someday like feature parity.
 # Related Projects
 
 ## Extension and General Ecosystem
+### Stable
 - [py-aiger-bv](https://github.com/mvcisback/py-aiger-bv): Extension of pyAiger for manipulating sequential bitvector circuits.
+
+### Underdevelopment
 - [py-aiger-bdd](https://github.com/mvcisback/py-aiger-bdd): Aiger <-> BDD bridge.
 - [py-aiger-past-ltl](https://github.com/mvcisback/py-aiger-past-ltl): Converts Past Linear Temporal Logic to aiger circuits.
 - [py-aiger-gridworld](https://github.com/mvcisback/py-aiger-gridworld): Create aiger circuits representing gridworlds.
 - [py-aiger-spectral](https://github.com/mvcisback/py-aiger-spectral): A tool for performing (Fourier) Analysis of Boolean Functions.
+- [py-aigar](https://github.com/mvcisback/py-aigar): pyAiger-Analysis: Batteries included tools for analyzing aiger circuits. 
 
 ## Other
 - [pyAig](https://bitbucket.org/sterin/pyaig): Another python library
