@@ -65,7 +65,7 @@ expr3 = x ^ y  # logical xor.
 expr4 = x == y  # logical ==, xnor.
 expr5 = x.implies(y)
 expr6 = ~x  # logical negation.
-expr7 = aiger.ite(x, y, z)  # if x then y else z.
+expr7 = aiger.expr.ite(x, y, z)  # if x then y else z.
 
 # Atoms can be constants.
 expr8 = x & aiger.atom(True)  # Equivilent to just x.
