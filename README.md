@@ -198,7 +198,7 @@ would someday like feature parity.
 
 # Related Projects
 
-## Extension and General Ecosystem
+## Extensions and Ecosystem
 ### Stable
 - [py-aiger-bv](https://github.com/mvcisback/py-aiger-bv): Extension of pyAiger for manipulating sequential bitvector circuits.
 
