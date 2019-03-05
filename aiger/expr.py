@@ -55,8 +55,11 @@ def ite(test, expr_true, expr_false):
     return test.implies(expr_true) & (~test).implies(expr_false)
 
 
-def atom(val: Union[str, bool]) -> BoolExpr:
+def atom(val: Union[str, bool, None]) -> BoolExpr:
     output = cmn._fresh()
+    if val is None:
+        val = cmn._fresh()
+
     if isinstance(val, str):
         assert val not in ('True', 'False')
         aig = cmn.identity([val], [output])
