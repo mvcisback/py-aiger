@@ -208,7 +208,8 @@ class AIG:
             latch2init=aig.latch2init | l2init
         )
 
-    def unroll(self, horizon, *, init=True, omit_latches=True):
+    def unroll(self, horizon, *, init=True, omit_latches=True, 
+               only_last_outputs=False):
         # TODO:
         # - Check for name collisions.
         latches = self.latches
@@ -228,6 +229,13 @@ class AIG:
         if omit_latches:
             latch_names = [timed_name(n, horizon) for n, _ in l_map.values()]
             unrolled = unrolled >> cmn.sink(latch_names)
+
+        if only_last_outputs:
+            odrop = fn.lfilter(
+                lambda o: int(o.split('##time_')[1]) < 3,
+                unrolled.outputs
+            )
+            unrolled = unrolled >> cmn.sink(odrop)
 
         return unrolled
 
