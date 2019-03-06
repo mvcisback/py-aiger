@@ -208,7 +208,7 @@ class AIG:
             latch2init=aig.latch2init | l2init
         )
 
-    def unroll(self, horizon, *, init=True, omit_latches=True, 
+    def unroll(self, horizon, *, init=True, omit_latches=True,
                only_last_outputs=False):
         # TODO:
         # - Check for name collisions.
