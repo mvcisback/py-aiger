@@ -232,7 +232,7 @@ class AIG:
 
         if only_last_outputs:
             odrop = fn.lfilter(
-                lambda o: int(o.split('##time_')[1]) < 3,
+                lambda o: int(o.split('##time_')[1]) < horizon,
                 unrolled.outputs
             )
             unrolled = unrolled >> cmn.sink(odrop)
