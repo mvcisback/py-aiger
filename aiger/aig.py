@@ -100,6 +100,10 @@ class AIG:
         return attr.evolve(self, **kwargs)
 
     @property
+    def aig(self):
+        return self
+
+    @property
     def outputs(self):
         return frozenset(fn.pluck(0, self.node_map))
 
