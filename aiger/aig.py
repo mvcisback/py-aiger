@@ -132,16 +132,24 @@ class AIG:
         if latches is None:
             latches = dict()
         latchins = fn.merge(dict(self.latch2init), latches)
+        # Remove latch inputs not used by self.
+        latchins = fn.project(latchins, self.latches)
 
-        def sub(node):
-            if isinstance(node, ConstFalse):
-                return node
-            store = inputs if isinstance(node, Input) else latchins
-            return Inverter(ConstFalse()) if store[node.name] else ConstFalse()
+        # Turn into a combinatorial circuit
+        circ, lmap = self.cutlatches(self.latches)
+        latchins = fn.walk_keys(lambda n: lmap[n][0], latchins)
+        inputs = fn.merge(inputs, latchins)
 
-        circ = self._modify_leafs(sub)
-        outputs = {n: _is_const_true(node) for n, node in circ.node_map}
-        latch_outputs = {n: _is_const_true(node) for n, node in circ.latch_map}
+        circ = cmn.source(inputs) >> circ
+
+        all_outputs = {n: _is_const_true(node) for n, node in circ.node_map}
+        outputs = fn.project(all_outputs, self.outputs)
+        latch_outputs = fn.omit(all_outputs, self.outputs)
+
+        # Fix up latch names
+        lmap_inv = {k: n for n, (k, _) in lmap.items()}
+        latch_outputs = fn.walk_keys(lmap_inv.get, latch_outputs)
+
         return outputs, latch_outputs
 
     def simulator(self, latches=None):
