@@ -4,7 +4,7 @@ bidict==0.18.0
 blessings==1.7
 click==7.0
 codecov==2.0.15
-funcy==1.11
+funcy==1.12
 hypothesis==4.14.2
 parsimonious==0.8.1
 pytest==4.4.0
