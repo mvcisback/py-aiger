@@ -7,7 +7,8 @@
 
 </figure>
 
-[![Build Status](https://travis-ci.org/mvcisback/py-aiger.svg?branch=master)](https://travis-ci.org/mvcisback/py-aiger)
+
+[![Build Status](https://cloud.drone.io/api/badges/mvcisback/py-aiger/status.svg)](https://cloud.drone.io/mvcisback/py-aiger)
 [![codecov](https://codecov.io/gh/mvcisback/py-aiger/branch/master/graph/badge.svg)](https://codecov.io/gh/mvcisback/py-aiger)
 [![Updates](https://pyup.io/repos/github/mvcisback/py-aiger/shield.svg)](https://pyup.io/repos/github/mvcisback/py-aiger/)
 
