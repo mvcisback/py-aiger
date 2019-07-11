@@ -15,15 +15,25 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1405781.svg)](https://doi.org/10.5281/zenodo.1405781)
 
-# Table of Contents
-- [About](#about-py-aiger)
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-generate-toc again -->
+**Table of Contents**
+
+- [About PyAiger](#about-pyaiger)
 - [Installation](#installation)
-- [Ecosystem](#ecosystem)
-- [Boolean Expr DSL](#boolean-expression-dsl)
+- [Boolean Expression DSL](#boolean-expression-dsl)
 - [Sequential Circuit DSL](#sequential-circuit-dsl)
-- [Scripts](#scripts)
+    - [Sequential composition](#sequential-composition)
+    - [Parallel composition](#parallel-composition)
+    - [Circuits with Latches/Feedback/Delay](#circuits-with-latchesfeedbackdelay)
+    - [Relabeling](#relabeling)
+    - [Evaluation](#evaluation)
+    - [Useful circuits](#useful-circuits)
+- [Extra](#extra)
+- [Ecosystem](#ecosystem)
 - [Related Projects](#related-projects)
 - [Citing](#citing)
+
+<!-- markdown-toc end -->
 
 
 # About PyAiger
@@ -177,17 +187,6 @@ aiger.common.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 ```python
 eval_order(aig1)  # Returns topological ordering of circuit gates.
 ```
-
-# Scripts
-
-Installing py-aiger should install two commandline scripts:
-
-- aigseqcompose
-- aigparcompose
-
-These are meant to augment the
-[aiger](fmv.jku.at/aiger/aiger-1.9.9.tar.gz) library. Ideally, we
-would someday like feature parity.
 
 # Ecosystem
 

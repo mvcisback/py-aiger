@@ -1,7 +1,11 @@
 language: python
 python:
-  - "3.6"
-script: pytest --flake8 --cov=aiger --cov-report=html -n2
+  - "3.7"
+before_install:
+  - pip install poetry
+install:
+  - poetry install
+script: poetry run pytest --flake8 --cov=aiger -n2
 cache:
   directories:
     - ${HOME}/.cache/pip
