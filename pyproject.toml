@@ -17,7 +17,6 @@ bidict = "^0.18.0"
 funcy = "^1.12"
 parsimonious = "^0.8.1"
 toposort = "^1.5"
-hypothesis = "^4.28"
 
 [tool.poetry.dev-dependencies]
 hypothesis_cfg = {git = "git://github.com/mvcisback/hypothesis-cfg.git"}
