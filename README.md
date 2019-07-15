@@ -46,13 +46,16 @@
 
 # Installation
 
+If you just need to use `aiger`, you can just run:
+
 `$ pip install py-aiger`
 
-or as a developer:
+For developers, note that this project uses the
+[poetry](https://poetry.eustace.io/) python package/dependency
+management tool. Please familarize yourself with it and then
+run:
 
-`$ python setup.py develop`
-
-
+`$ poetry install`
 
 # Boolean Expression DSL
 While powerful, when writing combinatorial circuits, the Sequential
