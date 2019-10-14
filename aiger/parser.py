@@ -262,7 +262,9 @@ def aig2aag(circ) -> AAG:
         max_idx += 1
 
     # Update cone maps.
-    aag.outputs.update({k: lit_map[cone] for k, cone in circ.node_map})
+    aag.outputs.update(
+        {k: lit_map[cone] for k, cone in circ.node_map.items()}
+    )
     latch2init = dict(circ.latch2init)
     for name, cone in circ.latch_map:
         latch = aig.LatchIn(name)

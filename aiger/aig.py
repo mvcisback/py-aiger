@@ -3,6 +3,7 @@ from typing import Tuple, FrozenSet, NamedTuple, Union
 
 import attr
 import funcy as fn
+from pyrsistent import pmap
 
 from aiger import common as cmn
 from aiger import parser
@@ -68,7 +69,9 @@ Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn]
 @attr.s(frozen=True, slots=True, auto_attribs=True, repr=False)
 class AIG:
     inputs: FrozenSet[str] = frozenset()
-    node_map: FrozenSet[Tuple[str, Node]] = frozenset()
+    node_map: FrozenSet[Tuple[str, Node]] = attr.ib(
+        default=pmap(), converter=pmap
+    )
     latch_map: FrozenSet[Tuple[str, Node]] = frozenset()
     latch2init: FrozenSet[Tuple[str, Node]] = frozenset()
     comments: Tuple[str] = ()
@@ -105,7 +108,7 @@ class AIG:
 
     @property
     def outputs(self):
-        return frozenset(fn.pluck(0, self.node_map))
+        return frozenset(self.node_map.keys())
 
     @property
     def latches(self):
@@ -113,7 +116,7 @@ class AIG:
 
     @property
     def cones(self):
-        return frozenset(fn.pluck(1, self.node_map))
+        return frozenset(self.node_map.values())
 
     @property
     def latch_cones(self):
@@ -142,7 +145,9 @@ class AIG:
 
         circ = cmn.source(inputs) >> circ
 
-        all_outputs = {n: _is_const_true(node) for n, node in circ.node_map}
+        all_outputs = {
+            n: _is_const_true(node) for n, node in circ.node_map.items()
+        }
         outputs = fn.project(all_outputs, self.outputs)
         latch_outputs = fn.omit(all_outputs, self.outputs)
 
@@ -176,9 +181,9 @@ class AIG:
             return node
 
         circ = self._modify_leafs(sub)
-        _cones = {(l_map[k][0], v) for k, v in circ.latch_map if k in latches}
+        _cones = {l_map[k][0]: v for k, v in circ.latch_map if k in latches}
         aig = self.evolve(
-            node_map=circ.node_map | _cones,
+            node_map=circ.node_map + _cones,
             inputs=self.inputs | {n for n, _ in l_map.values()},
             latch_map={(k, v) for k, v in circ.latch_map if k not in latches},
             latch2init={(k, v) for k, v in self.latch2init if k not in latches}
@@ -208,14 +213,14 @@ class AIG:
         aig = self._modify_leafs(sub)
 
         _latch_map, node_map = fn.lsplit(
-            lambda x: x[0] in outputs, aig.node_map
+            lambda x: x[0] in outputs, aig.node_map.items()
         )
         out2latch = {oname: lname for oname, lname in zip(outputs, latches)}
         _latch_map = {(out2latch[k], v) for k, v in _latch_map}
         l2init = frozenset((n, val) for n, val in zip(latches, initials))
         return aig.evolve(
             inputs=aig.inputs - set(inputs),
-            node_map=aig.node_map if keep_outputs else frozenset(node_map),
+            node_map=aig.node_map if keep_outputs else pmap(node_map),
             latch_map=aig.latch_map | _latch_map,
             latch2init=aig.latch2init | l2init
         )
@@ -279,10 +284,10 @@ class AIG:
 
             return func(node)
 
-        node_map = ((name, _mod(cone)) for name, cone in self.node_map)
+        node_map = ((name, _mod(cone)) for name, cone in self.node_map.items())
         latch_map = ((name, _mod(cone)) for name, cone in self.latch_map)
         return self.evolve(
-            node_map=frozenset(node_map),
+            node_map=pmap(node_map),
             latch_map=frozenset(latch_map)
         )
 
@@ -301,7 +306,7 @@ def par_compose(aig1, aig2, check_precondition=True):
         inputs=aig1.inputs | aig2.inputs,
         latch_map=aig1.latch_map | aig2.latch_map,
         latch2init=aig1.latch2init | aig2.latch2init,
-        node_map=aig1.node_map | aig2.node_map,
+        node_map=aig1.node_map + aig2.node_map,
         comments=aig1.comments + aig2.comments
     )
 
@@ -318,7 +323,9 @@ def seq_compose(circ1, circ2, *, input_kinds=(Input,)):
     assert not (circ1.outputs - interface) & circ2.outputs
     assert not circ1.latches & circ2.latches
 
-    passthrough = {(k, v) for k, v in circ1.node_map if k not in interface}
+    passthrough = {
+        k: v for k, v in circ1.node_map.items() if k not in interface
+    }
     lookup = dict(circ1.node_map)
 
     def sub(node):
@@ -331,6 +338,6 @@ def seq_compose(circ1, circ2, *, input_kinds=(Input,)):
         inputs=circ1.inputs | (circ2.inputs - interface),
         latch_map=circ1.latch_map | circ3.latch_map,
         latch2init=circ1.latch2init | circ2.latch2init,
-        node_map=circ3.node_map | passthrough,
+        node_map=circ3.node_map + passthrough,
         comments=circ1.comments + circ2.comments
     )
