@@ -6,7 +6,7 @@ from aiger import aig
 from aiger import common as cmn
 
 
-@attr.s(frozen=True, slots=True, cmp=False, auto_attribs=True, hash=True)
+@attr.s(frozen=True, slots=True, eq=False, auto_attribs=True, hash=True)
 class BoolExpr:
     aig: aig.AIG
 
