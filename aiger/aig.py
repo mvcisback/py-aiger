@@ -96,15 +96,25 @@ class AIG:
         if kind == 'o':
             relabels = {k: [v] for k, v in relabels.items()}
             return self >> cmn.tee(relabels)
+        elif kind == 'i':
+            relabels_ = {v: [k] for k, v in relabels.items()}
+            return cmn.tee(relabels_) >> self
 
-        relabels_ = {v: [k] for k, v in relabels.items()}
-        input_kinds = (Input,) if kind == 'i' else (LatchIn,)
-        circ = seq_compose(cmn.tee(relabels_), self, input_kinds=input_kinds)
-        if kind == 'l':
-            circ = circ.evolve(latch2init=fn.walk_keys(
-                lambda x: relabels.get(x, x), self.latch2init
-            ))
-        return circ
+        # Latches act like inputs and outputs...
+        def fix_keys(mapping):
+            return fn.walk_keys(lambda x: relabels.get(x, x), mapping)
+
+        circ = self.evolve(
+            latch_map=fix_keys(self.latch_map),
+            latch2init=fix_keys(self.latch2init)
+        )
+
+        def sub(node):
+            if isinstance(node, LatchIn):
+                return LatchIn(relabels.get(node.name))
+            return node
+
+        return circ._modify_leafs(sub)
 
     def evolve(self, **kwargs):
         return attr.evolve(self, **kwargs)
@@ -325,7 +335,7 @@ def par_compose(aig1, aig2, check_precondition=True):
     return circ
 
 
-def seq_compose(circ1, circ2, *, input_kinds=(Input,)):
+def seq_compose(circ1, circ2, *, input_kind=Input):
     interface = circ1.outputs & circ2.inputs
     assert not (circ1.outputs - interface) & circ2.outputs
     assert not circ1.latches & circ2.latches
@@ -333,14 +343,18 @@ def seq_compose(circ1, circ2, *, input_kinds=(Input,)):
     passthrough = {
         k: v for k, v in circ1.node_map.items() if k not in interface
     }
-    lookup = dict(circ1.node_map)
 
-    def sub(node):
-        if isinstance(node, input_kinds):
-            return lookup.get(node.name, node)
-        return node
+    circ3 = circ2
+    for mapping in [circ1.node_map, circ1.latch_map]:
+        lookup = dict(mapping)
 
-    circ3 = circ2._modify_leafs(sub)
+        def sub(node):
+            if isinstance(node, input_kind):
+                return lookup.get(node.name, node)
+            return node
+
+        circ3 = circ3._modify_leafs(sub)
+
     return AIG(
         inputs=circ1.inputs | (circ2.inputs - interface),
         latch_map=circ1.latch_map | circ3.latch_map,
