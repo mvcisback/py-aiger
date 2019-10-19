@@ -37,7 +37,8 @@ class Inverter(NamedTuple):
 
 
 # Enables filtering for Input via lens library.
-class Input(NamedTuple):
+@attr.s(frozen=True, slots=True, auto_attribs=True)
+class Input:
     name: str
 
     @property
@@ -45,7 +46,8 @@ class Input(NamedTuple):
         return ()
 
 
-class LatchIn(NamedTuple):
+@attr.s(frozen=True, slots=True, auto_attribs=True)
+class LatchIn:
     name: str
 
     @property

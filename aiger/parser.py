@@ -318,6 +318,8 @@ def _to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
 
         elif isinstance(gate, aig.Input):
             aag.inputs[gate.name] = lit_map[gate]
+        else:
+            assert isinstance(gate, aig.LatchIn)
 
     return aag, max_idx, lit_map
 
