@@ -206,3 +206,8 @@ def test_unroll_simulate(aag1, horizon, data):
 def test_eval_order_smoke():
     circ = common.and_gate([f'x{i}' for i in range(16)], "out")
     assert len(common.eval_order(circ)) == 2*16 - 1
+
+
+def test_delay():
+    circ = common.delay(['x', 'y'], initials=[False, False])
+    assert circ.inputs == circ.outputs == circ.latches

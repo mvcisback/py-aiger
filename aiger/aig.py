@@ -95,9 +95,14 @@ class AIG:
             relabels = {k: [v] for k, v in relabels.items()}
             return self >> cmn.tee(relabels)
 
-        relabels = {v: [k] for k, v in relabels.items()}
+        relabels_ = {v: [k] for k, v in relabels.items()}
         input_kinds = (Input,) if kind == 'i' else (LatchIn,)
-        return seq_compose(cmn.tee(relabels), self, input_kinds=input_kinds)
+        circ = seq_compose(cmn.tee(relabels_), self, input_kinds=input_kinds)
+        if kind == 'l':
+            circ = circ.evolve(latch2init=fn.walk_keys(
+                lambda x: relabels.get(x, x), self.latch2init
+            ))
+        return circ
 
     def evolve(self, **kwargs):
         return attr.evolve(self, **kwargs)
