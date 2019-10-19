@@ -211,3 +211,6 @@ def test_eval_order_smoke():
 def test_delay():
     circ = common.delay(['x', 'y'], initials=[False, False])
     assert circ.inputs == circ.outputs == circ.latches
+    circ2 = circ['l', {'x': 'z'}]
+    assert circ2.latches == {'z', 'y'}
+    assert set(dict(circ2.latch2init).keys()) == {'z', 'y'}
