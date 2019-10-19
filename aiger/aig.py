@@ -111,7 +111,7 @@ class AIG:
 
         def sub(node):
             if isinstance(node, LatchIn):
-                return LatchIn(relabels.get(node.name))
+                return LatchIn(relabels.get(node.name, node.name))
             return node
 
         return circ._modify_leafs(sub)
