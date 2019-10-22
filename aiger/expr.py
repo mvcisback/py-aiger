@@ -69,3 +69,8 @@ def atom(val: Union[str, bool, None]) -> BoolExpr:
         aig = cmn.source({output: val})
 
     return BoolExpr(aig)
+
+
+def atoms(*vals):
+    return tuple(map(atom, vals))
+

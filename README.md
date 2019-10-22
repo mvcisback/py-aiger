@@ -65,7 +65,7 @@ have a single output.
 
 ```python
 import aiger
-x, y, z = aiger.atom('x'), aiger.atom('y'), aiger.atom('z')
+x, y, z = aiger.atoms('x', 'y', 'z')
 expr1 = x & y  # circuit with inputs 'x', 'y' and 1 output computing x AND y.
 expr2 = x | y  # logical or.
 expr3 = x ^ y  # logical xor.
