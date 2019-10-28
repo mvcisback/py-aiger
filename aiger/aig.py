@@ -1,3 +1,4 @@
+import pathlib
 from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union
 
@@ -362,3 +363,15 @@ def seq_compose(circ1, circ2, *, input_kind=Input):
         node_map=circ3.node_map + passthrough,
         comments=circ1.comments + circ2.comments
     )
+
+
+def to_aig(circ) -> AIG:
+    if isinstance(circ, pathlib.Path) and circ.is_file():
+        circ = parser.load(circ)
+    elif isinstance(circ, str):
+        if circ.startswith('aag '):
+            circ = parser.parse(circ)  # Assume it is an AIGER string.
+        else:
+            circ = parser.load(circ)  # Assume it is a file path.
+
+    return circ.aig  # Extract AIG from potential wrapper.
