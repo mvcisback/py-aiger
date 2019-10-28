@@ -75,8 +75,8 @@ expr6 = ~x  # logical negation.
 expr7 = aiger.ite(x, y, z)  # if x then y else z.
 
 # Atoms can be constants.
-expr8 = x & aiger.atom(True)  # Equivilent to just x.
-expr9 = x & aiger.atom(False)  # Equivilent to const False.
+expr8 = x & aiger.atom(True)  # Equivalent to just x.
+expr9 = x & aiger.atom(False)  # Equivalent to const False.
 
 # And you can inspect the AIG if needed.
 circ = x.aig
