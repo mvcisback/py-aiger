@@ -189,7 +189,10 @@ aiger.common.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 
 # Extra
 ```python
-eval_order(aig1)  # Returns topological ordering of circuit gates.
+aiger.common.eval_order(aig1)  # Returns topological ordering of circuit gates.
+
+# Convert object into an AIG from multiple formats including BoolExpr, AIG, str, and filepaths.
+aiger.to_aig(aig1)  
 ```
 
 # Ecosystem
