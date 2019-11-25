@@ -186,8 +186,18 @@ class AIG:
         next(sim)
         return [sim.send(inputs) for inputs in input_seq]
 
-    def cutlatches(self, latches, check_postcondition=True):
-        l_map = {n: (cmn._fresh(), init) for (n, init) in self.latch2init}
+    def cutlatches(self, latches=None, check_postcondition=True, renamer=None):
+        if latches is None:
+            latches = self.latches
+
+        if renamer is None:
+            def renamer(_):
+                return cmn._fresh()
+
+        l_map = {
+            n: (renamer(n), init) for (n, init) in self.latch2init
+            if n in latches
+        }
 
         assert len(
             set(fn.pluck(0, l_map.values())) & (self.inputs | self.outputs)
