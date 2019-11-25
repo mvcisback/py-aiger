@@ -75,8 +75,8 @@ expr6 = ~x  # logical negation.
 expr7 = aiger.ite(x, y, z)  # if x then y else z.
 
 # Atoms can be constants.
-expr8 = x & aiger.atom(True)  # Equivilent to just x.
-expr9 = x & aiger.atom(False)  # Equivilent to const False.
+expr8 = x & aiger.atom(True)  # Equivalent to just x.
+expr9 = x & aiger.atom(False)  # Equivalent to const False.
 
 # And you can inspect the AIG if needed.
 circ = x.aig
@@ -189,7 +189,10 @@ aiger.common.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 
 # Extra
 ```python
-eval_order(aig1)  # Returns topological ordering of circuit gates.
+aiger.common.eval_order(aig1)  # Returns topological ordering of circuit gates.
+
+# Convert object into an AIG from multiple formats including BoolExpr, AIG, str, and filepaths.
+aiger.to_aig(aig1)  
 ```
 
 # Ecosystem
