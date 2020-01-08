@@ -137,9 +137,9 @@ aig1['l', {'l1': 'l2'}]
 aig3(inputs={'x':True, 'y':False})
 
 # Sequential evaluation.
-sim = aig3.simulate({'x': 0, 'y': 0}, 
+sim = aig3.simulate([{'x': 0, 'y': 0}, 
                     {'x': 1, 'y': 2},
-                    {'x': 3, 'y': 4})
+                    {'x': 3, 'y': 4}])
 
 # Simulation Coroutine
 sim = aig3.simulator()  # Coroutine
