@@ -125,20 +125,18 @@ def test_tee(aag1, data):
 
 
 @given(aigh.Circuits, st.data())
-def test_feedback(aag1, data):
+def test_loopback(aag1, data):
     aag2 = aag1 | (common.identity(['##test##']))
     assert len(aag2.outputs) == 1 + len(aag1.outputs)
     assert len(aag2.inputs) == 1 + len(aag1.inputs)
 
-    aag3 = aag2.feedback(
-        inputs=['##test##'],
-        outputs=['##test##'],
-        initials=[True],
-        keep_outputs=False)
+    aag3 = aag2.loopback({
+        'input': '##test##', 'output': '##test##',
+        'init': True, 'keep_output': False
+    })
 
     assert aag3.outputs == aag1.outputs
     assert aag3.inputs == aag1.inputs
-
     test_input = {f'{i}': data.draw(st.booleans()) for i in aag3.inputs}
     assert aag1(test_input)[0] == aag3(test_input)[0]
 
