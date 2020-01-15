@@ -218,6 +218,17 @@ class AIG:
         )
         return aig, l_map
 
+    def feedback2(self, *wirings):
+        def wire(circ, wiring):
+            return circ._wire(wiring)
+
+        return reduce(wire, wirings, self)
+
+    def _wire(self, input, output, latch=None, init=True, keep_output=True):
+        return feedback(
+            [input], [output], [init], [latch], keep_outputs=keep_output
+        )
+
     def feedback(
         self, inputs, outputs, initials=None, latches=None, keep_outputs=False
     ):
