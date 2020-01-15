@@ -107,16 +107,36 @@ aig3 = aig1 >> aig2
 aig4 = aig1 | aig2
 ```
 
-## Circuits with Latches/Feedback/Delay
+## Circuits with Latches and Delayed Feedback
+Sometimes one requires some outputs to be feed back into the circuits
+as time delayed inputs. This can be accomplished using the `loopback`
+method. This method takes in a variable number of dictionaries
+encoding how to wire an input to an output. The wiring dictionaries
+with the following keys and default values:
+
+| Key         | Default | Meaning                          |
+|-------------+---------+----------------------------------|
+| input       |         | Input port                       |
+| output      |         | Output port                      |
+| latch       | input   | Latch name                       |
+| init        | True    | Initial latch value              |
+| keep_output | True    | Keep loopbacked output as output |
+
+
 ```python
 # Connect output y to input x with delay, initialized to True.
 # (Default initialization is False.)
-aig5 = aig1.feedback(
-    inputs=['x'],
-    outputs=['y'],
-    initials=[True],
-    keep_outputs=True
-)
+aig5 = aig1.loopback({
+  "input": "x", "output": "y",
+})
+
+aig6 = aig1.loopback({
+  "input": "x", "output": "y",
+}, {
+  "input": "z", "output": "z", latch="z_latch",
+  "init": False, "keep_outputs": False
+})
+
 ```
 
 ## Relabeling
@@ -192,7 +212,7 @@ aiger.common.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 aiger.common.eval_order(aig1)  # Returns topological ordering of circuit gates.
 
 # Convert object into an AIG from multiple formats including BoolExpr, AIG, str, and filepaths.
-aiger.to_aig(aig1)  
+aiger.to_aig(aig1)
 ```
 
 # Ecosystem
