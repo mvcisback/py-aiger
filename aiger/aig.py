@@ -245,7 +245,7 @@ class AIG:
         self, inputs, outputs, initials=None, latches=None, keep_outputs=False
     ):
         # TODO: remove in next version bump and put into wire.
-        
+
         if latches is None:
             latches = inputs
 
