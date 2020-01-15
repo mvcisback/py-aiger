@@ -115,7 +115,7 @@ encoding how to wire an input to an output. The wiring dictionaries
 with the following keys and default values:
 
 | Key         | Default | Meaning                          |
-|-------------+---------+----------------------------------|
+| ----------- | ------- | -------------------------------- |
 | input       |         | Input port                       |
 | output      |         | Output port                      |
 | latch       | input   | Latch name                       |
