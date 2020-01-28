@@ -41,10 +41,15 @@ class BoolExpr:
     def inputs(self):
         return self.aig.inputs
 
+    def with_output(self, val):
+        if val == self.output:
+            return self
+        return attr.evolve(self, aig=self.aig['o', {self.output: val}])
+
     def _fresh_output(self, name=None):
         if name is None:
             name = cmn._fresh()
-        return type(self)(self.aig['o', {self.output: name}])
+        return self.with_output(name)
 
 
 def _binary_gate(gate, expr1, expr2):

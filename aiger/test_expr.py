@@ -74,3 +74,9 @@ def test_expr_ite(data):
 
     vals = {f'{i}': data.draw(st.booleans()) for i in expr.inputs}
     assert expr(vals) == (vals['y'] if vals['x'] else vals['z'])
+
+
+def test_with_output():
+    x, y, z = map(atom, 'xyz')
+    expr = ite(x, y, z).with_output('xyz')
+    assert expr.with_output('xyz')
