@@ -242,7 +242,8 @@ class AIG:
         import warnings
         warnings.warn("deprecated", DeprecationWarning)
         return self._feedback(
-            inputs, outputs, initials=None, latches=None, keep_outputs=False
+            inputs, outputs, initials=None, latches=None,
+            keep_outputs=keep_outputs
         )
 
     def _feedback(
