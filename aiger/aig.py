@@ -120,6 +120,10 @@ class AIG:
     def evolve(self, **kwargs):
         return attr.evolve(self, **kwargs)
 
+    def relabel(self, key, mapping):
+        assert key in {'input', 'output', 'latch'}
+        return self[key[0], mapping]
+
     @property
     def aig(self):
         return self

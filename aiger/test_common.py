@@ -146,9 +146,13 @@ def test_relabel(aag1):
     # TODO
     new_inputs = {k: f'{k}#2' for k in aag1.inputs}
     assert set(aag1['i', new_inputs].inputs) == set(new_inputs.values())
+    assert aag1['i', new_inputs].inputs == \
+        aag1.relabel('input', new_inputs).inputs
 
     new_outputs = {k: f'{k}#2' for k in aag1.outputs}
     assert set(aag1['o', new_outputs].outputs) == set(new_outputs.values())
+    assert aag1['o', new_inputs].outputs == \
+        aag1.relabel('output', new_inputs).outputs
 
     with pytest.raises(AssertionError):
         aag1['z', {}]
