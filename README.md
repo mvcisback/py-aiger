@@ -217,24 +217,22 @@ aiger.to_aig(aig1)
 
 # Ecosystem
 
-<figure>
- <img src="assets/pyaiger_eco.svg" alt="py-aiger ecosystem" width="80%">
-  <figcaption>Overview of the pyaiger ecosystem/stack.</figcaption>
-</figure>
-
 ### Stable
 - [py-aiger-bv](https://github.com/mvcisback/py-aiger-bv): Extension of pyAiger for manipulating sequential bitvector circuits.
 - [py-aiger-cnf](https://github.com/mvcisback/py-aiger-cnf): BoolExpr to Object representing CNF. Mostly used for interfacing with py-aiger-sat.
 - [py-aiger-past-ltl](https://github.com/mvcisback/py-aiger-past-ltl): Converts Past Linear Temporal Logic to aiger circuits.
-
-### Underdevelopment
-
 - [py-aiger-coins](https://github.com/mvcisback/py-aiger-coins): Library for creating circuits that encode discrete distributions.
 - [py-aiger-sat](https://github.com/mvcisback/py-aiger-sat): Bridge between py-aiger and py-sat.
 - [py-aiger-bdd](https://github.com/mvcisback/py-aiger-bdd): Aiger <-> BDD bridge.
 - [py-aiger-gridworld](https://github.com/mvcisback/py-aiger-gridworld): Create aiger circuits representing gridworlds.
+- [py-aiger-dfa](https://pypi.org/project/py-aiger-dfa/): Convert between finite automata and sequential circuits.
+
+
+### Underdevelopment
+
+
 - [py-aiger-spectral](https://github.com/mvcisback/py-aiger-spectral): A tool for performing (Fourier) Analysis of Boolean Functions.
-- [py-aigar](https://github.com/mvcisback/py-aigar): pyAiger-Analysis: Batteries included tools for analyzing aiger circuits. 
+- [py-aiger-abc](https://pypi.org/project/py-aiger-abc/): Aiger and abc bridge.
 
 # Related Projects
 - [pyAig](https://bitbucket.org/sterin/pyaig): Another python library
