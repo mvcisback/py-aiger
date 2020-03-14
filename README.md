@@ -78,6 +78,11 @@ expr7 = aiger.ite(x, y, z)  # if x then y else z.
 expr8 = x & aiger.atom(True)  # Equivalent to just x.
 expr9 = x & aiger.atom(False)  # Equivalent to const False.
 
+# Specifying output name of boolean expression.
+# - Output is a long uuid otherwise.
+expr10 = expr5.with_output('x_implies_y')
+assert expr10.output == 'x_implies_y'
+
 # And you can inspect the AIG if needed.
 circ = x.aig
 
@@ -140,15 +145,25 @@ aig6 = aig1.loopback({
 ```
 
 ## Relabeling
+
+There are two syntaxes for relabeling. The first uses indexing
+syntax in a nod to [notation often used variable substition in math](https://mathoverflow.net/questions/243084/history-of-the-notation-for-substitution).
+
+The syntax is the relabel method, which is preferable when one wants
+to be explicit, even for those not familar with `py-aiger`.
+
 ```python
 # Relabel input 'x' to 'z'.
 aig1['i', {'x': 'z'}]
+aig1.relabel('input', {'x': 'z'})
 
 # Relabel output 'y' to 'w'.
 aig1['o', {'y': 'w'}]
+aig1.relabel('output', {'y': 'w'})
 
 # Relabel latches 'l1' to 'l2'.
 aig1['l', {'l1': 'l2'}]
+aig1.relabel('latch', {'l1': 'l2'})
 ```
 
 ## Evaluation
