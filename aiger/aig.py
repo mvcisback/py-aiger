@@ -14,27 +14,27 @@ def timed_name(name, time):
     return f"{name}##time_{time}"
 
 
-class AndGate(NamedTuple):
-    left: 'Node'  # TODO: replace with Node once 3.7 lands.
+@attr.s(frozen=True, slots=True, auto_attribs=True, cache_hash=True)
+class AndGate:
+    left: 'Node'                # TODO: replace with Node once 3.7 lands.
     right: 'Node'
+
+    _replace = attr.evolve      # Backwards compat with NamedTuple code.
 
     @property
     def children(self):
         return (self.left, self.right)
 
-    def __hash__(self):
-        return hash(frozenset(self))
 
-
-class Inverter(NamedTuple):
+@attr.s(frozen=True, slots=True, auto_attribs=True, cache_hash=True)
+class Inverter:
     input: 'Node'
+
+    _replace = attr.evolve      # Backwards compat with NamedTuple code.
 
     @property
     def children(self):
         return (self.input, )
-
-    def __hash__(self):
-        return hash(frozenset(self))
 
 
 # Enables filtering for Input via lens library.
