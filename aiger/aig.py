@@ -23,7 +23,7 @@ class AndGate(NamedTuple):
         return (self.left, self.right)
 
     def __hash__(self):
-        return id(self)
+        return hash(frozenset(self))
 
 
 class Inverter(NamedTuple):
@@ -34,7 +34,7 @@ class Inverter(NamedTuple):
         return (self.input, )
 
     def __hash__(self):
-        return id(self)
+        return hash(frozenset(self))
 
 
 # Enables filtering for Input via lens library.
@@ -60,6 +60,9 @@ class ConstFalse(NamedTuple):
     @property
     def children(self):
         return ()
+
+    def __hash__(self):
+        return hash(False)
 
 
 def _is_const_true(node):
