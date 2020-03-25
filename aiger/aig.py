@@ -293,22 +293,31 @@ class AIG:
         latches = self.latches
         aag0, l_map = self.cutlatches({l for l in latches})
 
-        def _unroll():
-            prev = aag0
-            for t in range(1, horizon + 1):
-                tmp = prev['i', {k: timed_name(k, t - 1) for k in aag0.inputs}]
-                yield tmp['o', {k: timed_name(k, t) for k in aag0.outputs}]
+        def timed_io(t, circ, latch_io):
+            inputs, outputs = self.inputs, self.outputs
 
-        unrolled = reduce(seq_compose, _unroll())
-        if init:
+            if latch_io:
+                inputs, outputs = aag0.inputs - inputs, aag0.outputs - outputs
+
+            tmp = circ['i', {k: timed_name(k, t - 1) for k in inputs}]
+            return tmp['o', {k: timed_name(k, t) for k in outputs}]
+
+        unrolled = timed_io(1, timed_io(1, aag0, True), False)
+        for t in range(2, horizon + 1):
+            unrolled >>= timed_io(t, aag0, latch_io=True)
+            unrolled = timed_io(t, unrolled, latch_io=False)
+
+        # Post Processing
+
+        if init:  # Initialize first latch input.
             source = {timed_name(n, 0): init for n, init in l_map.values()}
             unrolled = cmn.source(source) >> unrolled
 
-        if omit_latches:
+        if omit_latches:  # Omit latches from output.
             latch_names = [timed_name(n, horizon) for n, _ in l_map.values()]
             unrolled = unrolled >> cmn.sink(latch_names)
 
-        if only_last_outputs:
+        if only_last_outputs:  # Only keep the time step's output.
             odrop = fn.lfilter(
                 lambda o: int(o.split('##time_')[1]) < horizon,
                 unrolled.outputs

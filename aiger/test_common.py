@@ -3,6 +3,7 @@ import hypothesis.strategies as st
 import pytest
 from hypothesis import given
 
+import aiger
 from aiger import hypothesis as aigh
 from aiger import common
 
@@ -216,3 +217,26 @@ def test_delay():
     circ2 = circ['l', {'x': 'z'}]
     assert circ2.latches == {'z', 'y'}
     assert set(dict(circ2.latch2init).keys()) == {'z', 'y'}
+
+
+EXAMPLE = """aag 3 2 1 2 0
+2
+6
+4 6 1
+2
+4
+i0 a
+i1 c
+o0 a
+o1 c
+l0 c
+"""
+
+
+def test_unroll_keep_inputs():
+    circ = aiger.parse(EXAMPLE)
+    unrolled = circ.unroll(3)
+    assert unrolled.inputs == {
+        "a##time_0", "a##time_1", "a##time_2",
+        "c##time_0", "c##time_1", "c##time_2",
+    }
