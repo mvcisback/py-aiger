@@ -331,7 +331,7 @@ class AIG:
             f.write(repr(self))
 
     def _modify_leafs(self, func):
-        @fn.memoize
+        @fn.memoize(key_func=id)
         def _mod(node):
             if isinstance(node, AndGate):
                 left = _mod(node.left)
