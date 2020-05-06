@@ -1,3 +1,4 @@
+import operator as op
 import pathlib
 from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union
@@ -174,11 +175,16 @@ class AIG:
         If `latches` is `None` initial latch value is used.
 
         `false` is an optional argument used to interpet the AIG as
-        an object in some other Boolean algebra.
+        an object in some other Boolean algebra over (&, ~).
           - See py-aiger-bdd and py-aiger-cnf for examples.
         """
         if latches is None:
             latches = dict()
+
+        if false is False:
+            and_, neg = op.and_, op.not_
+        else:
+            and_, neg = op.__and__, op.__invert__
 
         latchins = fn.merge(dict(self.latch2init), latches)
         # Remove latch inputs not used by self.
@@ -191,9 +197,9 @@ class AIG:
 
             for gate in node_batch:
                 if isinstance(gate, Inverter):
-                    tbl[gate] = not tbl[gate.input]
+                    tbl[gate] = neg(tbl[gate.input])
                 elif isinstance(gate, AndGate):
-                    tbl[gate] = tbl[gate.left] & tbl[gate.right]
+                    tbl[gate] = and_(tbl[gate.left], tbl[gate.right])
 
                 elif isinstance(gate, Input):
                     tbl[gate] = inputs[gate.name]
