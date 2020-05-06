@@ -120,6 +120,18 @@ class AIG:
 
         return circ._modify_leafs(sub)
 
+    def __iter_nodes__(self):
+        """Returns an iterator over iterators of nodes in an AIG.
+
+        If completely flattened this iterator would give topological
+        a order on the nodes, starting on the inputs.
+
+        The reason for the iterator over iterators is to mark
+        dependencies. Namely, to compute the value of any node
+        requires just the value of the nodes in the previous iterator.
+        """
+        return [cmn.eval_order(self, concat=True)]
+
     def evolve(self, **kwargs):
         return attr.evolve(self, **kwargs)
 
@@ -156,31 +168,43 @@ class AIG:
     def __or__(self, other):
         return par_compose(self, other)
 
-    def __call__(self, inputs, latches=None):
+    def __call__(self, inputs, latches=None, *, false=False):
+        """Evaluate AIG on inputs (and latches).
+
+        If `latches` is `None` initial latch value is used.
+
+        `false` is an optional argument used to interpet the AIG as
+        an object in some other Boolean algebra.
+          - See py-aiger-bdd and py-aiger-cnf for examples.
+        """
         if latches is None:
             latches = dict()
+
         latchins = fn.merge(dict(self.latch2init), latches)
         # Remove latch inputs not used by self.
         latchins = fn.project(latchins, self.latches)
 
-        # Turn into a combinatorial circuit
-        circ, lmap = self.cutlatches(self.latches)
-        latchins = fn.walk_keys(lambda n: lmap[n][0], latchins)
-        inputs = fn.merge(inputs, latchins)
+        prev, tbl = set(), {}
+        for node_batch in self.__iter_nodes__():
+            prev = set(tbl.keys()) - prev
+            tbl = fn.project(tbl, prev)  # Forget about unnecessary gates.
 
-        circ = cmn.source(inputs) >> circ
+            for gate in node_batch:
+                if isinstance(gate, Inverter):
+                    tbl[gate] = not tbl[gate.input]
+                elif isinstance(gate, AndGate):
+                    tbl[gate] = tbl[gate.left] & tbl[gate.right]
 
-        all_outputs = {
-            n: _is_const_true(node) for n, node in circ.node_map.items()
-        }
-        outputs = fn.project(all_outputs, self.outputs)
-        latch_outputs = fn.omit(all_outputs, self.outputs)
+                elif isinstance(gate, Input):
+                    tbl[gate] = inputs[gate.name]
+                elif isinstance(gate, LatchIn):
+                    tbl[gate] = latchins[gate.name]
+                elif isinstance(gate, ConstFalse):
+                    tbl[gate] = false
 
-        # Fix up latch names
-        lmap_inv = {k: n for n, (k, _) in lmap.items()}
-        latch_outputs = fn.walk_keys(lmap_inv.get, latch_outputs)
-
-        return outputs, latch_outputs
+        outs = {out: tbl[gate] for out, gate in self.node_map.items()}
+        louts = {out: tbl[gate] for out, gate in self.latch_map}
+        return outs, louts
 
     def simulator(self, latches=None):
         inputs = yield

@@ -177,5 +177,7 @@ def _dependency_graph(nodes):
     return deps
 
 
-def eval_order(circ):
-    return fn.lcat(toposort(_dependency_graph(circ.cones | circ.latch_cones)))
+def eval_order(circ, *, concat: bool = True):
+    """Return topologically sorted nodes in AIG."""
+    order = toposort(_dependency_graph(circ.cones | circ.latch_cones))
+    return fn.lcat(order) if concat else order
