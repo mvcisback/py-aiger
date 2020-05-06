@@ -120,8 +120,17 @@ class AIG:
 
         return circ._modify_leafs(sub)
 
-    def __iter_gates__(self, *, concat=False):
-        return cmn.eval_order(self, concat=concat)
+    def __iter_nodes__(self):
+        """Returns an iterator over iterators of nodes in an AIG.
+
+        If completely flattened this iterator would give topological
+        a order on the nodes, starting on the inputs.
+
+        The reason for the iterator over iterators is to mark
+        dependencies. Namely, to compute the value of any node
+        requires just the value of the nodes in the previous iterator.
+        """
+        yield cmn.eval_order(self, concat=True)
 
     def evolve(self, **kwargs):
         return attr.evolve(self, **kwargs)
@@ -176,7 +185,7 @@ class AIG:
         latchins = fn.project(latchins, self.latches)
 
         tbl = {}
-        for frontier in self.__iter_gates__():
+        for frontier in self.__iter_nodes__():
             for gate in frontier:
                 if isinstance(gate, Inverter):
                     tbl[gate] = not tbl[gate.input]
