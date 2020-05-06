@@ -120,6 +120,9 @@ class AIG:
 
         return circ._modify_leafs(sub)
 
+    def __iter_gates__(self, *, concat=False):
+        return cmn.eval_order(self, concat=concat)
+
     def evolve(self, **kwargs):
         return attr.evolve(self, **kwargs)
 
@@ -156,31 +159,40 @@ class AIG:
     def __or__(self, other):
         return par_compose(self, other)
 
-    def __call__(self, inputs, latches=None):
+    def __call__(self, inputs, latches=None, *, false=False):
+        """Evaluate AIG on inputs (and latches).
+
+        If `latches` is `None` initial latch value is used.
+
+        `false` is an optional argument used to interpet the AIG as
+        an object in some other Boolean algebra.
+          - See py-aiger-bdd and py-aiger-cnf for examples.
+        """
         if latches is None:
             latches = dict()
+
         latchins = fn.merge(dict(self.latch2init), latches)
         # Remove latch inputs not used by self.
         latchins = fn.project(latchins, self.latches)
 
-        # Turn into a combinatorial circuit
-        circ, lmap = self.cutlatches(self.latches)
-        latchins = fn.walk_keys(lambda n: lmap[n][0], latchins)
-        inputs = fn.merge(inputs, latchins)
+        tbl = {}
+        for frontier in self.__iter_gates__():
+            for gate in frontier:
+                if isinstance(gate, Inverter):
+                    tbl[gate] = not tbl[gate.input]
+                elif isinstance(gate, AndGate):
+                    tbl[gate] = tbl[gate.left] & tbl[gate.right]
 
-        circ = cmn.source(inputs) >> circ
+                elif isinstance(gate, Input):
+                    tbl[gate] = inputs[gate.name]
+                elif isinstance(gate, LatchIn):
+                    tbl[gate] = latchins[gate.name]
+                elif isinstance(gate, ConstFalse):
+                    tbl[gate] = false
 
-        all_outputs = {
-            n: _is_const_true(node) for n, node in circ.node_map.items()
-        }
-        outputs = fn.project(all_outputs, self.outputs)
-        latch_outputs = fn.omit(all_outputs, self.outputs)
-
-        # Fix up latch names
-        lmap_inv = {k: n for n, (k, _) in lmap.items()}
-        latch_outputs = fn.walk_keys(lmap_inv.get, latch_outputs)
-
-        return outputs, latch_outputs
+        outs = {out: tbl[gate] for out, gate in self.node_map.items()}
+        louts = {out: tbl[gate] for out, gate in self.latch_map}
+        return outs, louts
 
     def simulator(self, latches=None):
         inputs = yield
