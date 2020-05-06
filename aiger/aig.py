@@ -130,7 +130,7 @@ class AIG:
         dependencies. Namely, to compute the value of any node
         requires just the value of the nodes in the previous iterator.
         """
-        yield cmn.eval_order(self, concat=True)
+        return [cmn.eval_order(self, concat=True)]
 
     def evolve(self, **kwargs):
         return attr.evolve(self, **kwargs)
@@ -184,9 +184,12 @@ class AIG:
         # Remove latch inputs not used by self.
         latchins = fn.project(latchins, self.latches)
 
-        tbl = {}
-        for frontier in self.__iter_nodes__():
-            for gate in frontier:
+        prev, tbl = set(), {}
+        for node_batch in self.__iter_nodes__():
+            prev = set(tbl.keys()) - prev
+            tbl = fn.project(tbl, prev)  # Forget about unnecessary gates.
+
+            for gate in node_batch:
                 if isinstance(gate, Inverter):
                     tbl[gate] = not tbl[gate.input]
                 elif isinstance(gate, AndGate):
