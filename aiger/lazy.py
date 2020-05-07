@@ -25,6 +25,7 @@ class LazyAIG:
     # Note: Unlike in aig.AIG, here Nodes **only** serve as keys.
     node_map: PMap[str, Node] = pmap()
     latch_map: FrozenSet[Tuple[str, Node]] = pmap()
+    comments: Sequence[str] = ()
 
     __call__ = AIG.__call__
 
@@ -68,6 +69,7 @@ class LazyAIG:
             latch2init=self.latch2init + other.latch2init,
             node_map=other.node_map + passthrough,
             iter_nodes__=iter_nodes,
+            comments=self.comments + other.comments,
         )
 
     def __lshift__(self, other: AIG_Like) -> LazyAIG:
@@ -76,7 +78,32 @@ class LazyAIG:
 
     def __or__(self, other: AIG_Like) -> LazyAIG:
         """Parallel composition between self and other."""
-        raise NotImplementedError
+        assert not self.latches & other.latches
+        assert not self.outputs & other.outputs
+
+        def iter_nodes():
+            seen = set()  # which inputs have already been emitted.
+
+            def filter_seen(node_batch):
+                nonlocal seen
+                for node in node_batch:
+                    if node in seen:
+                        continue
+                    elif isinstance(node, Input):
+                        seen.add(node)
+                    yield node
+
+            batches = fn.chain(self.__iter_nodes__(), other.__iter_nodes__())
+            yield from map(filter_seen, batches)
+
+        return LazyAIG(
+            inputs=self.inputs | other.inputs,
+            latch_map=self.latch_map + other.latch_map,
+            latch2init=self.latch2init + other.latch2init,
+            node_map=self.node_map + other.node_map,
+            iter_nodes__=iter_nodes,
+            comments=self.comments + other.comments,
+        )
 
     def cutlatches(self, latches=None, renamer=None) -> Tuple[LazyAIG, Labels]:
         """Returns LazyAIG where the latches specified
@@ -134,6 +161,7 @@ def lazy(circ: Union[AIG, LazyAIG]) -> LazyAIG:
         node_map=pmap(circ.node_map),
         latch2init=pmap(circ.latch2init),
         iter_nodes__=circ.__iter_nodes__,
+        comments=circ.comments,
     )
 
 

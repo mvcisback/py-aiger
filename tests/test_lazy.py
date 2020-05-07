@@ -27,3 +27,16 @@ def test_lazy_seq_compose_smoke():
     assert not expr({'x': False, 'y': True})
     assert not expr({'x': True, 'y': False})
     assert not expr({'x': False, 'y': False})
+
+
+def test_lazy_par_compose_smoke():
+    x, y = aiger.atoms('x', 'y')
+
+    lcirc1 = lazy(x.with_output('x').aig)
+    lcirc2 = lazy(y.with_output('y').aig)
+    lcirc12 = lcirc1 | lcirc2
+
+    assert lcirc12.inputs == {'x', 'y'}
+    assert lcirc12.outputs == {'x', 'y'}
+
+    assert lcirc12({'x': True, 'y': True})[0] == {'x': True, 'y': True}
