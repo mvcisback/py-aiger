@@ -79,8 +79,9 @@ class AIG:
     node_map: FrozenSet[Tuple[str, Node]] = attr.ib(
         default=pmap(), converter=pmap
     )
+    # TODO: change to pmap
     latch_map: FrozenSet[Tuple[str, Node]] = frozenset()
-    latch2init: FrozenSet[Tuple[str, Node]] = frozenset()
+    latch2init: FrozenSet[Tuple[str, bool]] = frozenset()
     comments: Tuple[str] = ()
 
     _to_aag = parser.aig2aag
@@ -164,7 +165,7 @@ class AIG:
         return seq_compose(self, other)
 
     def __lshift__(self, other):
-        return seq_compose(other, self)
+        return other >> self
 
     def __or__(self, other):
         return par_compose(self, other)
