@@ -8,10 +8,11 @@ from __future__ import annotations
 from typing import Union, FrozenSet, Callable, Sequence, Tuple, Mapping
 
 import attr
+import funcy as fn
 from pyrsistent import pmap
 from pyrsistent.typing import PMap
 
-from aiger.aig import AIG, Node
+from aiger.aig import AIG, Node, Shim, Input
 
 
 @attr.s(frozen=True, auto_attribs=True)
@@ -42,7 +43,32 @@ class LazyAIG:
 
     def __rshift__(self, other: AIG_Like) -> LazyAIG:
         """Cascading composition. Feeds self into other."""
-        raise NotImplementedError
+        interface = self.outputs & other.inputs
+        assert not (self.outputs - interface) & other.outputs
+        assert not self.latches & other.latches
+
+        passthrough = fn.omit(dict(self.node_map), interface)
+
+        def iter_nodes():
+            yield from self.__iter_nodes__()
+
+            def add_shims(node_batch):
+                for node in node_batch:
+                    if isinstance(node, Input) and (node.name in interface):
+                        name = node.name
+                        yield Shim(name=name, node=self.node_map[name])
+                    else:
+                        yield node                
+
+            yield from map(add_shims, other.__iter_nodes__())
+
+        return LazyAIG(
+            inputs=self.inputs | (other.inputs - interface),
+            latch_map=self.latch_map + other.latch_map,
+            latch2init=self.latch2init + other.latch2init,
+            node_map=other.node_map + passthrough,
+            iter_nodes__=iter_nodes,
+        )
 
     def __lshift__(self, other: AIG_Like) -> LazyAIG:
         """Cascading composition. Feeds other into self."""
@@ -89,6 +115,11 @@ class LazyAIG:
         distinguish different time steps.
         """
         raise NotImplementedError
+
+    def __getitem__(self, others):
+        raise NotImplementedError
+
+    relabel = AIG.relabel
 
 
 AIG_Like = Union[AIG, LazyAIG]
