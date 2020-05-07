@@ -175,7 +175,7 @@ class AIG:
         return other >> self
 
     def __or__(self, other):
-        return par_compose(self, other)
+        return (A.lazy(self) | A.lazy(other)).aig
 
     def __call__(self, inputs, latches=None, *, false=False):
         """Evaluate AIG on inputs (and latches).

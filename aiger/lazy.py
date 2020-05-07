@@ -13,7 +13,7 @@ from pyrsistent import pmap
 from pyrsistent.typing import PMap
 
 from aiger.aig import AIG, Node, Shim, Input, AndGate
-from aiger.aig import ConstFalse, Inverter
+from aiger.aig import ConstFalse, Inverter, _is_const_true
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -21,9 +21,20 @@ class NodeAlgebra:
     node: Node
 
     def __and__(self, other: NodeAlgebra) -> NodeAlgebra:
+        if isinstance(self.node, ConstFalse):
+            return self
+        elif isinstance(other.node, ConstFalse):
+            return other
+        elif _is_const_true(self.node):
+            return other
+        elif _is_const_true(other.node):
+            return self
+
         return NodeAlgebra(AndGate(self.node, other.node))
 
     def __invert__(self) -> NodeAlgebra:
+        if isinstance(self.node, Inverter):
+            return NodeAlgebra(self.node.input)
         return NodeAlgebra(Inverter(self.node))
 
 
