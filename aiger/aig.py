@@ -395,7 +395,8 @@ class AIG:
             return func(node)
 
         node_map = ((name, _mod(cone)) for name, cone in self.node_map.items())
-        latch_map = ((name, _mod(cone)) for name, cone in dict(self.latch_map).items())
+        latch_map = dict(self.latch_map)  # TODO: remove once latch_map is PMap
+        latch_map = ((name, _mod(cone)) for name, cone in latch_map.items())
         return self.evolve(
             node_map=pmap(node_map),
             latch_map=frozenset(latch_map)
