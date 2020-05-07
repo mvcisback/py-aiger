@@ -11,6 +11,16 @@ def test_lazy_call_smoke():
     assert lcirc({'x': True}) == circ({'x': True})
 
 
+def test_lazy_flatten_smoke():
+    x = aiger.atom('x')
+
+    circ = x.aig
+    circ2 = lazy(circ).aig
+
+    assert circ2.inputs == circ.inputs
+    assert circ2.outputs == circ.outputs
+
+
 def test_lazy_seq_compose_smoke():
     x, y, z = aiger.atoms('x', 'y', 'z')
 

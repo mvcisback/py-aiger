@@ -12,7 +12,8 @@ import funcy as fn
 from pyrsistent import pmap
 from pyrsistent.typing import PMap
 
-from aiger.aig import AIG, Node, Shim, Input
+from aiger.aig import AIG, Node, Shim, Input, AndGate
+from aiger.aig import ConstFalse, Inverter
 
 
 @attr.s(frozen=True, auto_attribs=True)
@@ -40,7 +41,27 @@ class LazyAIG:
     @property
     def aig(self) -> AIG:
         """Return's flattened AIG represented by this LazyAIG."""
-        raise NotImplementedError
+
+        @attr.s(auto_attribs=True, frozen=True)
+        class NodeAlgebra:
+            node: Node
+            __and__ = AndGate
+            __invert__ = Inverter
+
+        inputs = {i: Input(i) for i in self.inputs}
+        false = NodeAlgebra(ConstFalse)
+        node_map, latch_map = self(inputs, false=false)
+
+        return AIG(
+            inputs=self.inputs,
+            node_map=node_map,
+
+            # TODO: change when these become PMaps.
+            latch_map=frozenset(latch_map.items()),
+            latch2init=frozenset(self.latch2init.items()),
+
+            comments=self.comments,
+        )
 
     def __rshift__(self, other: AIG_Like) -> LazyAIG:
         """Cascading composition. Feeds self into other."""
