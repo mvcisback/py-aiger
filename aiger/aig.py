@@ -50,8 +50,8 @@ class Input:
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class Shim:
-    name: str
-    node: 'Node'
+    old: 'Node'
+    new: 'Node'
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -209,7 +209,7 @@ class AIG:
                     tbl[gate] = and_(tbl[gate.left], tbl[gate.right])
 
                 elif isinstance(gate, Shim):
-                    tbl[Input(gate.name)] = tbl[gate.node]
+                    tbl[gate.new] = tbl[gate.old]
                 elif isinstance(gate, Input):
                     tbl[gate] = inputs[gate.name]
                 elif isinstance(gate, LatchIn):

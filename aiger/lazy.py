@@ -56,8 +56,7 @@ class LazyAIG:
             def add_shims(node_batch):
                 for node in node_batch:
                     if isinstance(node, Input) and (node.name in interface):
-                        name = node.name
-                        yield Shim(name=name, node=self.node_map[name])
+                        yield Shim(new=node, old=self.node_map[node.name])
                     else:
                         yield node                
 
