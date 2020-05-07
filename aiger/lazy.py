@@ -16,6 +16,17 @@ from aiger.aig import AIG, Node, Shim, Input, AndGate
 from aiger.aig import ConstFalse, Inverter
 
 
+@attr.s(auto_attribs=True, frozen=True)
+class NodeAlgebra:
+    node: Node
+
+    def __and__(self, other: NodeAlgebra) -> NodeAlgebra:
+        return NodeAlgebra(AndGate(self.node, other.node))
+
+    def __invert__(self) -> NodeAlgebra:
+        return NodeAlgebra(Inverter(self.node))
+
+
 @attr.s(frozen=True, auto_attribs=True)
 class LazyAIG:
     __iter_nodes__: Callable[[], Sequence[Sequence[Node]]]
@@ -25,7 +36,7 @@ class LazyAIG:
 
     # Note: Unlike in aig.AIG, here Nodes **only** serve as keys.
     node_map: PMap[str, Node] = pmap()
-    latch_map: FrozenSet[Tuple[str, Node]] = pmap()
+    latch_map: PMap[str, Node] = pmap()
     comments: Sequence[str] = ()
 
     __call__ = AIG.__call__
@@ -42,15 +53,17 @@ class LazyAIG:
     def aig(self) -> AIG:
         """Return's flattened AIG represented by this LazyAIG."""
 
-        @attr.s(auto_attribs=True, frozen=True)
-        class NodeAlgebra:
-            node: Node
-            __and__ = AndGate
-            __invert__ = Inverter
+        false = NodeAlgebra(ConstFalse())
+        inputs = {i: NodeAlgebra(Input(i)) for i in self.inputs}
+        latches = fn.walk_values(
+            lambda v: ~false if v else false,
+            dict(self.latch2init),
+        )
 
-        inputs = {i: Input(i) for i in self.inputs}
-        false = NodeAlgebra(ConstFalse)
-        node_map, latch_map = self(inputs, false=false)
+        node_map, latch_map = self(inputs, false=false, latches=latches)
+
+        node_map = {k: v.node for k, v in node_map.items()}
+        latch_map = {k: v.node for k, v in latch_map.items()}
 
         return AIG(
             inputs=self.inputs,

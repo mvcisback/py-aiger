@@ -7,6 +7,7 @@ import attr
 import funcy as fn
 from pyrsistent import pmap
 
+import aiger as A
 from aiger import common as cmn
 from aiger import parser
 
@@ -48,7 +49,7 @@ class Input:
         return ()
 
 
-@attr.s(frozen=True, slots=True, auto_attribs=True)
+@attr.s(frozen=True, slots=True, auto_attribs=True, cache_hash=True)
 class Shim:
     old: 'Node'
     new: 'Node'
@@ -138,7 +139,7 @@ class AIG:
         dependencies. Namely, to compute the value of any node
         requires just the value of the nodes in the previous iterator.
         """
-        return [cmn.eval_order(self, concat=True)]
+        return [cmn.dfs(self)]
 
     def evolve(self, **kwargs):
         return attr.evolve(self, **kwargs)
@@ -168,7 +169,7 @@ class AIG:
         return frozenset(fn.pluck(1, self.latch_map))
 
     def __rshift__(self, other):
-        return seq_compose(self, other)
+        return (A.lazy(self) >> A.lazy(other)).aig
 
     def __lshift__(self, other):
         return other >> self
@@ -218,7 +219,7 @@ class AIG:
                     tbl[gate] = false
 
         outs = {out: tbl[gate] for out, gate in self.node_map.items()}
-        louts = {out: tbl[gate] for out, gate in self.latch_map}
+        louts = {out: tbl[gate] for out, gate in dict(self.latch_map).items()}
         return outs, louts
 
     def simulator(self, latches=None):
@@ -394,7 +395,7 @@ class AIG:
             return func(node)
 
         node_map = ((name, _mod(cone)) for name, cone in self.node_map.items())
-        latch_map = ((name, _mod(cone)) for name, cone in self.latch_map)
+        latch_map = ((name, _mod(cone)) for name, cone in dict(self.latch_map).items())
         return self.evolve(
             node_map=pmap(node_map),
             latch_map=frozenset(latch_map)
