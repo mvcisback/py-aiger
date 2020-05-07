@@ -58,7 +58,7 @@ class LazyAIG:
                     if isinstance(node, Input) and (node.name in interface):
                         yield Shim(new=node, old=self.node_map[node.name])
                     else:
-                        yield node                
+                        yield node
 
             yield from map(add_shims, other.__iter_nodes__())
 
