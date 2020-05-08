@@ -57,7 +57,7 @@ class LazyAIG:
     @property
     def __iter_nodes__(self) -> Callable[[], Sequence[Sequence[Node]]]:
         return self.iter_nodes
-        
+
     @property
     def outputs(self) -> FrozenSet[str]:
         return frozenset(self.node_map.keys())
@@ -182,7 +182,6 @@ class LazyAIG:
             set(fn.pluck(0, l_map.values())) & (self.inputs | self.outputs)
         ) == 0
 
-        relabels = {renamer(l): l for l in latches}
         latch_map = omit(self.latch_map, latches)
         latch2init = omit(self.latch2init, latches)
 
@@ -247,8 +246,8 @@ class LazyAIG:
 
     def __getitem__(self, others):
         """Relabel inputs, outputs, or latches.
-        
-        `others` is a tuple, (kind, relabels), where 
+
+        `others` is a tuple, (kind, relabels), where
 
           1. kind in {'i', 'o', 'l'}
           2. relabels is a mapping from old names to new names.
@@ -270,7 +269,7 @@ class LazyAIG:
             node_map = walk_keys(relabel, self.node_map)
             return attr.evolve(self, node_map=node_map)
 
-        # Latches 
+        # Latches
         assert kind == 'l'
         latch_map = walk_keys(relabel, self.latch_map)
         latch2init = walk_keys(relabel, self.latch2init)
@@ -285,13 +284,12 @@ class LazyAIG:
                     else:
                         yield node
 
-
             return map(rename_latches, self.__iter_nodes__())
 
         return attr.evolve(
-            self, 
+            self,
             latch_map=latch_map,
-            latch2init=latch2init, 
+            latch2init=latch2init,
             iter_nodes=iter_nodes
         )
 
