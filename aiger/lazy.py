@@ -12,7 +12,8 @@ import funcy as fn
 from pyrsistent import pmap
 from pyrsistent.typing import PMap
 
-from aiger.aig import AIG, Node, Shim, Input, AndGate
+import aiger as A
+from aiger.aig import AIG, Node, Shim, Input, AndGate, LatchIn
 from aiger.aig import ConstFalse, Inverter, _is_const_true
 
 
@@ -40,7 +41,7 @@ class NodeAlgebra:
 
 @attr.s(frozen=True, auto_attribs=True)
 class LazyAIG:
-    __iter_nodes__: Callable[[], Sequence[Sequence[Node]]]
+    iter_nodes: Callable[[], Sequence[Sequence[Node]]]
 
     inputs: FrozenSet[str] = frozenset()
     latch2init: PMap[str, bool] = pmap()
@@ -51,7 +52,12 @@ class LazyAIG:
     comments: Sequence[str] = ()
 
     __call__ = AIG.__call__
+    relabel = AIG.relabel
 
+    @property
+    def __iter_nodes__(self) -> Callable[[], Sequence[Sequence[Node]]]:
+        return self.iter_nodes
+        
     @property
     def outputs(self) -> FrozenSet[str]:
         return frozenset(self.node_map.keys())
@@ -89,6 +95,7 @@ class LazyAIG:
 
     def __rshift__(self, other: AIG_Like) -> LazyAIG:
         """Cascading composition. Feeds self into other."""
+        other = lazy(other)
         interface = self.outputs & other.inputs
         assert not (self.outputs - interface) & other.outputs
         assert not self.latches & other.latches
@@ -112,7 +119,7 @@ class LazyAIG:
             latch_map=self.latch_map + other.latch_map,
             latch2init=self.latch2init + other.latch2init,
             node_map=other.node_map + passthrough,
-            iter_nodes__=iter_nodes,
+            iter_nodes=iter_nodes,
             comments=self.comments + other.comments,
         )
 
@@ -122,6 +129,7 @@ class LazyAIG:
 
     def __or__(self, other: AIG_Like) -> LazyAIG:
         """Parallel composition between self and other."""
+        other = lazy(other)
         assert not self.latches & other.latches
         assert not self.outputs & other.outputs
 
@@ -145,7 +153,7 @@ class LazyAIG:
             latch_map=self.latch_map + other.latch_map,
             latch2init=self.latch2init + other.latch2init,
             node_map=self.node_map + other.node_map,
-            iter_nodes__=iter_nodes,
+            iter_nodes=iter_nodes,
             comments=self.comments + other.comments,
         )
 
@@ -188,9 +196,54 @@ class LazyAIG:
         raise NotImplementedError
 
     def __getitem__(self, others):
-        raise NotImplementedError
+        """Relabel inputs, outputs, or latches.
+        
+        `others` is a tuple, (kind, relabels), where 
 
-    relabel = AIG.relabel
+          1. kind in {'i', 'o', 'l'}
+          2. relabels is a mapping from old names to new names.
+
+        Note: The syntax is meant to resemble variable substitution
+        notations, i.e., foo[x <- y] or foo[x / y].
+        """
+        assert isinstance(others, tuple) and len(others) == 2
+        kind, relabels = others
+
+        if kind == 'i':
+            relabels_ = {v: [k] for k, v in relabels.items()}
+            return lazy(A.tee(relabels_)) >> self
+
+        def relabel(k):
+            return relabels.get(k, k)
+
+        if kind == 'o':
+            node_map = walk_keys(relabel, self.node_map)
+            return attr.evolve(self, node_map=node_map)
+
+        # Latches 
+        assert kind == 'l'
+        latch_map = walk_keys(relabel, self.latch_map)
+        latch2init = walk_keys(relabel, self.latch2init)
+
+        def iter_nodes():
+            def rename_latches(node_batch):
+                for node in node_batch:
+                    if isinstance(node, LatchIn) and node.name in relabels:
+                        node2 = LatchIn(relabel(node.name))
+                        yield node2
+                        yield Shim(new=node, old=node2)
+                    else:
+                        yield node
+
+
+            return map(rename_latches, self.__iter_nodes__())
+
+        return attr.evolve(
+            self, 
+            latch_map=latch_map,
+            latch2init=latch2init, 
+            iter_nodes=iter_nodes
+        )
 
 
 AIG_Like = Union[AIG, LazyAIG]
@@ -204,9 +257,13 @@ def lazy(circ: Union[AIG, LazyAIG]) -> LazyAIG:
         latch_map=pmap(circ.latch_map),
         node_map=pmap(circ.node_map),
         latch2init=pmap(circ.latch2init),
-        iter_nodes__=circ.__iter_nodes__,
+        iter_nodes=circ.__iter_nodes__,
         comments=circ.comments,
     )
+
+
+def walk_keys(func, mapping):
+    return fn.walk_keys(func, dict(mapping))
 
 
 __all__ = ['lazy', 'LazyAIG']

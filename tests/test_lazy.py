@@ -50,3 +50,12 @@ def test_lazy_par_compose_smoke():
     assert lcirc12.outputs == {'x', 'y'}
 
     assert lcirc12({'x': True, 'y': True})[0] == {'x': True, 'y': True}
+
+
+def test_lazy_relabel_smoke():
+    x, y = aiger.atoms('x', 'y')
+
+    lcirc = lazy((x & y).with_output('z').aig)
+
+    assert lcirc['i', {'x': 'z'}].inputs == {'z', 'y'}
+    assert lcirc['o', {'z': 'w'}].outputs == {'w'}

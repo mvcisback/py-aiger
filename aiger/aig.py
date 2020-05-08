@@ -66,7 +66,7 @@ class LatchIn:
 
 class ConstFalse(NamedTuple):
     @property
-    def children(self):
+    def children(se0lf):
         return ()
 
     def __hash__(self):
@@ -97,37 +97,7 @@ class AIG:
         return repr(self._to_aag())
 
     def __getitem__(self, others):
-        assert isinstance(others, tuple) and len(others) == 2
-        kind, relabels = others
-        assert kind in {'i', 'o', 'l'}
-
-        basis = {
-            'i': self.inputs, 'o': self.outputs, 'l': self.latches
-        }.get(kind)
-        relabels = fn.project(relabels, basis)
-
-        if kind == 'o':
-            relabels = {k: [v] for k, v in relabels.items()}
-            return self >> cmn.tee(relabels)
-        elif kind == 'i':
-            relabels_ = {v: [k] for k, v in relabels.items()}
-            return cmn.tee(relabels_) >> self
-
-        # Latches act like inputs and outputs...
-        def fix_keys(mapping):
-            return fn.walk_keys(lambda x: relabels.get(x, x), mapping)
-
-        circ = self.evolve(
-            latch_map=fix_keys(self.latch_map),
-            latch2init=fix_keys(self.latch2init)
-        )
-
-        def sub(node):
-            if isinstance(node, LatchIn):
-                return LatchIn(relabels.get(node.name, node.name))
-            return node
-
-        return circ._modify_leafs(sub)
+        return A.lazy(self)[others].aig
 
     def __iter_nodes__(self):
         """Returns an iterator over iterators of nodes in an AIG.
