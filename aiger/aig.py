@@ -1,6 +1,5 @@
 import operator as op
 import pathlib
-from functools import reduce
 from typing import Tuple, FrozenSet, NamedTuple, Union
 
 import attr
@@ -209,65 +208,7 @@ class AIG:
         return lcirc2.aig, l_map
 
     def loopback(self, *wirings):
-        def wire(circ, wiring):
-            return circ._wire(**wiring)
-
-        return reduce(wire, wirings, self)
-
-    def _wire(self, input, output, latch=None, init=True, keep_output=True):
-        if latch is None:
-            latch = input
-
-        return self._feedback(
-            [input], [output], [init], [latch], keep_outputs=keep_output
-        )
-
-    def feedback(
-        self, inputs, outputs, initials=None, latches=None, keep_outputs=False
-    ):
-        import warnings
-        warnings.warn("deprecated", DeprecationWarning)
-        return self._feedback(
-            inputs, outputs, initials=initials, latches=latches,
-            keep_outputs=keep_outputs
-        )
-
-    def _feedback(
-        self, inputs, outputs, initials=None, latches=None, keep_outputs=False
-    ):
-        # TODO: remove in next version bump and put into wire.
-
-        if latches is None:
-            latches = inputs
-
-        if initials is None:
-            initials = [False for _ in inputs]
-
-        assert len(inputs) == len(initials) == len(outputs) == len(latches)
-        assert len(set(inputs) & self.inputs) != 0
-        assert len(set(outputs) & self.outputs) != 0
-
-        in2latch = {iname: lname for iname, lname in zip(inputs, latches)}
-
-        def sub(node):
-            if isinstance(node, Input) and node.name in inputs:
-                return LatchIn(in2latch[node.name])
-            return node
-
-        aig = self._modify_leafs(sub)
-
-        _latch_map, node_map = fn.lsplit(
-            lambda x: x[0] in outputs, aig.node_map.items()
-        )
-        out2latch = {oname: lname for oname, lname in zip(outputs, latches)}
-        _latch_map = {(out2latch[k], v) for k, v in _latch_map}
-        l2init = frozenset((n, val) for n, val in zip(latches, initials))
-        return aig.evolve(
-            inputs=aig.inputs - set(inputs),
-            node_map=aig.node_map if keep_outputs else pmap(node_map),
-            latch_map=aig.latch_map | _latch_map,
-            latch2init=aig.latch2init | l2init
-        )
+        return A.lazy(self).loopback(*wirings)
 
     def unroll(self, horizon, *, init=True, omit_latches=True,
                only_last_outputs=False):

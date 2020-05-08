@@ -245,8 +245,8 @@ class LazyAIG:
         latch2init = {l: w['init'] for l, w in latch2wire.items()}
         latch2init = self.latch2init + latch2init
 
-        not_dropped = {k for k, w in out2wire.items() if w['keep_output']}
-        node_map = project(self.node_map, not_dropped)
+        dropped = {k for k, w in out2wire.items() if not w['keep_output']}
+        node_map = omit(self.node_map, dropped)
 
         latch_map = project(self.node_map, out2wire.keys())
         latch_map = self.latch_map + latch_map
