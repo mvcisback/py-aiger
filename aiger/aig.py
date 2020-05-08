@@ -203,37 +203,10 @@ class AIG:
         next(sim)
         return [sim.send(inputs) for inputs in input_seq]
 
-    def cutlatches(self, latches=None, check_postcondition=True, renamer=None):
-        if latches is None:
-            latches = self.latches
-
-        if renamer is None:
-            def renamer(_):
-                return cmn._fresh()
-
-        l_map = {
-            n: (renamer(n), init) for (n, init) in self.latch2init
-            if n in latches
-        }
-
-        assert len(
-            set(fn.pluck(0, l_map.values())) & (self.inputs | self.outputs)
-        ) == 0
-
-        def sub(node):
-            if isinstance(node, LatchIn):
-                return Input(l_map[node.name][0])
-            return node
-
-        circ = self._modify_leafs(sub)
-        _cones = {l_map[k][0]: v for k, v in circ.latch_map if k in latches}
-        aig = self.evolve(
-            node_map=circ.node_map + _cones,
-            inputs=self.inputs | {n for n, _ in l_map.values()},
-            latch_map={(k, v) for k, v in circ.latch_map if k not in latches},
-            latch2init={(k, v) for k, v in self.latch2init if k not in latches}
-        )
-        return aig, l_map
+    def cutlatches(self, latches=None, renamer=None):
+        lcirc = A.lazy(self)
+        lcirc2, l_map = lcirc.cutlatches(latches=latches, renamer=renamer)
+        return lcirc2.aig, l_map
 
     def loopback(self, *wirings):
         def wire(circ, wiring):

@@ -100,7 +100,7 @@ class LazyAIG:
         assert not (self.outputs - interface) & other.outputs
         assert not self.latches & other.latches
 
-        passthrough = fn.omit(dict(self.node_map), interface)
+        passthrough = omit(self.node_map, interface)
 
         def iter_nodes():
             yield from self.__iter_nodes__()
@@ -163,9 +163,59 @@ class LazyAIG:
 
         - If `latches` is `None`, then all latches are cut.
         - `renamer`: is a function from strings to strings which
-           determines how to name latches to avoid name collisions.
+           determines how to rename latches to avoid name collisions.
         """
-        raise NotImplementedError
+        if latches is None:
+            latches = self.latches
+        assert latches <= self.latches
+
+        if renamer is None:
+            def renamer(_):
+                return A.common._fresh()
+
+        l_map = {
+            n: (renamer(n), init) for (n, init) in self.latch2init.items()
+            if n in latches
+        }
+
+        assert len(
+            set(fn.pluck(0, l_map.values())) & (self.inputs | self.outputs)
+        ) == 0
+
+        relabels = {renamer(l): l for l in latches}
+        latch_map = omit(self.latch_map, latches)
+        latch2init = omit(self.latch2init, latches)
+
+        # Rename cut latches and add to node_map and inputs.
+        renamed_node_map = walk_keys(
+            lambda k: l_map[k][0],
+            project(self.latch_map, latches)
+        )
+        new_inputs = set(renamed_node_map.keys())
+
+        assert (self.inputs & new_inputs) == set()
+
+        inputs = self.inputs | new_inputs
+        node_map = self.node_map + renamed_node_map
+
+        def iter_nodes():
+            def cut_latches(node_batch):
+                for node in node_batch:
+                    if isinstance(node, LatchIn) and node.name in latches:
+                        node2 = Input(l_map[node.name][0])
+                        yield node2
+                        yield Shim(new=node, old=node2)
+                    else:
+                        yield node
+
+            return map(cut_latches, self.__iter_nodes__())
+
+        circ = LazyAIG(
+            inputs=inputs, node_map=node_map, latch_map=latch_map,
+            latch2init=latch2init, iter_nodes=iter_nodes,
+            comments=self.comments,
+        )
+        return circ, l_map
 
     def loopback(self, *wirings) -> LazyAIG:
         """Returns result of feeding outputs specified in `*wirings` to
@@ -264,6 +314,14 @@ def lazy(circ: Union[AIG, LazyAIG]) -> LazyAIG:
 
 def walk_keys(func, mapping):
     return fn.walk_keys(func, dict(mapping))
+
+
+def omit(mapping, keys):
+    return fn.omit(dict(mapping), keys)
+
+
+def project(mapping, keys):
+    return fn.project(dict(mapping), keys)
 
 
 __all__ = ['lazy', 'LazyAIG']

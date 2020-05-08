@@ -59,3 +59,17 @@ def test_lazy_relabel_smoke():
 
     assert lcirc['i', {'x': 'z'}].inputs == {'z', 'y'}
     assert lcirc['o', {'z': 'w'}].outputs == {'w'}
+
+
+def test_lazy_cutlatches_smoke():
+    lcirc = lazy(aiger.delay(['x'], [True]))
+
+    lcirc2, l_map = lcirc.cutlatches()
+
+    assert {'x'} < lcirc2.inputs
+    assert len(lcirc2.inputs) == 2
+
+    assert {'x'} < lcirc2.outputs
+    assert len(lcirc2.outputs) == 2
+
+    assert len(lcirc2.latches) == 0
