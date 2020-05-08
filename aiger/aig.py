@@ -287,61 +287,6 @@ class AIG:
         )
 
 
-def par_compose(aig1, aig2, check_precondition=True):
-    assert not aig1.latches & aig2.latches
-    assert not aig1.outputs & aig2.outputs
-
-    shared_inputs = aig1.inputs & aig2.inputs
-    if shared_inputs:
-        relabels1 = {n: cmn._fresh() for n in shared_inputs}
-        relabels2 = {n: cmn._fresh() for n in shared_inputs}
-        aig1, aig2 = aig1['i', relabels1], aig2['i', relabels2]
-
-    circ = AIG(
-        inputs=aig1.inputs | aig2.inputs,
-        latch_map=aig1.latch_map | aig2.latch_map,
-        latch2init=aig1.latch2init | aig2.latch2init,
-        node_map=aig1.node_map + aig2.node_map,
-        comments=aig1.comments + aig2.comments
-    )
-
-    if shared_inputs:
-        for orig in shared_inputs:
-            new1, new2 = relabels1[orig], relabels2[orig]
-            circ <<= cmn.tee({orig: [new1, new2]})
-
-    return circ
-
-
-def seq_compose(circ1, circ2, *, input_kind=Input):
-    interface = circ1.outputs & circ2.inputs
-    assert not (circ1.outputs - interface) & circ2.outputs
-    assert not circ1.latches & circ2.latches
-
-    passthrough = {
-        k: v for k, v in circ1.node_map.items() if k not in interface
-    }
-
-    circ3 = circ2
-    for mapping in [circ1.node_map, circ1.latch_map]:
-        lookup = dict(mapping)
-
-        def sub(node):
-            if isinstance(node, input_kind):
-                return lookup.get(node.name, node)
-            return node
-
-        circ3 = circ3._modify_leafs(sub)
-
-    return AIG(
-        inputs=circ1.inputs | (circ2.inputs - interface),
-        latch_map=circ1.latch_map | circ3.latch_map,
-        latch2init=circ1.latch2init | circ2.latch2init,
-        node_map=circ3.node_map + passthrough,
-        comments=circ1.comments + circ2.comments
-    )
-
-
 def to_aig(circ) -> AIG:
     if isinstance(circ, pathlib.Path) and circ.is_file():
         circ = parser.load(circ)
