@@ -73,7 +73,7 @@ def test_lazy_cutlatches_smoke():
     assert {'x'} < lcirc2.outputs
     assert len(lcirc2.outputs) == 2
 
-    assert len(lcirc2.latches) == 0    
+    assert len(lcirc2.latches) == 0
 
 
 def test_lazy_loopback_smoke():

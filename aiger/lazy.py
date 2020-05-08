@@ -283,33 +283,33 @@ class LazyAIG:
         Each input/output has `##time_{time}` appended to it to
         distinguish different time steps.
         """
-        circ = self.aig  # TODO: Need everything in 1 node_batch
-                         #       otherwise, might get garbage
-                         #       collected away.
+        # Need everything in 1 node_batch otherwise, might get garbage
+        # collected away.
+        circ = self.aig
 
         if not omit_latches:
-            assert (self.latches & self.outputs) == set()
+            assert (circ.latches & circ.outputs) == set()
 
         inputs, node_map = set(), pmap()
         for time in range(horizon):
             template = "{}" + f"##time_{time}"
-            inputs |= set(map(template.format, self.inputs))
+            inputs |= set(map(template.format, circ.inputs))
 
             if only_last_outputs and (time != horizon - 1):
                 continue
 
             template = "{}" + f"##time_{time + 1}"
-            tmp = walk_keys(template.format, self.node_map)
+            tmp = walk_keys(template.format, circ.node_map)
 
             if not omit_latches:
-                assert (self.latches & self.outputs) == set()
-                tmp.update(walk_keys(template.format, self.latch_map))
+                assert (circ.latches & circ.outputs) == set()
+                tmp.update(walk_keys(template.format, circ.latch_map))
 
             node_map += {k: Shim(new=k, old=node) for k, node in tmp.items()}
 
-        boundary_nodes = set(self.node_map.values())
+        boundary_nodes = set(circ.node_map.values())
         if not omit_latches:
-            boundary_nodes |= set(self.latch_map.values())
+            boundary_nodes |= set(circ.latch_map.values())
 
         def iter_nodes():
             @fn.curry
@@ -320,7 +320,7 @@ class LazyAIG:
                         yield node2
                         yield Shim(new=node, old=node2)
                     elif isinstance(node, LatchIn):
-                        node2 = self.latch_map[node.input]
+                        node2 = circ.latch_map[node.input]
                         yield Shim(new=node, old=node2)
                     else:
                         yield node
@@ -334,11 +334,11 @@ class LazyAIG:
                     yield Shim(new=f"{node.name}##time_{time+1}", old=node)
 
             for time in range(horizon):
-                yield from map(timed_iter(time), self.__iter_nodes__())
+                yield from map(timed_iter(time), circ.__iter_nodes__())
 
         return LazyAIG(
             inputs=inputs, node_map=node_map, iter_nodes=iter_nodes,
-            comments=self.comments
+            comments=circ.comments
         )
 
     def __getitem__(self, others):
