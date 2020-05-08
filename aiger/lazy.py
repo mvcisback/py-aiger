@@ -231,7 +231,45 @@ class LazyAIG:
               'keep_output': bool,  # whether output is consumed by feedback.
             }
         """
-        raise NotImplementedError
+        for wire in wirings:
+            wire.setdefault('latch', wire['input'])
+            wire.setdefault('init', False)
+            wire.setdefault('keep_output', True)
+
+        in2wire = {w['input']: w for w in wirings}
+        out2wire = {w['output']: w for w in wirings}
+        latch2wire = {w['latch']: w for w in wirings}
+        assert len(in2wire) == len(latch2wire) == len(wirings)
+        assert (self.latches & set(latch2wire.keys())) == set()
+
+        latch2init = {l: w['init'] for l, w in latch2wire.items()}
+        latch2init = self.latch2init + latch2init
+
+        not_dropped = {k for k, w in out2wire.items() if w['keep_output']}
+        node_map = project(self.node_map, not_dropped)
+
+        latch_map = project(self.node_map, out2wire.keys())
+        latch_map = self.latch_map + latch_map
+
+        inputs = self.inputs - set(in2wire.keys())
+
+        def iter_nodes():
+            def latch_inputs(node_batch):
+                for node in node_batch:
+                    if not (isinstance(node, Input) and node.name in in2wire):
+                        yield node
+                    else:
+                        wire = in2wire[node.name]
+                        node2 = LatchIn(wire['latch'])
+                        yield node2
+                        yield Shim(new=node, old=node2)
+
+            yield from map(latch_inputs, self.__iter_nodes__())
+
+        return LazyAIG(
+            inputs=inputs, node_map=node_map, iter_nodes=iter_nodes,
+            latch_map=latch_map, latch2init=latch2init, comments=self.comments
+        )
 
     def unroll(self, horizon, *, init=True, omit_latches=True,
                only_last_outputs=False) -> LazyAIG:

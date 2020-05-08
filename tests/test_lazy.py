@@ -73,3 +73,25 @@ def test_lazy_cutlatches_smoke():
     assert len(lcirc2.outputs) == 2
 
     assert len(lcirc2.latches) == 0
+
+
+def test_lazy_loopback_smoke():
+    x, y = aiger.atoms('x', 'y')
+
+    lcirc = lazy((x & y).with_output('z').aig)
+    lcirc2 = lcirc.loopback({
+        'input': 'x', 'output': 'z',
+    })
+
+    assert lcirc2.inputs == {'y'}
+    assert lcirc2.outputs == {'z'}
+    assert len(lcirc2.latches) == 1
+
+    lcirc2 = lcirc.loopback({
+        'input': 'x', 'output': 'z',
+        'keep_output': False,
+    })
+
+    assert lcirc2.inputs == {'y'}
+    assert lcirc2.outputs == set()
+    assert len(lcirc2.latches) == 1
