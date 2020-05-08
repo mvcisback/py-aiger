@@ -173,7 +173,7 @@ funcy = "*"
 hypothesis = "*"
 
 [package.source]
-reference = "542f2504881e82121c916cabadcd0fb7a436026e"
+reference = "fee01c6d8c36f33501b71ff0e84b342829968ddf"
 type = "git"
 url = "git://github.com/mvcisback/hypothesis-cfg.git"
 [[package]]
