@@ -5,6 +5,7 @@ Graphs.
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Union, FrozenSet, Callable, Sequence, Tuple, Mapping
 
 import attr
@@ -43,13 +44,13 @@ class NodeAlgebra:
 class LazyAIG:
     iter_nodes: Callable[[], Sequence[Sequence[Node]]]
 
-    inputs: FrozenSet[str] = frozenset()
-    latch2init: PMap[str, bool] = pmap()
+    inputs: FrozenSet[str] = attr.ib(default=frozenset(), converter=frozenset)
+    latch2init: PMap[str, bool] = attr.ib(default=pmap(), converter=pmap)
 
     # Note: Unlike in aig.AIG, here Nodes **only** serve as keys.
-    node_map: PMap[str, Node] = pmap()
-    latch_map: PMap[str, Node] = pmap()
-    comments: Sequence[str] = ()
+    node_map: PMap[str, Node] = attr.ib(default=pmap(), converter=pmap)
+    latch_map: PMap[str, Node] = attr.ib(default=pmap(), converter=pmap)
+    comments: Sequence[str] = attr.ib(default=(), converter=tuple)
 
     __call__ = AIG.__call__
     relabel = AIG.relabel
@@ -67,6 +68,7 @@ class LazyAIG:
         return frozenset(self.latch_map.keys())
 
     @property
+    @lru_cache
     def aig(self) -> AIG:
         """Return's flattened AIG represented by this LazyAIG."""
 
@@ -245,11 +247,12 @@ class LazyAIG:
         latch2init = {l: w['init'] for l, w in latch2wire.items()}
         latch2init = self.latch2init + latch2init
 
+        latch_map = project(self.node_map, out2wire.keys())
+        latch_map = walk_keys(lambda k: out2wire[k]['latch'], latch_map)
+        latch_map = self.latch_map + latch_map
+
         dropped = {k for k, w in out2wire.items() if not w['keep_output']}
         node_map = omit(self.node_map, dropped)
-
-        latch_map = project(self.node_map, out2wire.keys())
-        latch_map = self.latch_map + latch_map
 
         inputs = self.inputs - set(in2wire.keys())
 
@@ -280,7 +283,63 @@ class LazyAIG:
         Each input/output has `##time_{time}` appended to it to
         distinguish different time steps.
         """
-        raise NotImplementedError
+        circ = self.aig  # TODO: Need everything in 1 node_batch
+                         #       otherwise, might get garbage
+                         #       collected away.
+
+        if not omit_latches:
+            assert (self.latches & self.outputs) == set()
+
+        inputs, node_map = set(), pmap()
+        for time in range(horizon):
+            template = "{}" + f"##time_{time}"
+            inputs |= set(map(template.format, self.inputs))
+
+            if only_last_outputs and (time != horizon - 1):
+                continue
+
+            template = "{}" + f"##time_{time + 1}"
+            tmp = walk_keys(template.format, self.node_map)
+
+            if not omit_latches:
+                assert (self.latches & self.outputs) == set()
+                tmp.update(walk_keys(template.format, self.latch_map))
+
+            node_map += {k: Shim(new=k, old=node) for k, node in tmp.items()}
+
+        boundary_nodes = set(self.node_map.values())
+        if not omit_latches:
+            boundary_nodes |= set(self.latch_map.values())
+
+        def iter_nodes():
+            @fn.curry
+            def timed_iter(time, node_batch):
+                for node in node_batch:
+                    if isinstance(node, Input):
+                        node2 = Input(f"{node.name}##time_{time}")
+                        yield node2
+                        yield Shim(new=node, old=node2)
+                    elif isinstance(node, LatchIn):
+                        node2 = self.latch_map[node.input]
+                        yield Shim(new=node, old=node2)
+                    else:
+                        yield node
+
+                    # See if we should emit output shim.
+                    if node not in boundary_nodes:
+                        continue
+                    elif only_last_outputs and (time < horizon - 1):
+                        continue
+
+                    yield Shim(new=f"{node.name}##time_{time+1}", old=node)
+
+            for time in range(horizon):
+                yield from map(timed_iter(time), self.__iter_nodes__())
+
+        return LazyAIG(
+            inputs=inputs, node_map=node_map, iter_nodes=iter_nodes,
+            comments=self.comments
+        )
 
     def __getitem__(self, others):
         """Relabel inputs, outputs, or latches.

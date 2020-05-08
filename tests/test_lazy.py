@@ -65,6 +65,7 @@ def test_lazy_cutlatches_smoke():
     lcirc = lazy(aiger.delay(['x'], [True]))
 
     lcirc2, l_map = lcirc.cutlatches()
+    lcirc2.aig
 
     assert {'x'} < lcirc2.inputs
     assert len(lcirc2.inputs) == 2
@@ -72,7 +73,7 @@ def test_lazy_cutlatches_smoke():
     assert {'x'} < lcirc2.outputs
     assert len(lcirc2.outputs) == 2
 
-    assert len(lcirc2.latches) == 0
+    assert len(lcirc2.latches) == 0    
 
 
 def test_lazy_loopback_smoke():
@@ -82,6 +83,7 @@ def test_lazy_loopback_smoke():
     lcirc2 = lcirc.loopback({
         'input': 'x', 'output': 'z',
     })
+    lcirc2.aig
 
     assert lcirc2.inputs == {'y'}
     assert lcirc2.outputs == {'z'}
@@ -91,7 +93,22 @@ def test_lazy_loopback_smoke():
         'input': 'x', 'output': 'z',
         'keep_output': False,
     })
+    lcirc2.aig
 
     assert lcirc2.inputs == {'y'}
     assert lcirc2.outputs == set()
     assert len(lcirc2.latches) == 1
+
+
+def test_lazy_unroll_smoke():
+    x, y = aiger.atoms('x', 'y')
+
+    lcirc = lazy((x & y).with_output('z').aig)
+    lcirc2 = lcirc.loopback({
+        'input': 'x', 'output': 'z',
+    })
+
+    lcirc3 = lcirc2.unroll(2)
+    assert lcirc3.inputs == {'y##time_0', 'y##time_1'}
+    assert lcirc3.outputs == {'z##time_1', 'z##time_2'}
+    assert lcirc3.latches == set()
