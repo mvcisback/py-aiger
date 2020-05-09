@@ -7,7 +7,6 @@ import attr
 import funcy as fn
 from pyrsistent import pmap
 
-import aiger as A
 from aiger import common as cmn
 from aiger import parser
 
