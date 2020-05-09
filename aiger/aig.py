@@ -65,7 +65,7 @@ class LatchIn:
 
 class ConstFalse(NamedTuple):
     @property
-    def children(se0lf):
+    def children(self):
         return ()
 
     def __hash__(self):
