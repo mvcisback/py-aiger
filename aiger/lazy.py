@@ -289,6 +289,9 @@ class LazyAIG:
         if not omit_latches:
             assert (circ.latches & circ.outputs) == set()
 
+        if not init:
+            assert (circ.latches & circ.inputs) == set()
+
         inputs, node_map = set(), pmap()        # Get timed inputs/outputs.
         for t in range(horizon):
             inputs |= {f'{i}##time_{t}' for i in circ.inputs}
@@ -317,13 +320,17 @@ class LazyAIG:
                     elif isinstance(node, LatchIn):
                         if time > 0:
                             node2 = (time - 1, circ.latch_map[node.name])
-                        else:  # yield constant.
+                        elif init:  # yield constant.
                             node2 = ConstFalse()
                             yield node2
 
                             if self.latch2init[node.name]:
                                 node2 = Inverter(node2)
                                 yield node2
+                        else:  # Turn Initial Latch into input.
+                            assert time == 0
+                            node2 = Input(f"{node.name}##time_{0}")
+                            yield node2
                         yield Shim(new=node, old=node2)
                     else:
                         yield node
