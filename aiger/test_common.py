@@ -242,7 +242,6 @@ def test_unroll_keep_inputs():
     }
 
 
-
 @given(aigh.Circuits)
 def test_iter_nodes(circ):
     nodes = set(fn.cat(circ.__iter_nodes__()))
