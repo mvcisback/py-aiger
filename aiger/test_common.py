@@ -240,3 +240,10 @@ def test_unroll_keep_inputs():
         "a##time_0", "a##time_1", "a##time_2",
         "c##time_0", "c##time_1", "c##time_2",
     }
+
+
+@given(aigh.Circuits)
+def test_iter_nodes(circ):
+    nodes = set(fn.cat(circ.__iter_nodes__()))
+    assert set(circ.node_map.values()) <= nodes
+    assert set(dict(circ.latch_map).values()) <= nodes
