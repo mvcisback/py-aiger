@@ -8,18 +8,10 @@ from aiger import common as cmn
 
 @attr.s(frozen=True, slots=True, eq=False, auto_attribs=True, hash=True)
 class BoolExpr:
-    _aig: aig.AIG
+    aig: aig.AIG
 
-    @property
-    def aig(self):  # Force flatten.
-        return self._aig.aig
-
-    @property
-    def laig(self):  # Don't force flatten.
-        return self._aig
-
-    def __call__(self, inputs):
-        return self.aig(inputs)[0][self.output]
+    def __call__(self, inputs, *, false=False):
+        return self.aig(inputs, false=false)[0][self.output]
 
     def __and__(self, other):
         return _binary_gate(cmn.and_gate, self, other)
