@@ -167,28 +167,34 @@ class AIG:
         # Remove latch inputs not used by self.
         latchins = fn.project(latchins, self.latches)
 
-        prev, tbl = set(), {}
+        latch_map = dict(self.latch_map)
+        boundary = set(self.node_map.values()) | set(latch_map.values())
+
+        store, prev, mem = {}, set(), {}
         for node_batch in self.__iter_nodes__():
-            prev = set(tbl.keys()) - prev
-            tbl = fn.project(tbl, prev)  # Forget about unnecessary gates.
+            prev = set(mem.keys()) - prev
+            mem = fn.project(mem, prev)  # Forget about unnecessary gates.
 
             for gate in node_batch:
                 if isinstance(gate, Inverter):
-                    tbl[gate] = neg(tbl[gate.input])
+                    mem[gate] = neg(mem[gate.input])
                 elif isinstance(gate, AndGate):
-                    tbl[gate] = and_(tbl[gate.left], tbl[gate.right])
-
+                    mem[gate] = and_(mem[gate.left], mem[gate.right])
                 elif isinstance(gate, Shim):
-                    tbl[gate.new] = tbl[gate.old]
+                    mem[gate.new] = mem[gate.old]
+                    gate = gate.new         # gate.new could be the output.
                 elif isinstance(gate, Input):
-                    tbl[gate] = inputs[gate.name]
+                    mem[gate] = inputs[gate.name]
                 elif isinstance(gate, LatchIn):
-                    tbl[gate] = latchins[gate.name]
+                    mem[gate] = latchins[gate.name]
                 elif isinstance(gate, ConstFalse):
-                    tbl[gate] = false
+                    mem[gate] = false
 
-        outs = {out: tbl[gate] for out, gate in self.node_map.items()}
-        louts = {out: tbl[gate] for out, gate in dict(self.latch_map).items()}
+                if gate in boundary:
+                    store[gate] = mem[gate]  # Store for eventual output.
+
+        outs = {out: store[gate] for out, gate in self.node_map.items()}
+        louts = {out: store[gate] for out, gate in latch_map.items()}
         return outs, louts
 
     def simulator(self, latches=None):
@@ -212,79 +218,15 @@ class AIG:
 
     def unroll(self, horizon, *, init=True, omit_latches=True,
                only_last_outputs=False):
-        # TODO:
-        # - Check for name collisions.
-        latches = self.latches
-        aag0, l_map = self.cutlatches({l for l in latches})
-
-        def timed_io(t, circ, latch_io):
-            inputs, outputs = self.inputs, self.outputs
-
-            if latch_io:
-                inputs, outputs = aag0.inputs - inputs, aag0.outputs - outputs
-
-            tmp = circ['i', {k: timed_name(k, t - 1) for k in inputs}]
-            return tmp['o', {k: timed_name(k, t) for k in outputs}]
-
-        unrolled = timed_io(1, timed_io(1, aag0, True), False)
-        for t in range(2, horizon + 1):
-            unrolled >>= timed_io(t, aag0, latch_io=True)
-            unrolled = timed_io(t, unrolled, latch_io=False)
-
-        # Post Processing
-
-        if init:  # Initialize first latch input.
-            source = {timed_name(n, 0): init for n, init in l_map.values()}
-            unrolled = cmn.source(source) >> unrolled
-
-        if omit_latches:  # Omit latches from output.
-            latch_names = [timed_name(n, horizon) for n, _ in l_map.values()]
-            unrolled = unrolled >> cmn.sink(latch_names)
-
-        if only_last_outputs:  # Only keep the time step's output.
-            odrop = fn.lfilter(
-                lambda o: int(o.split('##time_')[1]) < horizon,
-                unrolled.outputs
-            )
-            unrolled = unrolled >> cmn.sink(odrop)
-
-        return unrolled
+        return A.lazy(self).unroll(
+            horizon, init=init,
+            omit_latches=omit_latches,
+            only_last_outputs=only_last_outputs
+        ).aig
 
     def write(self, path):
         with open(path, 'w') as f:
             f.write(repr(self))
-
-    def _modify_leafs(self, func):
-        @fn.memoize(key_func=id)
-        def _mod(node):
-            if isinstance(node, AndGate):
-                left = _mod(node.left)
-                right = _mod(node.right)
-                if ConstFalse() in (left, right):
-                    return ConstFalse()
-                elif _is_const_true(left):
-                    return right
-                elif _is_const_true(right):
-                    return left
-                else:
-                    return node._replace(left=left, right=right)
-
-            elif isinstance(node, Inverter):
-                child = _mod(node.input)
-                if isinstance(child, Inverter):
-                    return child.input
-                else:
-                    return node._replace(input=child)
-
-            return func(node)
-
-        node_map = ((name, _mod(cone)) for name, cone in self.node_map.items())
-        latch_map = dict(self.latch_map)  # TODO: remove once latch_map is PMap
-        latch_map = ((name, _mod(cone)) for name, cone in latch_map.items())
-        return self.evolve(
-            node_map=pmap(node_map),
-            latch_map=frozenset(latch_map)
-        )
 
 
 def to_aig(circ) -> AIG:

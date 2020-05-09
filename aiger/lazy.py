@@ -6,7 +6,8 @@ Graphs.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Union, FrozenSet, Callable, Sequence, Tuple, Mapping
+from typing import (Union, FrozenSet, Callable, Iterator, Tuple,
+                    Mapping, Sequence)
 
 import attr
 import funcy as fn
@@ -42,7 +43,7 @@ class NodeAlgebra:
 
 @attr.s(frozen=True, auto_attribs=True)
 class LazyAIG:
-    iter_nodes: Callable[[], Sequence[Sequence[Node]]]
+    iter_nodes: Callable[[], Iterator[Iterator[Node]]]
 
     inputs: FrozenSet[str] = attr.ib(default=frozenset(), converter=frozenset)
     latch2init: PMap[str, bool] = attr.ib(default=pmap(), converter=pmap)
@@ -68,7 +69,7 @@ class LazyAIG:
         return frozenset(self.latch_map.keys())
 
     @property
-    @lru_cache
+    @lru_cache()
     def aig(self) -> AIG:
         """Return's flattened AIG represented by this LazyAIG."""
 
@@ -283,33 +284,28 @@ class LazyAIG:
         Each input/output has `##time_{time}` appended to it to
         distinguish different time steps.
         """
-        # Need everything in 1 node_batch otherwise, might get garbage
-        # collected away.
-        circ = self.aig
+        circ = self.aig                         # Make single node_batch.
 
         if not omit_latches:
             assert (circ.latches & circ.outputs) == set()
 
-        inputs, node_map = set(), pmap()
-        for time in range(horizon):
-            template = "{}" + f"##time_{time}"
-            inputs |= set(map(template.format, circ.inputs))
+        inputs, node_map = set(), pmap()        # Get timed inputs/outputs.
+        for t in range(horizon):
+            inputs |= {f'{i}##time_{t}' for i in circ.inputs}
 
-            if only_last_outputs and (time != horizon - 1):
+            if only_last_outputs and (t != horizon - 1):
                 continue
 
-            template = "{}" + f"##time_{time + 1}"
-            tmp = walk_keys(template.format, circ.node_map)
-
+            tmp = circ.node_map.items()
             if not omit_latches:
-                assert (circ.latches & circ.outputs) == set()
-                tmp.update(walk_keys(template.format, circ.latch_map))
+                tmp = fn.chain(tmp, circ.latch_map.items())
 
-            node_map += {k: Shim(new=k, old=node) for k, node in tmp.items()}
+            node_map += {f'{k}##time_{t+1}': (t, v) for k, v in tmp}
 
-        boundary_nodes = set(circ.node_map.values())
+        latch_map = dict(circ.latch_map)  # TODO: remove when latch_map: dict.
+        boundary = set(circ.node_map.values())
         if not omit_latches:
-            boundary_nodes |= set(circ.latch_map.values())
+            boundary |= set(latch_map.values())
 
         def iter_nodes():
             @fn.curry
@@ -317,21 +313,23 @@ class LazyAIG:
                 for node in node_batch:
                     if isinstance(node, Input):
                         node2 = Input(f"{node.name}##time_{time}")
-                        yield node2
-                        yield Shim(new=node, old=node2)
+                        yield from [node2, Shim(new=node, old=node2)]
                     elif isinstance(node, LatchIn):
-                        node2 = circ.latch_map[node.input]
+                        if time > 0:
+                            node2 = (time - 1, circ.latch_map[node.name])
+                        else:  # yield constant.
+                            node2 = ConstFalse()
+                            yield node2
+
+                            if self.latch2init[node.name]:
+                                node2 = Inverter(node2)
+                                yield node2
                         yield Shim(new=node, old=node2)
                     else:
                         yield node
 
-                    # See if we should emit output shim.
-                    if node not in boundary_nodes:
-                        continue
-                    elif only_last_outputs and (time < horizon - 1):
-                        continue
-
-                    yield Shim(new=f"{node.name}##time_{time+1}", old=node)
+                    if node in boundary:  # This is an eventual output.
+                        yield Shim(new=(time, node), old=node)
 
             for time in range(horizon):
                 yield from map(timed_iter(time), circ.__iter_nodes__())
