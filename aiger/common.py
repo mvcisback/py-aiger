@@ -177,6 +177,33 @@ def _dependency_graph(nodes):
     return deps
 
 
+def _omit_visited(func):
+    visited = set()
+
+    def wrapper(node):
+        if node in visited:
+            return
+        visited.add(node)
+        yield from func(node)
+
+    return wrapper
+
+
+def dfs(circ, omit_visited=True):
+    """Generates nodes via depth first traversal in pre-order."""
+
+    def _dfs(node):
+        assert not isinstance(node, aig.Shim), "dfs does not support LazyAIGs."
+        yield from fn.cat(map(_dfs, node.children))
+        yield node
+
+    if omit_visited:
+        _dfs = _omit_visited(_dfs)
+
+    for node in circ.cones | circ.latch_cones:
+        yield from _dfs(node)
+
+
 def eval_order(circ, *, concat: bool = True):
     """Return topologically sorted nodes in AIG."""
     order = toposort(_dependency_graph(circ.cones | circ.latch_cones))

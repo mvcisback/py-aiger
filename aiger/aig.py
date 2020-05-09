@@ -7,6 +7,7 @@ import attr
 import funcy as fn
 from pyrsistent import pmap
 
+import aiger as A
 from aiger import common as cmn
 from aiger import parser
 
@@ -66,11 +67,17 @@ class ConstFalse(NamedTuple):
         return hash(False)
 
 
+@attr.s(frozen=True, slots=True, auto_attribs=True, cache_hash=True)
+class Shim:
+    old: 'Node'
+    new: 'Node'
+
+
 def _is_const_true(node):
     return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
 
 
-Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn]
+Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn, Shim]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True, repr=False)
@@ -80,7 +87,7 @@ class AIG:
         default=pmap(), converter=pmap
     )
     latch_map: FrozenSet[Tuple[str, Node]] = frozenset()
-    latch2init: FrozenSet[Tuple[str, Node]] = frozenset()
+    latch2init: FrozenSet[Tuple[str, bool]] = frozenset()
     comments: Tuple[str] = ()
 
     _to_aag = parser.aig2aag
@@ -131,7 +138,7 @@ class AIG:
         dependencies. Namely, to compute the value of any node
         requires just the value of the nodes in the previous iterator.
         """
-        return [cmn.eval_order(self, concat=True)]
+        return [cmn.dfs(self)]
 
     def evolve(self, **kwargs):
         return attr.evolve(self, **kwargs)
@@ -171,9 +178,7 @@ class AIG:
 
     def __call__(self, inputs, latches=None, *, false=False):
         """Evaluate AIG on inputs (and latches).
-
         If `latches` is `None` initial latch value is used.
-
         `false` is an optional argument used to interpet the AIG as
         an object in some other Boolean algebra over (&, ~).
           - See py-aiger-bdd and py-aiger-cnf for examples.
@@ -190,26 +195,34 @@ class AIG:
         # Remove latch inputs not used by self.
         latchins = fn.project(latchins, self.latches)
 
-        prev, tbl = set(), {}
+        latch_map = dict(self.latch_map)
+        boundary = set(self.node_map.values()) | set(latch_map.values())
+
+        store, prev, mem = {}, set(), {}
         for node_batch in self.__iter_nodes__():
-            prev = set(tbl.keys()) - prev
-            tbl = fn.project(tbl, prev)  # Forget about unnecessary gates.
+            prev = set(mem.keys()) - prev
+            mem = fn.project(mem, prev)  # Forget about unnecessary gates.
 
             for gate in node_batch:
                 if isinstance(gate, Inverter):
-                    tbl[gate] = neg(tbl[gate.input])
+                    mem[gate] = neg(mem[gate.input])
                 elif isinstance(gate, AndGate):
-                    tbl[gate] = and_(tbl[gate.left], tbl[gate.right])
-
+                    mem[gate] = and_(mem[gate.left], mem[gate.right])
+                elif isinstance(gate, Shim):
+                    mem[gate.new] = mem[gate.old]
+                    gate = gate.new         # gate.new could be the output.
                 elif isinstance(gate, Input):
-                    tbl[gate] = inputs[gate.name]
+                    mem[gate] = inputs[gate.name]
                 elif isinstance(gate, LatchIn):
-                    tbl[gate] = latchins[gate.name]
+                    mem[gate] = latchins[gate.name]
                 elif isinstance(gate, ConstFalse):
-                    tbl[gate] = false
+                    mem[gate] = false
 
-        outs = {out: tbl[gate] for out, gate in self.node_map.items()}
-        louts = {out: tbl[gate] for out, gate in self.latch_map}
+                if gate in boundary:
+                    store[gate] = mem[gate]  # Store for eventual output.
+
+        outs = {out: store[gate] for out, gate in self.node_map.items()}
+        louts = {out: store[gate] for out, gate in latch_map.items()}
         return outs, louts
 
     def simulator(self, latches=None):
