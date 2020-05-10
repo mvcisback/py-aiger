@@ -74,26 +74,24 @@ class LazyAIG:
         """Return's flattened AIG represented by this LazyAIG."""
 
         false = NodeAlgebra(ConstFalse())
-        inputs = {i: NodeAlgebra(Input(i)) for i in self.inputs}
-        latches = fn.walk_values(
-            lambda v: ~false if v else false,
-            dict(self.latch2init),
-        )
+        inputs = {i: Input(i) for i in self.inputs}
 
-        node_map, latch_map = self(inputs, false=false, latches=latches)
+        def lift(obj):
+            if isinstance(obj, NodeAlgebra):
+                return obj
+            elif isinstance(obj, bool):
+                return ~false if obj else false
+            assert isinstance(obj, Input)
+            return NodeAlgebra(obj)
 
-        node_map = {k: v.node for k, v in node_map.items()}
-        latch_map = {k: v.node for k, v in latch_map.items()}
-
+        node_map, latch_map = self(inputs, lift=lift)
         return AIG(
-            inputs=self.inputs,
-            node_map=node_map,
-
-            # TODO: change when these become PMaps.
-            latch_map=frozenset(latch_map.items()),
-            latch2init=frozenset(self.latch2init.items()),
-
             comments=self.comments,
+            inputs=self.inputs,
+            node_map={k: v.node for k, v in node_map.items()},
+            # TODO: change when these become PMaps.
+            latch_map=frozenset({(k, v.node) for k, v in latch_map.items()}),
+            latch2init=frozenset(self.latch2init.items()),
         )
 
     def __rshift__(self, other: AIG_Like) -> LazyAIG:

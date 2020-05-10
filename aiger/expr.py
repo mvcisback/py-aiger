@@ -1,14 +1,25 @@
+from __future__ import annotations
+
 from typing import Union
 
 import attr
 
+import aiger as A
 from aiger import aig
 from aiger import common as cmn
 
 
 @attr.s(frozen=True, slots=True, eq=False, auto_attribs=True, hash=True)
 class BoolExpr:
-    aig: aig.AIG
+    _aig: A.AIG_Like
+
+    @property
+    def aig(self) -> A.AIG:
+        return self._aig.aig
+
+    @property
+    def laig(self) -> A.AIG_Like:
+        return self._aig
 
     def __call__(self, inputs, *, lift=None):
         return self.aig(inputs, lift=lift)[0][self.output]
