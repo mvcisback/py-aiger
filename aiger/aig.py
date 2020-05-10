@@ -175,17 +175,20 @@ class AIG:
     def __or__(self, other):
         return par_compose(self, other)
 
-    def __call__(self, inputs, latches=None, *, false=False):
+    def __call__(self, inputs, latches=None, *, lift=None):
         """Evaluate AIG on inputs (and latches).
         If `latches` is `None` initial latch value is used.
-        `false` is an optional argument used to interpet the AIG as
-        an object in some other Boolean algebra over (&, ~).
-          - See py-aiger-bdd and py-aiger-cnf for examples.
+
+        `lift` is an optional argument used to interpret constants
+        (False, True) in some other Boolean algebra over (&, ~).
+
+        - See py-aiger-bdd and py-aiger-cnf for examples.
         """
         if latches is None:
             latches = dict()
 
-        if false is False:
+        if lift is None:
+            lift = fn.identity
             and_, neg = op.and_, op.not_
         else:
             and_, neg = op.__and__, op.__invert__
@@ -211,11 +214,11 @@ class AIG:
                     mem[gate.new] = mem[gate.old]
                     gate = gate.new         # gate.new could be the output.
                 elif isinstance(gate, Input):
-                    mem[gate] = inputs[gate.name]
+                    mem[gate] = lift(inputs[gate.name])
                 elif isinstance(gate, LatchIn):
-                    mem[gate] = latchins[gate.name]
+                    mem[gate] = lift(latchins[gate.name])
                 elif isinstance(gate, ConstFalse):
-                    mem[gate] = false
+                    mem[gate] = lift(False)
 
                 if gate in boundary:
                     store[gate] = mem[gate]  # Store for eventual output.
