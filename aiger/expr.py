@@ -5,7 +5,6 @@ from typing import Union
 import attr
 
 import aiger as A
-from aiger import aig
 from aiger import common as cmn
 
 
