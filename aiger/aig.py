@@ -462,7 +462,7 @@ def seq_compose(circ1, circ2, *, input_kind=Input):
     )
 
 
-def to_aig(circ, *, allow_lazy=True) -> AIG:
+def to_aig(circ, *, allow_lazy=False) -> AIG:
     if isinstance(circ, pathlib.Path) and circ.is_file():
         circ = parser.load(circ)
     elif isinstance(circ, str):
@@ -470,5 +470,8 @@ def to_aig(circ, *, allow_lazy=True) -> AIG:
             circ = parser.parse(circ)  # Assume it is an AIGER string.
         else:
             circ = parser.load(circ)  # Assume it is a file path.
+
+    if allow_lazy and hasattr(circ, '.lazy_aig'):
+        return circ.lazy_aig
 
     return circ.aig  # Extract AIG from potential wrapper.
