@@ -462,7 +462,7 @@ def seq_compose(circ1, circ2, *, input_kind=Input):
     )
 
 
-def to_aig(circ) -> AIG:
+def to_aig(circ, *, allow_lazy=True) -> AIG:
     if isinstance(circ, pathlib.Path) and circ.is_file():
         circ = parser.load(circ)
     elif isinstance(circ, str):
