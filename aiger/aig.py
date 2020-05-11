@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import operator as op
 import pathlib
 from functools import reduce
@@ -7,6 +9,7 @@ import attr
 import funcy as fn
 from pyrsistent import pmap
 
+import aiger as A
 from aiger import common as cmn
 from aiger import parser
 
@@ -149,6 +152,10 @@ class AIG:
     @property
     def aig(self):
         return self
+
+    @property
+    def lazy_aig(self) -> A.LazyAIG:
+        return A.lazy(self)
 
     @property
     def outputs(self):

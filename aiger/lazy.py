@@ -5,7 +5,6 @@ Graphs.
 
 from __future__ import annotations
 
-from functools import lru_cache
 from typing import (Union, FrozenSet, Callable, Iterator, Tuple,
                     Mapping, Sequence)
 
@@ -69,7 +68,10 @@ class LazyAIG:
         return frozenset(self.latch_map.keys())
 
     @property
-    @lru_cache()
+    def lazy_aig(self) -> LazyAIG:
+        return self
+
+    @property
     def aig(self) -> AIG:
         """Return's flattened AIG represented by this LazyAIG."""
 
