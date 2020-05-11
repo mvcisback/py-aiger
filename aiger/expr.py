@@ -17,8 +17,8 @@ class BoolExpr:
         return self._aig.aig
 
     @property
-    def laig(self) -> A.AIG_Like:
-        return self._aig
+    def lazy_aig(self) -> A.LazyAig:
+        return A.lazy(self._aig)
 
     def __call__(self, inputs, *, lift=None):
         return self.aig(inputs, lift=lift)[0][self.output]

@@ -77,16 +77,17 @@ class LazyAIG:
 
         false = NodeAlgebra(ConstFalse())
         inputs = {i: Input(i) for i in self.inputs}
+        latches = {l: LatchIn(l) for l in self.latches}
 
         def lift(obj):
             if isinstance(obj, NodeAlgebra):
                 return obj
             elif isinstance(obj, bool):
                 return ~false if obj else false
-            assert isinstance(obj, Input)
+            assert isinstance(obj, (Input, LatchIn))
             return NodeAlgebra(obj)
 
-        node_map, latch_map = self(inputs, lift=lift)
+        node_map, latch_map = self(inputs, latches=latches, lift=lift)
         return AIG(
             comments=self.comments,
             inputs=self.inputs,
@@ -319,7 +320,7 @@ class LazyAIG:
                         yield from [node2, Shim(new=node, old=node2)]
                     elif isinstance(node, LatchIn):
                         if time > 0:
-                            node2 = (time - 1, circ.latch_map[node.name])
+                            node2 = (time - 1, latch_map[node.name])
                         elif init:  # yield constant.
                             node2 = ConstFalse()
                             yield node2

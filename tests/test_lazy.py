@@ -1,6 +1,9 @@
 import funcy as fn
+import hypothesis.strategies as st
+from hypothesis import given
 
 import aiger
+from aiger import hypothesis as aigh
 from aiger.lazy import lazy
 
 
@@ -153,3 +156,18 @@ def test_lazy_unroll_smoke():
 
     assert circ4.inputs == {'foo', 'bar'}
     assert circ4.outputs == {'foobar'}
+
+
+@given(aigh.Circuits, st.data())
+def test_lazy_flatten(circ, data):
+    lcirc = circ.lazy_aig
+    assert lcirc.inputs == circ.inputs
+    assert lcirc.outputs == circ.outputs
+    assert lcirc.latches == circ.latches
+
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ.inputs}
+    assert circ(test_input) == lcirc(test_input)
+
+    circ2 = lcirc.aig
+    assert circ(test_input) == circ2(test_input)
+    assert circ == circ2
