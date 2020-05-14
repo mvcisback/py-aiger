@@ -233,7 +233,6 @@ def test_lazy_par_feedback_then_cut(circ, data):
     assert_lazy_equiv(circ1, lcirc1, data)
 
 
-@pytest.mark.skip(reason='TODO: will fix later')
 @given(aigh.Circuits, st.data(), st.booleans(), st.booleans(), st.booleans())
 def test_lazy_unroll_flatten(
         circ, data, init, omit_latches, only_last_outputs
