@@ -1,10 +1,12 @@
 import funcy as fn
 import hypothesis.strategies as st
 from hypothesis import given
+import pytest
 
 import aiger
 from aiger import hypothesis as aigh
 from aiger.lazy import lazy
+from aiger.common import _fresh
 
 
 def test_lazy_call_smoke():
@@ -171,3 +173,74 @@ def test_lazy_flatten(circ, data):
     circ2 = lcirc.aig
     assert circ(test_input) == circ2(test_input)
     assert circ == circ2
+
+
+def fresh_io(circ):
+    return circ.relabel('input', {i: _fresh() for i in circ.inputs}) \
+               .relabel('output', {o: _fresh() for o in circ.outputs})
+
+
+def assert_lazy_equiv(circ, lcirc, data):
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ.inputs}
+    assert circ(test_input) == lcirc(test_input)
+    # assert circ == lcirc.aig
+
+
+@given(aigh.Circuits, aigh.Circuits, st.data())
+def test_lazy_seq_flatten(circ1, circ2, data):
+    circ1, circ2 = map(fresh_io, (circ1, circ2))
+
+    # 1. Check lazy >> same as eager |.
+    assert_lazy_equiv(circ1 | circ2, lazy(circ1) >> circ2, data)
+
+    # 2. Force circuits to share interface.
+    circ1 = circ1['o', {fn.first(circ1.outputs): '##test'}]
+    circ2 = circ2['i', {fn.first(circ2.inputs): '##test'}]
+
+    # 3. Check lazy >> same as eager >>.
+    assert_lazy_equiv(circ1 >> circ2, lazy(circ1) >> circ2, data)
+
+
+@given(aigh.Circuits, aigh.Circuits, st.data())
+def test_lazy_par_compose_flatten(circ1, circ2, data):
+    circ1, circ2 = map(fresh_io, (circ1, circ2))
+
+    # 1. Check lazy | same as eager |.
+    assert_lazy_equiv(circ1 | circ2, lazy(circ1) | circ2, data)
+
+    # 2. Force circuits to share interface.
+    circ1 = circ1['i', {fn.first(circ1.inputs): '##test'}]
+    circ2 = circ2['i', {fn.first(circ2.inputs): '##test'}]
+
+    # 3. Check lazy | same as eager |.
+    assert_lazy_equiv(circ1 | circ2, lazy(circ1) | circ2, data)
+
+
+@given(aigh.Circuits, st.data())
+def test_lazy_par_feedback_then_cut(circ, data):
+    wire = {
+        'input': fn.first(circ.inputs),
+        'output': fn.first(circ.outputs),
+        'keep_output': False,
+        'init': True,
+        'latch': '##test',
+    }
+    circ1 = circ.loopback(wire)
+    assert '##test' in circ1.latches
+    circ1.cutlatches(latches={'##test'})[0]
+    
+    lcirc1 = lazy(circ).loopback(wire).cutlatches(latches={'##test'})[0]
+    assert_lazy_equiv(circ1, lcirc1, data)
+
+
+@pytest.mark.skip(reason='TODO: will fix later')
+@given(aigh.Circuits, st.data(), st.booleans(), st.booleans(), st.booleans())
+def test_lazy_unroll_flatten(
+        circ, data, init, omit_latches, only_last_outputs
+):
+    kwargs = {
+        'horizon': 3, 'init': init, 'omit_latches': omit_latches,
+        'only_last_outputs': only_last_outputs
+    }
+    circ1, lcirc1 = circ.unroll(**kwargs), lazy(circ).unroll(**kwargs)
+    assert_lazy_equiv(circ1, lcirc1, data)

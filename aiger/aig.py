@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import operator as op
 import pathlib
 from functools import reduce
@@ -7,6 +5,7 @@ from typing import Tuple, FrozenSet, NamedTuple, Union
 
 import attr
 import funcy as fn
+from bidict import bidict
 from pyrsistent import pmap
 
 import aiger as A
@@ -154,7 +153,7 @@ class AIG:
         return self
 
     @property
-    def lazy_aig(self) -> A.LazyAIG:
+    def lazy_aig(self):
         return A.lazy(self)
 
     @property
@@ -253,28 +252,28 @@ class AIG:
             def renamer(_):
                 return cmn._fresh()
 
-        l_map = {
-            n: (renamer(n), init) for (n, init) in self.latch2init
-            if n in latches
-        }
+        relabels = bidict({
+            n: (renamer(n) if n in latches else n) for n in self.latches
+        })
 
-        assert len(
-            set(fn.pluck(0, l_map.values())) & (self.inputs | self.outputs)
-        ) == 0
+        assert len(set(relabels.values()) & (self.inputs | self.outputs)) == 0
 
         def sub(node):
             if isinstance(node, LatchIn):
-                return Input(l_map[node.name][0])
+                return Input(relabels[node.name])
             return node
 
         circ = self._modify_leafs(sub)
-        _cones = {l_map[k][0]: v for k, v in circ.latch_map if k in latches}
+        _cones = {relabels[k]: v for k, v in circ.latch_map if k in latches}
         aig = self.evolve(
             node_map=circ.node_map + _cones,
-            inputs=self.inputs | {n for n, _ in l_map.values()},
+            inputs=self.inputs | set(relabels.values()),
             latch_map={(k, v) for k, v in circ.latch_map if k not in latches},
             latch2init={(k, v) for k, v in self.latch2init if k not in latches}
         )
+
+        l_map = {n: (relabels[n], init) for (n, init) in self.latch2init}
+
         return aig, l_map
 
     def loopback(self, *wirings):

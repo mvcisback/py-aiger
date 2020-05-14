@@ -285,7 +285,7 @@ class LazyAIG:
         Each input/output has `##time_{time}` appended to it to
         distinguish different time steps.
         """
-        circ = self.aig                         # Make single node_batch.
+        circ = lazy(self.aig)                   # Make single node_batch.
 
         if not omit_latches:
             assert (circ.latches & circ.outputs) == set()
