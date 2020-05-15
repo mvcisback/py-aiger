@@ -168,7 +168,7 @@ def test_cutlatches(aag1, data):
     assert len(aag2.latches) == 0
 
     test_inputs = {i: data.draw(st.booleans()) for i in aag1.inputs}
-    test_latch_ins = {l: data.draw(st.booleans()) for l in aag1.latches}
+    test_latch_ins = {i: data.draw(st.booleans()) for i in aag1.latches}
     test_inputs2 = fn.merge(test_inputs,
                             {lmap[k][0]: v
                              for k, v in test_latch_ins.items()})
@@ -204,6 +204,32 @@ def test_unroll_simulate(aag1, horizon, data):
     sum1 = sum(sum(x.values()) for x, _ in aag1.simulate(test_inputs))
     sum2 = sum(aag2(fn.merge(*map(unroll_keys, test_inputs)))[0].values())
     assert sum1 == sum2
+
+
+@given(aigh.Circuits, st.data())
+def test_feedback_then_cut(circ, data):
+    def renamer(_):
+        return "##test"
+
+    wire = {
+        'input': fn.first(circ.inputs),
+        'output': fn.first(circ.outputs),
+        'keep_output': False,
+        'init': True,
+        'latch': '##test',
+    }
+    circ1 = circ.loopback(wire)
+    assert '##test' in circ1.latches
+    circ2 = circ1.cutlatches(latches={'##test'}, renamer=renamer)[0]
+    circ3 = circ2.relabel('input', {'##test': wire['input']}) \
+                 .relabel('output', {'##test': wire['output']})
+
+    assert circ3.inputs == circ.inputs
+    assert circ3.outputs == circ.outputs
+    assert circ3.latches == circ.latches
+
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ.inputs}
+    assert circ(test_input) == circ3(test_input)
 
 
 def test_eval_order_smoke():

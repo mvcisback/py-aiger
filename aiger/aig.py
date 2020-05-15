@@ -245,50 +245,11 @@ class AIG:
         return [sim.send(inputs) for inputs in input_seq]
 
     def cutlatches(self, latches=None, check_postcondition=True, renamer=None):
-        if latches is None:
-            latches = self.latches
-
-        if renamer is None:
-            def renamer(_):
-                return cmn._fresh()
-
-        relabels = bidict({
-            n: (renamer(n) if n in latches else n) for n in self.latches
-        })
-
-        assert len(set(relabels.values()) & (self.inputs | self.outputs)) == 0
-
-        def sub(node):
-            if isinstance(node, LatchIn):
-                return Input(relabels[node.name])
-            return node
-
-        circ = self._modify_leafs(sub)
-        _cones = {relabels[k]: v for k, v in circ.latch_map if k in latches}
-        aig = self.evolve(
-            node_map=circ.node_map + _cones,
-            inputs=self.inputs | set(relabels.values()),
-            latch_map={(k, v) for k, v in circ.latch_map if k not in latches},
-            latch2init={(k, v) for k, v in self.latch2init if k not in latches}
-        )
-
-        l_map = {n: (relabels[n], init) for (n, init) in self.latch2init}
-
-        return aig, l_map
+        lcirc, lmap = A.lazy(self).cutlatches(latches=latches, renamer=renamer)
+        return lcirc.aig, lmap
 
     def loopback(self, *wirings):
-        def wire(circ, wiring):
-            return circ._wire(**wiring)
-
-        return reduce(wire, wirings, self)
-
-    def _wire(self, input, output, latch=None, init=True, keep_output=True):
-        if latch is None:
-            latch = input
-
-        return self._feedback(
-            [input], [output], [init], [latch], keep_outputs=keep_output
-        )
+        return A.lazy(self).loopback(*wirings).aig
 
     def feedback(
         self, inputs, outputs, initials=None, latches=None, keep_outputs=False
@@ -342,7 +303,7 @@ class AIG:
         # TODO:
         # - Check for name collisions.
         latches = self.latches
-        aag0, l_map = self.cutlatches({l for l in latches})
+        aag0, l_map = self.cutlatches(latches)
 
         def timed_io(t, circ, latch_io):
             inputs, outputs = self.inputs, self.outputs
@@ -414,29 +375,7 @@ class AIG:
 
 
 def par_compose(aig1, aig2, check_precondition=True):
-    assert not aig1.latches & aig2.latches
-    assert not aig1.outputs & aig2.outputs
-
-    shared_inputs = aig1.inputs & aig2.inputs
-    if shared_inputs:
-        relabels1 = {n: cmn._fresh() for n in shared_inputs}
-        relabels2 = {n: cmn._fresh() for n in shared_inputs}
-        aig1, aig2 = aig1['i', relabels1], aig2['i', relabels2]
-
-    circ = AIG(
-        inputs=aig1.inputs | aig2.inputs,
-        latch_map=aig1.latch_map | aig2.latch_map,
-        latch2init=aig1.latch2init | aig2.latch2init,
-        node_map=aig1.node_map + aig2.node_map,
-        comments=aig1.comments + aig2.comments
-    )
-
-    if shared_inputs:
-        for orig in shared_inputs:
-            new1, new2 = relabels1[orig], relabels2[orig]
-            circ <<= cmn.tee({orig: [new1, new2]})
-
-    return circ
+    return (aig1.lazy_aig | aig2).aig
 
 
 def seq_compose(circ1, circ2, *, input_kind=Input):

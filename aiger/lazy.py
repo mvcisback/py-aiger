@@ -77,7 +77,7 @@ class LazyAIG:
 
         false = NodeAlgebra(ConstFalse())
         inputs = {i: Input(i) for i in self.inputs}
-        latches = {l: LatchIn(l) for l in self.latches}
+        latches = {i: LatchIn(i) for i in self.latches}
 
         def lift(obj):
             if isinstance(obj, NodeAlgebra):
@@ -246,7 +246,7 @@ class LazyAIG:
         assert len(in2wire) == len(latch2wire) == len(wirings)
         assert (self.latches & set(latch2wire.keys())) == set()
 
-        latch2init = {l: w['init'] for l, w in latch2wire.items()}
+        latch2init = {k: v['init'] for k, v in latch2wire.items()}
         latch2init = self.latch2init + latch2init
 
         latch_map = project(self.node_map, out2wire.keys())
