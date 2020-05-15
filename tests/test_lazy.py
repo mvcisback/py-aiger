@@ -1,7 +1,6 @@
 import funcy as fn
 import hypothesis.strategies as st
 from hypothesis import given
-import pytest
 
 import aiger
 from aiger import hypothesis as aigh
@@ -216,23 +215,9 @@ def test_lazy_par_compose_flatten(circ1, circ2, data):
     assert_lazy_equiv(circ1 | circ2, lazy(circ1) | circ2, data)
 
 
-@given(aigh.Circuits, st.data())
-def test_lazy_par_feedback_then_cut(circ, data):
-    wire = {
-        'input': fn.first(circ.inputs),
-        'output': fn.first(circ.outputs),
-        'keep_output': False,
-        'init': True,
-        'latch': '##test',
-    }
-    circ1 = circ.loopback(wire)
-    assert '##test' in circ1.latches
-    circ1.cutlatches(latches={'##test'})[0]
-    
-    lcirc1 = lazy(circ).loopback(wire).cutlatches(latches={'##test'})[0]
-    assert_lazy_equiv(circ1, lcirc1, data)
 
 
+"""
 @given(aigh.Circuits, st.data(), st.booleans(), st.booleans(), st.booleans())
 def test_lazy_unroll_flatten(
         circ, data, init, omit_latches, only_last_outputs
@@ -243,3 +228,4 @@ def test_lazy_unroll_flatten(
     }
     circ1, lcirc1 = circ.unroll(**kwargs), lazy(circ).unroll(**kwargs)
     assert_lazy_equiv(circ1, lcirc1, data)
+"""

@@ -273,3 +273,57 @@ def test_iter_nodes(circ):
     nodes = set(fn.cat(circ.__iter_nodes__()))
     assert set(circ.node_map.values()) <= nodes
     assert set(dict(circ.latch_map).values()) <= nodes
+
+
+def assert_sample_equiv(circ1, circ2, data):
+    assert circ1.inputs == circ2.inputs
+    assert circ1.outputs == circ2.outputs
+    assert circ1.latches == circ2.latches
+
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ1.inputs}
+    assert circ1(test_input) == circ2(test_input)
+
+
+def fresh_io(circ):
+    _fresh = common._fresh
+    return circ.relabel('input', {i: _fresh() for i in circ.inputs}) \
+               .relabel('output', {o: _fresh() for o in circ.outputs})
+
+
+@given(aigh.Circuits, aigh.Circuits, st.data())
+def test_seq_compose(circ1, circ2, data):
+    circ1, circ2 = map(fresh_io, (circ1, circ2))
+
+    # 1. Check >> same as eager | on disjoint interfaces.
+    assert_sample_equiv(circ1 | circ2, circ1 >> circ2, data)
+
+    # 2. Force common interface.
+    circ1 = circ1['o', {fn.first(circ1.outputs): '##test'}]
+    circ2 = circ2['i', {fn.first(circ2.inputs): '##test'}]
+
+    # Compose and check sample equivilence.
+    circ12 = circ1 >> circ2
+
+    assert (circ1.latches | circ2.latches) == circ12.latches
+    assert circ1.inputs <= circ12.inputs
+    assert circ2.outputs <= circ12.outputs
+    assert '##test' not in circ12.inputs
+    assert '##test' not in circ12.outputs
+
+    # 3. Check cascading inputs work as expected.
+    test_input1 = {f'{i}': data.draw(st.booleans()) for i in circ1.inputs}
+    test_input2 = {f'{i}': data.draw(st.booleans()) for i in circ2.inputs}
+
+    omap1, lmap1 = circ1(test_input1)
+    test_input2['##test'] = omap1['##test']
+    omap2, lmap2 = circ2(test_input2)
+
+    # 3a. Combine outputs/latch outs.
+    omap12_expected = fn.merge(fn.omit(omap1, '##test'), omap2)
+    lmap12_expected = fn.merge(lmap1, lmap2)
+
+    test_input12 = fn.merge(test_input1, test_input2)
+    omap12, lmap12 = circ12(test_input12)
+
+    assert lmap12 == lmap12_expected
+    assert omap12 == omap12_expected
