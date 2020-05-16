@@ -100,34 +100,13 @@ class AIG:
         assert isinstance(others, tuple) and len(others) == 2
         kind, relabels = others
         assert kind in {'i', 'o', 'l'}
-
-        basis = {
-            'i': self.inputs, 'o': self.outputs, 'l': self.latches
+        key = {
+            'i': 'input_relabels',
+            'l': 'latch_relabels',
+            'o': 'output_relabels',
         }.get(kind)
-        relabels = fn.project(relabels, basis)
 
-        if kind == 'o':
-            relabels = {k: [v] for k, v in relabels.items()}
-            return self >> cmn.tee(relabels)
-        elif kind == 'i':
-            relabels_ = {v: [k] for k, v in relabels.items()}
-            return cmn.tee(relabels_) >> self
-
-        # Latches act like inputs and outputs...
-        def fix_keys(mapping):
-            return fn.walk_keys(lambda x: relabels.get(x, x), mapping)
-
-        circ = self.evolve(
-            latch_map=fix_keys(self.latch_map),
-            latch2init=fix_keys(self.latch2init)
-        )
-
-        def sub(node):
-            if isinstance(node, LatchIn):
-                return LatchIn(relabels.get(node.name, node.name))
-            return node
-
-        return circ._modify_leafs(sub)
+        return A.Relabeled(self, **{key: relabels}).aig
 
     def __iter_nodes__(self):
         """Returns an iterator over iterators of nodes in an AIG.
@@ -245,11 +224,14 @@ class AIG:
         return [sim.send(inputs) for inputs in input_seq]
 
     def cutlatches(self, latches=None, check_postcondition=True, renamer=None):
-        lcirc, lmap = A.lazy(self).cutlatches(latches=latches, renamer=renamer)
+        lcirc = A.CutLatches(self, cut=latches, renamer=renamer)
+
+        l2init = dict(self.latch2init)
+        lmap = {l: (lcirc.renamer(l), l2init[l]) for l in lcirc.cut_latches}
         return lcirc.aig, lmap
 
     def loopback(self, *wirings):
-        return A.lazy(self).loopback(*wirings).aig
+        return A.LoopBack(self, wirings).aig
 
     def feedback(
         self, inputs, outputs, initials=None, latches=None, keep_outputs=False
@@ -300,43 +282,9 @@ class AIG:
 
     def unroll(self, horizon, *, init=True, omit_latches=True,
                only_last_outputs=False):
-        # TODO:
-        # - Check for name collisions.
-        latches = self.latches
-        aag0, l_map = self.cutlatches(latches)
-
-        def timed_io(t, circ, latch_io):
-            inputs, outputs = self.inputs, self.outputs
-
-            if latch_io:
-                inputs, outputs = aag0.inputs - inputs, aag0.outputs - outputs
-
-            tmp = circ['i', {k: timed_name(k, t - 1) for k in inputs}]
-            return tmp['o', {k: timed_name(k, t) for k in outputs}]
-
-        unrolled = timed_io(1, timed_io(1, aag0, True), False)
-        for t in range(2, horizon + 1):
-            unrolled >>= timed_io(t, aag0, latch_io=True)
-            unrolled = timed_io(t, unrolled, latch_io=False)
-
-        # Post Processing
-
-        if init:  # Initialize first latch input.
-            source = {timed_name(n, 0): init for n, init in l_map.values()}
-            unrolled = cmn.source(source) >> unrolled
-
-        if omit_latches:  # Omit latches from output.
-            latch_names = [timed_name(n, horizon) for n, _ in l_map.values()]
-            unrolled = unrolled >> cmn.sink(latch_names)
-
-        if only_last_outputs:  # Only keep the time step's output.
-            odrop = fn.lfilter(
-                lambda o: int(o.split('##time_')[1]) < horizon,
-                unrolled.outputs
-            )
-            unrolled = unrolled >> cmn.sink(odrop)
-
-        return unrolled
+        return A.Unrolled(
+            self, horizon, init, omit_latches, only_last_outputs
+        ).aig
 
     def write(self, path):
         with open(path, 'w') as f:
@@ -375,36 +323,11 @@ class AIG:
 
 
 def par_compose(aig1, aig2, check_precondition=True):
-    return (aig1.lazy_aig | aig2).aig
+    return A.Parallel(aig1, aig2).aig
 
 
 def seq_compose(circ1, circ2, *, input_kind=Input):
-    interface = circ1.outputs & circ2.inputs
-    assert not (circ1.outputs - interface) & circ2.outputs
-    assert not circ1.latches & circ2.latches
-
-    passthrough = {
-        k: v for k, v in circ1.node_map.items() if k not in interface
-    }
-
-    circ3 = circ2
-    for mapping in [circ1.node_map, circ1.latch_map]:
-        lookup = dict(mapping)
-
-        def sub(node):
-            if isinstance(node, input_kind):
-                return lookup.get(node.name, node)
-            return node
-
-        circ3 = circ3._modify_leafs(sub)
-
-    return AIG(
-        inputs=circ1.inputs | (circ2.inputs - interface),
-        latch_map=circ1.latch_map | circ3.latch_map,
-        latch2init=circ1.latch2init | circ2.latch2init,
-        node_map=circ3.node_map + passthrough,
-        comments=circ1.comments + circ2.comments
-    )
+    return A.Cascading(circ1, circ2).aig
 
 
 def to_aig(circ, *, allow_lazy=False) -> AIG:

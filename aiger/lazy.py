@@ -6,10 +6,11 @@ Graphs.
 from __future__ import annotations
 
 from typing import (Union, FrozenSet, Callable, Iterator, Tuple,
-                    Mapping, Sequence)
+                    Mapping, Sequence, Optional)
 
 import attr
 import funcy as fn
+from bidict import bidict
 from pyrsistent import pmap
 from pyrsistent.typing import PMap
 
@@ -74,7 +75,6 @@ class LazyAIG:
     @property
     def aig(self) -> AIG:
         """Return's flattened AIG represented by this LazyAIG."""
-
         false = NodeAlgebra(ConstFalse())
         inputs = {i: Input(i) for i in self.inputs}
         latches = {i: LatchIn(i) for i in self.latches}
@@ -425,4 +425,368 @@ def project(mapping, keys):
     return fn.project(dict(mapping), keys)
 
 
-__all__ = ['lazy', 'LazyAIG']
+@attr.s(frozen=True, auto_attribs=True)
+class Parallel:
+    left: AIG_Like
+    right: AIG_Like
+
+    aig = LazyAIG.aig
+
+    def __call__(self, inputs, latches=None, *, lift=None):
+        out_l, lmap_l = self.left(inputs, latches=latches, lift=lift)
+        out_r, lmap_r = self.right(inputs, latches=latches, lift=lift)
+        return fn.merge(out_l, out_r), fn.merge(lmap_l, lmap_r)
+
+    def _merge_maps(self, key):
+        map1, map2 = [pmap(getattr(c, key)) for c in (self.left, self.right)]
+        return map1 + map2
+    
+    @property
+    def latch2init(self):
+        return self._merge_maps('latch2init')
+
+    @property
+    def inputs(self):
+        return self.left.inputs | self.right.inputs
+
+    @property
+    def outputs(self):
+        return self.left.outputs | self.right.outputs
+
+    @property
+    def latches(self):
+        return frozenset(self.latch2init.keys())
+
+    @property
+    def lazy_aig(self):
+        return self
+
+    @property
+    def comments(self):
+        return self.left.comments + self.right.comments
+
+
+@attr.s(frozen=True, auto_attribs=True)
+class Wire:
+    input: str
+    output: str
+    latch: str
+    keep_output: bool = True
+    init: bool = True
+
+
+def convert_wirings(wirings):
+    for wire in wirings:
+        wire.setdefault('latch', wire['input'])
+
+    return tuple(Wire(**w) for w in wirings)
+
+
+@attr.s(frozen=True, auto_attribs=True)
+class LoopBack:
+    circ: AIG_Like
+    wirings: Sequence[Wire] = attr.ib(converter=convert_wirings)
+
+    aig = LazyAIG.aig
+
+    def __call__(self, inputs, latches=None, *, lift=None):
+        if latches is None:
+            latches = pmap()
+        latches = dict(self.latch2init + latches)  # Override initial values.
+
+        for wire in self.wirings:
+            inputs[wire.input] = latches[wire.latch]
+            del latches[wire.latch]
+
+        omap, lmap = self.circ(inputs, latches=latches, lift=lift)
+
+        for wire in self.wirings:
+            out, latch = wire.output, wire.latch
+            lmap[latch] = omap[out]
+            if not wire.keep_output:
+                del omap[out]
+
+        return omap, lmap
+
+    @property
+    def latch2init(self):
+        latch2init = pmap(self.circ.latch2init).evolver()
+        for wire in self.wirings:
+            latch2init[wire.latch] = wire.init
+        return latch2init.persistent()
+
+    @property
+    def inputs(self):
+        return self.circ.inputs - {w.input for w in self.wirings}
+
+    @property
+    def outputs(self):
+        omitted = {w.output for w in self.wirings if not w.keep_output}
+        return self.circ.outputs - omitted
+
+    @property
+    def latches(self):
+        return frozenset(self.latch2init.keys())
+
+    @property
+    def lazy_aig(self):
+        return self
+
+    @property
+    def comments(self):
+        return self.circ.comments
+
+
+def convert_renamer(renamer):
+    if renamer is None:
+        def renamer(*_):
+            return A.common._fresh()
+    return fn.memoize(renamer)
+
+
+@attr.s(frozen=True, auto_attribs=True)
+class CutLatches:
+    circ: AIG_Like
+    renamer: Callable[[str], str] = attr.ib(converter=convert_renamer)
+    cut: Union[FrozenSet[str]] = None
+
+    aig = LazyAIG.aig
+
+    def __call__(self, inputs, latches=None, *, lift=None):
+        if latches is None:
+            latches = pmap()
+        latches = dict(self.latch2init + latches)  # Override initial values.
+
+        for latch in self.cut_latches:
+            new_name = self.renamer(latch)
+            latches[latch] = inputs[new_name]
+            del inputs[new_name]
+
+        omap, lmap = self.circ(inputs, latches=latches, lift=lift)
+
+        for latch in self.cut_latches:
+            new_name = self.renamer(latch)
+            omap[new_name] = lmap[latch]
+            del lmap[latch]
+
+        return omap, lmap
+
+    @property
+    def cut_latches(self):
+        return self.circ.latches if (self.cut is None) else self.cut
+
+    @property
+    def latch2init(self):
+        return pmap(omit(self.circ.latch2init, self.cut_latches))
+
+    @property
+    def inputs(self):
+        return self.circ.inputs | set(map(self.renamer, self.cut_latches))
+
+    @property
+    def outputs(self):
+        return self.circ.outputs | set(map(self.renamer, self.cut_latches))
+
+    @property
+    def latches(self):
+        return frozenset(self.latch2init.keys())
+
+    @property
+    def lazy_aig(self):
+        return self
+
+    @property
+    def comments(self):
+        return self.circ.comments
+
+
+@attr.s(frozen=True, auto_attribs=True)
+class Cascading:
+    left: AIG_Like
+    right: AIG_Like
+
+    aig = LazyAIG.aig
+
+    def __call__(self, inputs, latches=None, *, lift=None):
+        inputs_l = project(inputs, self.left.inputs)
+        omap_l, lmap_l = self.left(inputs_l, latches=latches, lift=lift)
+
+        inputs_r = project(inputs, self.right.inputs)
+        inputs_r.update(omap_l)  # <--- Cascade setup happens here.
+        omap_l = omit(omap_l, self._interface)
+
+        omap_r, lmap_r = self.right(inputs_r, latches=latches, lift=lift)
+        return fn.merge(omap_l, omap_r), fn.merge(lmap_l, lmap_r)
+
+    def _merge_maps(self, key):
+        map1, map2 = [pmap(getattr(c, key)) for c in (self.left, self.right)]
+        return map1 + map2
+
+    @property
+    def latch2init(self):
+        return self._merge_maps('latch2init')
+
+    @property
+    def _interface(self):
+        return self.left.outputs & self.right.inputs
+
+    @property
+    def inputs(self):
+        return self.left.inputs | (self.right.inputs - self._interface)
+
+    @property
+    def outputs(self):
+        return self.right.outputs | (self.left.outputs - self._interface)
+
+    @property
+    def latches(self):
+        return frozenset(self.latch2init.keys())
+
+    @property
+    def lazy_aig(self):
+        return self
+
+    @property
+    def comments(self):
+        return self.left.comments + self.right.comments
+
+
+def _relabel_map(relabels, mapping):
+    return pmap(walk_keys(lambda x: relabels.get(x, x), mapping))
+
+
+@attr.s(frozen=True, auto_attribs=True)
+class Relabeled:
+    circ: AIG_Like
+    input_relabels: PMap[str, str] = pmap()
+    latch_relabels: PMap[str, str] = pmap()
+    output_relabels: PMap[str, str] = pmap()
+
+    aig = LazyAIG.aig
+
+    def __call__(self, inputs, latches=None, *, lift=None):
+        if latches is None:
+            latches = pmap()
+        latches = dict(self.latch2init + latches)  # Override initial values.
+        
+        new2old_i = bidict(self.input_relabels).inv
+        new2old_l = bidict(self.input_relabels).inv
+        inputs = _relabel_map(new2old_i, inputs)
+        latches = _relabel_map(new2old_l, latches)
+
+        omap, lmap = self.circ(inputs, latches=latches, lift=lift)
+        
+        omap = _relabel_map(self.output_relabels, omap)
+        lmap = _relabel_map(self.latch_relabels, lmap)
+        return omap, lmap
+
+    @property
+    def latch2init(self):
+        return _relabel_map(self.latch_relabels, self.circ.latch2init)
+
+    @property
+    def inputs(self):
+        old_inputs = self.circ.inputs
+        return frozenset(self.input_relabels.get(i, i) for i in old_inputs)
+
+    @property
+    def outputs(self):
+        old_output = self.circ.outputs
+        return frozenset(self.output_relabels.get(i, i) for i in old_outputs)
+
+    @property
+    def latches(self):
+        return frozenset(self.latch2init.keys())
+
+    @property
+    def lazy_aig(self):
+        return self
+
+    @property
+    def comments(self):
+        return self.circ.comments
+
+
+@attr.s(frozen=True, auto_attribs=True)
+class Unrolled:
+    circ: AIG_Like
+    horizon: int
+    init: bool = True
+    omit_latches: bool = True
+    only_last_outputs: bool = False
+
+    aig = LazyAIG.aig
+
+    def __call__(self, inputs, latches=None, *, lift=None):
+        circ, omit_latches, init = self.circ, self.omit_latches, self.init
+        horizon, only_last_outputs = self.horizon, self.only_last_outputs
+        
+        if not omit_latches:
+            assert (circ.latches & circ.outputs) == set()
+
+        if not init:
+            assert (circ.latches & circ.inputs) == set()
+
+        latches = circ.latch2init if init else project(inputs, circ.inputs)
+        if init:
+            inputs = omit(inputs, circ.inputs)
+
+        outputs = {}
+        for time in range(horizon):
+            omap, latches = circ(
+                inputs={i: inputs[f'{i}##time_{time}'] for i in circ.inputs},
+                latches=latches,
+                lift=lift
+            )
+
+            if (not only_last_outputs) or (time + 1 == horizon):
+                template = '{}' + f'##time_{time + 1}'
+                outputs.update(walk_keys(template.format, omap))
+
+                if not self.omit_latches:
+                    outputs.update(walk_keys(template.format, latches))
+
+        return outputs, latches
+            
+
+    @property
+    def latch2init(self):
+        return pmap()
+
+    def __with_times(self, keys, times):
+        for time in times:
+            template = '{}' + f'##time_{time}'
+            yield from map(template.format, keys)
+
+    def _with_times(self, keys, times):
+        return frozenset(self.__with_times(keys, times))
+
+    @property
+    def inputs(self):
+        base = set() if self.init else self.circ.latches
+        base |= self.circ.inputs
+        return self._with_times(base, times=range(self.horizon))
+
+    @property
+    def outputs(self):
+        start = horizon if self.only_last_outputs else 0
+        base = set() if self.omit_latches else self.circ.latches
+        base |= self.circ.outputs
+        return self._with_times(base, times=range(start, self.horizon + 1))
+
+    @property
+    def latches(self):
+        return frozenset(self.latch2init.keys())
+
+    @property
+    def lazy_aig(self):
+        return self
+
+    @property
+    def comments(self):
+        return self.circ.comments
+
+
+
+__all__ = ['lazy', 'LazyAIG', 'Parallel', 'LoopBack', 'CutLatches', 'Cascading',
+           'Relabeled', 'Unrolled']
