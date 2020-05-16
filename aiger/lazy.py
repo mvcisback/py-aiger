@@ -5,6 +5,7 @@ Graphs.
 
 from __future__ import annotations
 
+from abc import ABCMeta, abstractmethod
 from typing import (Union, FrozenSet, Callable, Iterator, Tuple,
                     Mapping, Sequence, Optional)
 
@@ -15,7 +16,7 @@ from pyrsistent import pmap
 from pyrsistent.typing import PMap
 
 import aiger as A
-from aiger.aig import AIG, Node, Shim, Input, AndGate, LatchIn
+from aiger.aig import AIG, Node, Input, AndGate, LatchIn
 from aiger.aig import ConstFalse, Inverter, _is_const_true
 
 
@@ -42,31 +43,36 @@ class NodeAlgebra:
 
 
 @attr.s(frozen=True, auto_attribs=True)
-class LazyAIG:
-    iter_nodes: Callable[[], Iterator[Iterator[Node]]]
+class LazyAIG(metaclass=ABCMeta):
+    @abstractmethod
+    def __call__(self, inputs, latches=None, *, lift=None):
+        pass
 
-    inputs: FrozenSet[str] = attr.ib(default=frozenset(), converter=frozenset)
-    latch2init: PMap[str, bool] = attr.ib(default=pmap(), converter=pmap)
+    @property
+    @abstractmethod
+    def latch2init(self):
+        pass
 
-    # Note: Unlike in aig.AIG, here Nodes **only** serve as keys.
-    node_map: PMap[str, Node] = attr.ib(default=pmap(), converter=pmap)
-    latch_map: PMap[str, Node] = attr.ib(default=pmap(), converter=pmap)
-    comments: Sequence[str] = attr.ib(default=(), converter=tuple)
+    @property
+    @abstractmethod
+    def inputs(self):
+        pass
 
-    __call__ = AIG.__call__
+    @property
+    @abstractmethod
+    def outputs(self):
+        pass
+
+    @property
+    @abstractmethod
+    def comments(self):
+        pass
+
     relabel = AIG.relabel
 
     @property
-    def __iter_nodes__(self) -> Callable[[], Sequence[Sequence[Node]]]:
-        return self.iter_nodes
-
-    @property
-    def outputs(self) -> FrozenSet[str]:
-        return frozenset(self.node_map.keys())
-
-    @property
     def latches(self) -> FrozenSet[str]:
-        return frozenset(self.latch_map.keys())
+        return frozenset(self.latch2init.keys())
 
     @property
     def lazy_aig(self) -> LazyAIG:
@@ -99,33 +105,7 @@ class LazyAIG:
 
     def __rshift__(self, other: AIG_Like) -> LazyAIG:
         """Cascading composition. Feeds self into other."""
-        other = lazy(other)
-        interface = self.outputs & other.inputs
-        assert not (self.outputs - interface) & other.outputs
-        assert not self.latches & other.latches
-
-        passthrough = omit(self.node_map, interface)
-
-        def iter_nodes():
-            yield from self.__iter_nodes__()
-
-            def add_shims(node_batch):
-                for node in node_batch:
-                    if isinstance(node, Input) and (node.name in interface):
-                        yield Shim(new=node, old=self.node_map[node.name])
-                    else:
-                        yield node
-
-            yield from map(add_shims, other.__iter_nodes__())
-
-        return LazyAIG(
-            inputs=self.inputs | (other.inputs - interface),
-            latch_map=self.latch_map + other.latch_map,
-            latch2init=self.latch2init + other.latch2init,
-            node_map=other.node_map + passthrough,
-            iter_nodes=iter_nodes,
-            comments=self.comments + other.comments,
-        )
+        return Cascading(self, other)
 
     def __lshift__(self, other: AIG_Like) -> LazyAIG:
         """Cascading composition. Feeds other into self."""
@@ -133,33 +113,9 @@ class LazyAIG:
 
     def __or__(self, other: AIG_Like) -> LazyAIG:
         """Parallel composition between self and other."""
-        other = lazy(other)
         assert not self.latches & other.latches
         assert not self.outputs & other.outputs
-
-        def iter_nodes():
-            seen = set()  # which inputs have already been emitted.
-
-            def filter_seen(node_batch):
-                nonlocal seen
-                for node in node_batch:
-                    if node in seen:
-                        continue
-                    elif isinstance(node, Input):
-                        seen.add(node)
-                    yield node
-
-            batches = fn.chain(self.__iter_nodes__(), other.__iter_nodes__())
-            yield from map(filter_seen, batches)
-
-        return LazyAIG(
-            inputs=self.inputs | other.inputs,
-            latch_map=self.latch_map + other.latch_map,
-            latch2init=self.latch2init + other.latch2init,
-            node_map=self.node_map + other.node_map,
-            iter_nodes=iter_nodes,
-            comments=self.comments + other.comments,
-        )
+        return Parallel(self, other)
 
     def cutlatches(self, latches=None, renamer=None) -> Tuple[LazyAIG, Labels]:
         """Returns LazyAIG where the latches specified
@@ -169,56 +125,7 @@ class LazyAIG:
         - `renamer`: is a function from strings to strings which
            determines how to rename latches to avoid name collisions.
         """
-        if latches is None:
-            latches = self.latches
-        assert latches <= self.latches
-
-        if renamer is None:
-            def renamer(_):
-                return A.common._fresh()
-
-        l_map = {
-            n: (renamer(n), init) for (n, init) in self.latch2init.items()
-            if n in latches
-        }
-
-        assert len(
-            set(fn.pluck(0, l_map.values())) & (self.inputs | self.outputs)
-        ) == 0
-
-        latch_map = omit(self.latch_map, latches)
-        latch2init = omit(self.latch2init, latches)
-
-        # Rename cut latches and add to node_map and inputs.
-        renamed_node_map = walk_keys(
-            lambda k: l_map[k][0],
-            project(self.latch_map, latches)
-        )
-        new_inputs = set(renamed_node_map.keys())
-
-        assert (self.inputs & new_inputs) == set()
-
-        inputs = self.inputs | new_inputs
-        node_map = self.node_map + renamed_node_map
-
-        def iter_nodes():
-            def cut_latches(node_batch):
-                for node in node_batch:
-                    if isinstance(node, LatchIn) and node.name in latches:
-                        node2 = Input(l_map[node.name][0])
-                        yield node2
-                        yield Shim(new=node, old=node2)
-                    else:
-                        yield node
-
-            return map(cut_latches, self.__iter_nodes__())
-
-        circ = LazyAIG(
-            inputs=inputs, node_map=node_map, latch_map=latch_map,
-            latch2init=latch2init, iter_nodes=iter_nodes,
-            comments=self.comments,
-        )
-        return circ, l_map
+        return Cutlatches(self, renamer=renamer, latches=latches)
 
     def loopback(self, *wirings) -> LazyAIG:
         """Returns result of feeding outputs specified in `*wirings` to
@@ -235,46 +142,7 @@ class LazyAIG:
               'keep_output': bool,  # whether output is consumed by feedback.
             }
         """
-        for wire in wirings:
-            wire.setdefault('latch', wire['input'])
-            wire.setdefault('init', False)
-            wire.setdefault('keep_output', True)
-
-        in2wire = {w['input']: w for w in wirings}
-        out2wire = {w['output']: w for w in wirings}
-        latch2wire = {w['latch']: w for w in wirings}
-        assert len(in2wire) == len(latch2wire) == len(wirings)
-        assert (self.latches & set(latch2wire.keys())) == set()
-
-        latch2init = {k: v['init'] for k, v in latch2wire.items()}
-        latch2init = self.latch2init + latch2init
-
-        latch_map = project(self.node_map, out2wire.keys())
-        latch_map = walk_keys(lambda k: out2wire[k]['latch'], latch_map)
-        latch_map = self.latch_map + latch_map
-
-        dropped = {k for k, w in out2wire.items() if not w['keep_output']}
-        node_map = omit(self.node_map, dropped)
-
-        inputs = self.inputs - set(in2wire.keys())
-
-        def iter_nodes():
-            def latch_inputs(node_batch):
-                for node in node_batch:
-                    if not (isinstance(node, Input) and node.name in in2wire):
-                        yield node
-                    else:
-                        wire = in2wire[node.name]
-                        node2 = LatchIn(wire['latch'])
-                        yield node2
-                        yield Shim(new=node, old=node2)
-
-            yield from map(latch_inputs, self.__iter_nodes__())
-
-        return LazyAIG(
-            inputs=inputs, node_map=node_map, iter_nodes=iter_nodes,
-            latch_map=latch_map, latch2init=latch2init, comments=self.comments
-        )
+        return Loopback(self, wirings=wirings)
 
     def unroll(self, horizon, *, init=True, omit_latches=True,
                only_last_outputs=False) -> LazyAIG:
@@ -285,66 +153,8 @@ class LazyAIG:
         Each input/output has `##time_{time}` appended to it to
         distinguish different time steps.
         """
-        circ = lazy(self.aig)                   # Make single node_batch.
-
-        if not omit_latches:
-            assert (circ.latches & circ.outputs) == set()
-
-        if not init:
-            assert (circ.latches & circ.inputs) == set()
-
-        inputs, node_map = set(), pmap()        # Get timed inputs/outputs.
-        for t in range(horizon):
-            inputs |= {f'{i}##time_{t}' for i in circ.inputs}
-
-            if only_last_outputs and (t != horizon - 1):
-                continue
-
-            tmp = circ.node_map.items()
-            if not omit_latches:
-                tmp = fn.chain(tmp, circ.latch_map.items())
-
-            node_map += {f'{k}##time_{t+1}': (t, v) for k, v in tmp}
-
-        latch_map = dict(circ.latch_map)  # TODO: remove when latch_map: dict.
-        boundary = set(circ.node_map.values())
-        if not omit_latches:
-            boundary |= set(latch_map.values())
-
-        def iter_nodes():
-            @fn.curry
-            def timed_iter(time, node_batch):
-                for node in node_batch:
-                    if isinstance(node, Input):
-                        node2 = Input(f"{node.name}##time_{time}")
-                        yield from [node2, Shim(new=node, old=node2)]
-                    elif isinstance(node, LatchIn):
-                        if time > 0:
-                            node2 = (time - 1, latch_map[node.name])
-                        elif init:  # yield constant.
-                            node2 = ConstFalse()
-                            yield node2
-
-                            if self.latch2init[node.name]:
-                                node2 = Inverter(node2)
-                                yield node2
-                        else:  # Turn Initial Latch into input.
-                            assert time == 0
-                            node2 = Input(f"{node.name}##time_{0}")
-                            yield node2
-                        yield Shim(new=node, old=node2)
-                    else:
-                        yield node
-
-                    if node in boundary:  # This is an eventual output.
-                        yield Shim(new=(time, node), old=node)
-
-            for time in range(horizon):
-                yield from map(timed_iter(time), circ.__iter_nodes__())
-
-        return LazyAIG(
-            inputs=inputs, node_map=node_map, iter_nodes=iter_nodes,
-            comments=circ.comments
+        return A.Unrolled(
+            self, horizon, init, omit_latches, only_last_outputs
         )
 
     def __getitem__(self, others):
@@ -360,57 +170,18 @@ class LazyAIG:
         """
         assert isinstance(others, tuple) and len(others) == 2
         kind, relabels = others
+        assert kind in {'i', 'o', 'l'}
+        key = {
+            'i': 'input_relabels',
+            'l': 'latch_relabels',
+            'o': 'output_relabels',
+        }.get(kind)
 
-        if kind == 'i':
-            relabels_ = {v: [k] for k, v in relabels.items()}
-            return lazy(A.tee(relabels_)) >> self
-
-        def relabel(k):
-            return relabels.get(k, k)
-
-        if kind == 'o':
-            node_map = walk_keys(relabel, self.node_map)
-            return attr.evolve(self, node_map=node_map)
-
-        # Latches
-        assert kind == 'l'
-        latch_map = walk_keys(relabel, self.latch_map)
-        latch2init = walk_keys(relabel, self.latch2init)
-
-        def iter_nodes():
-            def rename_latches(node_batch):
-                for node in node_batch:
-                    if isinstance(node, LatchIn) and node.name in relabels:
-                        node2 = LatchIn(relabel(node.name))
-                        yield node2
-                        yield Shim(new=node, old=node2)
-                    else:
-                        yield node
-
-            return map(rename_latches, self.__iter_nodes__())
-
-        return attr.evolve(
-            self,
-            latch_map=latch_map,
-            latch2init=latch2init,
-            iter_nodes=iter_nodes
-        )
+        return A.Relabeled(self, **{key: relabels})
 
 
 AIG_Like = Union[AIG, LazyAIG]
 Labels = Mapping[str, str]
-
-
-def lazy(circ: Union[AIG, LazyAIG]) -> LazyAIG:
-    """Lifts AIG to a LazyAIG."""
-    return LazyAIG(
-        inputs=circ.inputs,
-        latch_map=pmap(circ.latch_map),
-        node_map=pmap(circ.node_map),
-        latch2init=pmap(circ.latch2init),
-        iter_nodes=circ.__iter_nodes__,
-        comments=circ.comments,
-    )
 
 
 def walk_keys(func, mapping):
@@ -426,11 +197,9 @@ def project(mapping, keys):
 
 
 @attr.s(frozen=True, auto_attribs=True)
-class Parallel:
+class Parallel(LazyAIG):
     left: AIG_Like
     right: AIG_Like
-
-    aig = LazyAIG.aig
 
     def __call__(self, inputs, latches=None, *, lift=None):
         out_l, lmap_l = self.left(inputs, latches=latches, lift=lift)
@@ -454,14 +223,6 @@ class Parallel:
         return self.left.outputs | self.right.outputs
 
     @property
-    def latches(self):
-        return frozenset(self.latch2init.keys())
-
-    @property
-    def lazy_aig(self):
-        return self
-
-    @property
     def comments(self):
         return self.left.comments + self.right.comments
 
@@ -483,11 +244,9 @@ def convert_wirings(wirings):
 
 
 @attr.s(frozen=True, auto_attribs=True)
-class LoopBack:
+class LoopBack(LazyAIG):
     circ: AIG_Like
     wirings: Sequence[Wire] = attr.ib(converter=convert_wirings)
-
-    aig = LazyAIG.aig
 
     def __call__(self, inputs, latches=None, *, lift=None):
         if latches is None:
@@ -525,14 +284,6 @@ class LoopBack:
         return self.circ.outputs - omitted
 
     @property
-    def latches(self):
-        return frozenset(self.latch2init.keys())
-
-    @property
-    def lazy_aig(self):
-        return self
-
-    @property
     def comments(self):
         return self.circ.comments
 
@@ -545,12 +296,10 @@ def convert_renamer(renamer):
 
 
 @attr.s(frozen=True, auto_attribs=True)
-class CutLatches:
+class CutLatches(LazyAIG):
     circ: AIG_Like
     renamer: Callable[[str], str] = attr.ib(converter=convert_renamer)
     cut: Union[FrozenSet[str]] = None
-
-    aig = LazyAIG.aig
 
     def __call__(self, inputs, latches=None, *, lift=None):
         if latches is None:
@@ -588,24 +337,14 @@ class CutLatches:
         return self.circ.outputs | set(map(self.renamer, self.cut_latches))
 
     @property
-    def latches(self):
-        return frozenset(self.latch2init.keys())
-
-    @property
-    def lazy_aig(self):
-        return self
-
-    @property
     def comments(self):
         return self.circ.comments
 
 
 @attr.s(frozen=True, auto_attribs=True)
-class Cascading:
+class Cascading(LazyAIG):
     left: AIG_Like
     right: AIG_Like
-
-    aig = LazyAIG.aig
 
     def __call__(self, inputs, latches=None, *, lift=None):
         inputs_l = project(inputs, self.left.inputs)
@@ -639,14 +378,6 @@ class Cascading:
         return self.right.outputs | (self.left.outputs - self._interface)
 
     @property
-    def latches(self):
-        return frozenset(self.latch2init.keys())
-
-    @property
-    def lazy_aig(self):
-        return self
-
-    @property
     def comments(self):
         return self.left.comments + self.right.comments
 
@@ -656,21 +387,20 @@ def _relabel_map(relabels, mapping):
 
 
 @attr.s(frozen=True, auto_attribs=True)
-class Relabeled:
+class Relabeled(LazyAIG):
     circ: AIG_Like
     input_relabels: PMap[str, str] = pmap()
     latch_relabels: PMap[str, str] = pmap()
     output_relabels: PMap[str, str] = pmap()
 
-    aig = LazyAIG.aig
-
     def __call__(self, inputs, latches=None, *, lift=None):
         if latches is None:
             latches = pmap()
+
         latches = dict(self.latch2init + latches)  # Override initial values.
-        
+
         new2old_i = bidict(self.input_relabels).inv
-        new2old_l = bidict(self.input_relabels).inv
+        new2old_l = bidict(self.latch_relabels).inv
         inputs = _relabel_map(new2old_i, inputs)
         latches = _relabel_map(new2old_l, latches)
 
@@ -691,16 +421,8 @@ class Relabeled:
 
     @property
     def outputs(self):
-        old_output = self.circ.outputs
+        old_outputs = self.circ.outputs
         return frozenset(self.output_relabels.get(i, i) for i in old_outputs)
-
-    @property
-    def latches(self):
-        return frozenset(self.latch2init.keys())
-
-    @property
-    def lazy_aig(self):
-        return self
 
     @property
     def comments(self):
@@ -708,14 +430,12 @@ class Relabeled:
 
 
 @attr.s(frozen=True, auto_attribs=True)
-class Unrolled:
+class Unrolled(LazyAIG):
     circ: AIG_Like
     horizon: int
     init: bool = True
     omit_latches: bool = True
     only_last_outputs: bool = False
-
-    aig = LazyAIG.aig
 
     def __call__(self, inputs, latches=None, *, lift=None):
         circ, omit_latches, init = self.circ, self.omit_latches, self.init
@@ -747,7 +467,6 @@ class Unrolled:
                     outputs.update(walk_keys(template.format, latches))
 
         return outputs, latches
-            
 
     @property
     def latch2init(self):
@@ -775,17 +494,37 @@ class Unrolled:
         return self._with_times(base, times=range(start, self.horizon + 1))
 
     @property
-    def latches(self):
-        return frozenset(self.latch2init.keys())
+    def comments(self):
+        return self.circ.comments
+
+
+@attr.s(frozen=True, auto_attribs=True)
+class Lifted(LazyAIG):
+    circ: AIG_Like
+
+    def __call__(self, inputs, latches=None, *, lift=None):
+        return self.circ(inputs=inputs, latches=latches, lift=lift)
 
     @property
-    def lazy_aig(self):
-        return self
+    def latch2init(self):
+        return self.circ.latch2init
+
+    @property
+    def inputs(self):
+        return self.circ.inputs
+
+    @property
+    def outputs(self):
+        return self.circ.outputs
 
     @property
     def comments(self):
         return self.circ.comments
 
+
+def lazy(circ: Union[AIG, LazyAIG]) -> LazyAIG:
+    """Lifts AIG to a LazyAIG."""
+    return Lifted(circ)
 
 
 __all__ = ['lazy', 'LazyAIG', 'Parallel', 'LoopBack', 'CutLatches', 'Cascading',

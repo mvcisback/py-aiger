@@ -193,7 +193,6 @@ def dfs(circ, omit_visited=True):
     """Generates nodes via depth first traversal in pre-order."""
 
     def _dfs(node):
-        assert not isinstance(node, aig.Shim), "dfs does not support LazyAIGs."
         yield from fn.cat(map(_dfs, node.children))
         yield node
 

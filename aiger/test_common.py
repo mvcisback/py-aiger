@@ -2,6 +2,7 @@ import funcy as fn
 import hypothesis.strategies as st
 import pytest
 from hypothesis import given
+from bidict import bidict
 
 import aiger
 from aiger import hypothesis as aigh
@@ -157,6 +158,14 @@ def test_relabel(aag1):
 
     with pytest.raises(AssertionError):
         aag1['z', {}]
+
+
+@given(aigh.Circuits, st.sampled_from(['inputs', 'outputs', 'latches']))
+def test_relabel_undo_relabel(circ, kind):    
+    new_inputs = bidict({k: f'{k}#2' for k in getattr(circ, kind)})
+    key = kind[0]
+    circ2 = circ[key, new_inputs][key, new_inputs.inv]
+    assert circ == circ2
 
 
 @given(aigh.Circuits, st.data())

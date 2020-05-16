@@ -68,17 +68,11 @@ class ConstFalse(NamedTuple):
         return hash(False)
 
 
-@attr.s(frozen=True, slots=True, auto_attribs=True, cache_hash=True)
-class Shim:
-    old: 'Node'
-    new: 'Node'
-
-
 def _is_const_true(node):
     return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
 
 
-Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn, Shim]
+Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True, repr=False)
@@ -97,16 +91,7 @@ class AIG:
         return repr(self._to_aag())
 
     def __getitem__(self, others):
-        assert isinstance(others, tuple) and len(others) == 2
-        kind, relabels = others
-        assert kind in {'i', 'o', 'l'}
-        key = {
-            'i': 'input_relabels',
-            'l': 'latch_relabels',
-            'o': 'output_relabels',
-        }.get(kind)
-
-        return A.Relabeled(self, **{key: relabels}).aig
+        return A.lazy(self)[others].aig
 
     def __iter_nodes__(self):
         """Returns an iterator over iterators of nodes in an AIG.
@@ -195,9 +180,6 @@ class AIG:
                     mem[gate] = neg(mem[gate.input])
                 elif isinstance(gate, AndGate):
                     mem[gate] = and_(mem[gate.left], mem[gate.right])
-                elif isinstance(gate, Shim):
-                    mem[gate.new] = mem[gate.old]
-                    gate = gate.new         # gate.new could be the output.
                 elif isinstance(gate, Input):
                     mem[gate] = lift(inputs[gate.name])
                 elif isinstance(gate, LatchIn):
