@@ -2,6 +2,7 @@ import funcy as fn
 import hypothesis.strategies as st
 import pytest
 from hypothesis import given
+from bidict import bidict
 
 import aiger
 from aiger import hypothesis as aigh
@@ -159,6 +160,14 @@ def test_relabel(aag1):
         aag1['z', {}]
 
 
+@given(aigh.Circuits, st.sampled_from(['inputs', 'outputs', 'latches']))
+def test_relabel_undo_relabel(circ, kind):
+    new_inputs = bidict({k: f'{k}#2' for k in getattr(circ, kind)})
+    key = kind[0]
+    circ2 = circ[key, new_inputs][key, new_inputs.inv]
+    assert circ == circ2
+
+
 @given(aigh.Circuits, st.data())
 def test_cutlatches(aag1, data):
     aag2, lmap = aag1.cutlatches(aag1.latches)
@@ -168,7 +177,7 @@ def test_cutlatches(aag1, data):
     assert len(aag2.latches) == 0
 
     test_inputs = {i: data.draw(st.booleans()) for i in aag1.inputs}
-    test_latch_ins = {l: data.draw(st.booleans()) for l in aag1.latches}
+    test_latch_ins = {i: data.draw(st.booleans()) for i in aag1.latches}
     test_inputs2 = fn.merge(test_inputs,
                             {lmap[k][0]: v
                              for k, v in test_latch_ins.items()})
@@ -204,6 +213,32 @@ def test_unroll_simulate(aag1, horizon, data):
     sum1 = sum(sum(x.values()) for x, _ in aag1.simulate(test_inputs))
     sum2 = sum(aag2(fn.merge(*map(unroll_keys, test_inputs)))[0].values())
     assert sum1 == sum2
+
+
+@given(aigh.Circuits, st.data())
+def test_feedback_then_cut(circ, data):
+    def renamer(_):
+        return "##test"
+
+    wire = {
+        'input': fn.first(circ.inputs),
+        'output': fn.first(circ.outputs),
+        'keep_output': False,
+        'init': True,
+        'latch': '##test',
+    }
+    circ1 = circ.loopback(wire)
+    assert '##test' in circ1.latches
+    circ2 = circ1.cutlatches(latches={'##test'}, renamer=renamer)[0]
+    circ3 = circ2.relabel('input', {'##test': wire['input']}) \
+                 .relabel('output', {'##test': wire['output']})
+
+    assert circ3.inputs == circ.inputs
+    assert circ3.outputs == circ.outputs
+    assert circ3.latches == circ.latches
+
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ.inputs}
+    assert circ(test_input) == circ3(test_input)
 
 
 def test_eval_order_smoke():
@@ -247,3 +282,57 @@ def test_iter_nodes(circ):
     nodes = set(fn.cat(circ.__iter_nodes__()))
     assert set(circ.node_map.values()) <= nodes
     assert set(dict(circ.latch_map).values()) <= nodes
+
+
+def assert_sample_equiv(circ1, circ2, data):
+    assert circ1.inputs == circ2.inputs
+    assert circ1.outputs == circ2.outputs
+    assert circ1.latches == circ2.latches
+
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ1.inputs}
+    assert circ1(test_input) == circ2(test_input)
+
+
+def fresh_io(circ):
+    _fresh = common._fresh
+    return circ.relabel('input', {i: _fresh() for i in circ.inputs}) \
+               .relabel('output', {o: _fresh() for o in circ.outputs})
+
+
+@given(aigh.Circuits, aigh.Circuits, st.data())
+def test_seq_compose(circ1, circ2, data):
+    circ1, circ2 = map(fresh_io, (circ1, circ2))
+
+    # 1. Check >> same as eager | on disjoint interfaces.
+    assert_sample_equiv(circ1 | circ2, circ1 >> circ2, data)
+
+    # 2. Force common interface.
+    circ1 = circ1['o', {fn.first(circ1.outputs): '##test'}]
+    circ2 = circ2['i', {fn.first(circ2.inputs): '##test'}]
+
+    # Compose and check sample equivilence.
+    circ12 = circ1 >> circ2
+
+    assert (circ1.latches | circ2.latches) == circ12.latches
+    assert circ1.inputs <= circ12.inputs
+    assert circ2.outputs <= circ12.outputs
+    assert '##test' not in circ12.inputs
+    assert '##test' not in circ12.outputs
+
+    # 3. Check cascading inputs work as expected.
+    test_input1 = {f'{i}': data.draw(st.booleans()) for i in circ1.inputs}
+    test_input2 = {f'{i}': data.draw(st.booleans()) for i in circ2.inputs}
+
+    omap1, lmap1 = circ1(test_input1)
+    test_input2['##test'] = omap1['##test']
+    omap2, lmap2 = circ2(test_input2)
+
+    # 3a. Combine outputs/latch outs.
+    omap12_expected = fn.merge(fn.omit(omap1, '##test'), omap2)
+    lmap12_expected = fn.merge(lmap1, lmap2)
+
+    test_input12 = fn.merge(test_input1, test_input2)
+    omap12, lmap12 = circ12(test_input12)
+
+    assert lmap12 == lmap12_expected
+    assert omap12 == omap12_expected

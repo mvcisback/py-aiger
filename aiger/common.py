@@ -155,9 +155,9 @@ def delay(inputs, initials, latches=None, outputs=None):
     _latches = map(aig.LatchIn, latches)
     return aig.AIG(
         inputs=frozenset(inputs),
-        latch_map=frozenset(zip(latches, _inputs)),
-        latch2init=frozenset(zip(latches, initials)),
-        node_map=frozenset(zip(outputs, _latches)),
+        latch_map=zip(latches, _inputs),
+        latch2init=zip(latches, initials),
+        node_map=zip(outputs, _latches),
     )
 
 
@@ -193,7 +193,6 @@ def dfs(circ, omit_visited=True):
     """Generates nodes via depth first traversal in pre-order."""
 
     def _dfs(node):
-        assert not isinstance(node, aig.Shim), "dfs does not support LazyAIGs."
         yield from fn.cat(map(_dfs, node.children))
         yield node
 
