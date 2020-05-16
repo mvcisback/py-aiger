@@ -161,7 +161,7 @@ def test_relabel(aag1):
 
 
 @given(aigh.Circuits, st.sampled_from(['inputs', 'outputs', 'latches']))
-def test_relabel_undo_relabel(circ, kind):    
+def test_relabel_undo_relabel(circ, kind):
     new_inputs = bidict({k: f'{k}#2' for k in getattr(circ, kind)})
     key = kind[0]
     circ2 = circ[key, new_inputs][key, new_inputs.inv]

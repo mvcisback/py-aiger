@@ -1,11 +1,16 @@
+"""
+Abstractions for compositions/manipulations of And Inverter Graphs.
+"""
+
+from __future__ import annotations
+
+from abc import ABCMeta, abstractmethod
 import operator as op
 import pathlib
-from functools import reduce
-from typing import Tuple, FrozenSet, NamedTuple, Union
+from typing import Tuple, FrozenSet
 
 import attr
 import funcy as fn
-from bidict import bidict
 from pyrsistent import pmap
 
 import aiger as A
@@ -13,16 +18,40 @@ from aiger import common as cmn
 from aiger import parser
 
 
-def timed_name(name, time):
-    return f"{name}##time_{time}"
+@attr.s(frozen=True, auto_attribs=True)
+class Node(metaclass=ABCMeta):
+    def __and__(self, other: Node) -> Node:
+        if self.is_false or other.is_false:
+            return ConstFalse()
+        elif self.is_true:
+            return other
+        elif other.is_true:
+            return self
+        return AndGate(self, other)
+
+    def __invert__(self) -> Node:
+        if isinstance(self, Inverter):
+            return self.input
+        return Inverter(self)
+
+    @property
+    def is_false(self):
+        return isinstance(self, ConstFalse)
+
+    @property
+    def is_true(self):
+        return (~self).is_false
+
+    @property
+    @abstractmethod
+    def children(self):
+        pass
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True, cache_hash=True)
-class AndGate:
-    left: 'Node'                # TODO: replace with Node once 3.7 lands.
-    right: 'Node'
-
-    _replace = attr.evolve      # Backwards compat with NamedTuple code.
+class AndGate(Node):
+    left: Node
+    right: Node
 
     @property
     def children(self):
@@ -30,19 +59,16 @@ class AndGate:
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True, cache_hash=True)
-class Inverter:
-    input: 'Node'
-
-    _replace = attr.evolve      # Backwards compat with NamedTuple code.
+class Inverter(Node):
+    input: Node
 
     @property
     def children(self):
         return (self.input, )
 
 
-# Enables filtering for Input via lens library.
 @attr.s(frozen=True, slots=True, auto_attribs=True)
-class Input:
+class Input(Node):
     name: str
 
     @property
@@ -51,7 +77,7 @@ class Input:
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
-class LatchIn:
+class LatchIn(Node):
     name: str
 
     @property
@@ -59,20 +85,14 @@ class LatchIn:
         return ()
 
 
-class ConstFalse(NamedTuple):
+@attr.s(frozen=True, slots=True, auto_attribs=True)
+class ConstFalse(Node):
     @property
     def children(self):
         return ()
 
     def __hash__(self):
         return hash(False)
-
-
-def _is_const_true(node):
-    return isinstance(node, Inverter) and isinstance(node.input, ConstFalse)
-
-
-Node = Union[AndGate, ConstFalse, Inverter, Input, LatchIn]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True, repr=False)
@@ -91,7 +111,7 @@ class AIG:
         return repr(self._to_aag())
 
     def __getitem__(self, others):
-        return A.lazy(self)[others].aig
+        return self.lazy_aig[others].aig
 
     def __iter_nodes__(self):
         """Returns an iterator over iterators of nodes in an AIG.
@@ -206,102 +226,37 @@ class AIG:
         return [sim.send(inputs) for inputs in input_seq]
 
     def cutlatches(self, latches=None, check_postcondition=True, renamer=None):
-        lcirc = A.CutLatches(self, cut=latches, renamer=renamer)
-
-        l2init = dict(self.latch2init)
-        lmap = {l: (lcirc.renamer(l), l2init[l]) for l in lcirc.cut_latches}
+        lcirc, lmap = self.lazy_aig.cutlatches(latches, renamer=renamer)
         return lcirc.aig, lmap
 
     def loopback(self, *wirings):
-        return A.LoopBack(self, wirings).aig
+        return self.lazy_aig.loopback(*wirings).aig
 
     def feedback(
         self, inputs, outputs, initials=None, latches=None, keep_outputs=False
     ):
         import warnings
         warnings.warn("deprecated", DeprecationWarning)
-        return self._feedback(
-            inputs, outputs, initials=initials, latches=latches,
-            keep_outputs=keep_outputs
-        )
 
-    def _feedback(
-        self, inputs, outputs, initials=None, latches=None, keep_outputs=False
-    ):
-        # TODO: remove in next version bump and put into wire.
+        def create_wire(iname, oname, lname, init):
+            return {
+                'input': iname, 'output': oname, 'latch': lname, 'init': init,
+                'keep_output': keep_outputs
+            }
 
-        if latches is None:
-            latches = inputs
-
-        if initials is None:
-            initials = [False for _ in inputs]
-
-        assert len(inputs) == len(initials) == len(outputs) == len(latches)
-        assert len(set(inputs) & self.inputs) != 0
-        assert len(set(outputs) & self.outputs) != 0
-
-        in2latch = {iname: lname for iname, lname in zip(inputs, latches)}
-
-        def sub(node):
-            if isinstance(node, Input) and node.name in inputs:
-                return LatchIn(in2latch[node.name])
-            return node
-
-        aig = self._modify_leafs(sub)
-
-        _latch_map, node_map = fn.lsplit(
-            lambda x: x[0] in outputs, aig.node_map.items()
-        )
-        out2latch = {oname: lname for oname, lname in zip(outputs, latches)}
-        _latch_map = {(out2latch[k], v) for k, v in _latch_map}
-        l2init = frozenset((n, val) for n, val in zip(latches, initials))
-        return aig.evolve(
-            inputs=aig.inputs - set(inputs),
-            node_map=aig.node_map if keep_outputs else pmap(node_map),
-            latch_map=aig.latch_map | _latch_map,
-            latch2init=aig.latch2init | l2init
-        )
+        vals = zip(inputs, outputs, initials, latches)
+        return self.loopback(*map(create_wire, vals))
 
     def unroll(self, horizon, *, init=True, omit_latches=True,
                only_last_outputs=False):
-        return A.Unrolled(
-            self, horizon, init, omit_latches, only_last_outputs
+        return self.lazy_aig.unroll(
+            horizon, init=init, omit_latches=omit_latches,
+            only_last_outputs=only_last_outputs
         ).aig
 
     def write(self, path):
         with open(path, 'w') as f:
             f.write(repr(self))
-
-    def _modify_leafs(self, func):
-        @fn.memoize(key_func=id)
-        def _mod(node):
-            if isinstance(node, AndGate):
-                left = _mod(node.left)
-                right = _mod(node.right)
-                if ConstFalse() in (left, right):
-                    return ConstFalse()
-                elif _is_const_true(left):
-                    return right
-                elif _is_const_true(right):
-                    return left
-                else:
-                    return node._replace(left=left, right=right)
-
-            elif isinstance(node, Inverter):
-                child = _mod(node.input)
-                if isinstance(child, Inverter):
-                    return child.input
-                else:
-                    return node._replace(input=child)
-
-            return func(node)
-
-        node_map = ((name, _mod(cone)) for name, cone in self.node_map.items())
-        latch_map = ((name, _mod(cone)) for name, cone in self.latch_map)
-        return self.evolve(
-            node_map=pmap(node_map),
-            latch_map=frozenset(latch_map)
-        )
 
 
 def par_compose(aig1, aig2, check_precondition=True):

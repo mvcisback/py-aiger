@@ -6,7 +6,7 @@ Graphs.
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import (Union, FrozenSet, Callable, Iterator, Tuple,
+from typing import (Union, FrozenSet, Callable, Tuple,
                     Mapping, Sequence, Optional)
 
 import attr
@@ -16,30 +16,8 @@ from pyrsistent import pmap
 from pyrsistent.typing import PMap
 
 import aiger as A
-from aiger.aig import AIG, Node, Input, AndGate, LatchIn
-from aiger.aig import ConstFalse, Inverter, _is_const_true
-
-
-@attr.s(auto_attribs=True, frozen=True)
-class NodeAlgebra:
-    node: Node
-
-    def __and__(self, other: NodeAlgebra) -> NodeAlgebra:
-        if isinstance(self.node, ConstFalse):
-            return self
-        elif isinstance(other.node, ConstFalse):
-            return other
-        elif _is_const_true(self.node):
-            return other
-        elif _is_const_true(other.node):
-            return self
-
-        return NodeAlgebra(AndGate(self.node, other.node))
-
-    def __invert__(self) -> NodeAlgebra:
-        if isinstance(self.node, Inverter):
-            return NodeAlgebra(self.node.input)
-        return NodeAlgebra(Inverter(self.node))
+from aiger.aig import AIG, Node, Input, LatchIn
+from aiger.aig import ConstFalse
 
 
 @attr.s(frozen=True, auto_attribs=True)
@@ -69,6 +47,8 @@ class LazyAIG(metaclass=ABCMeta):
         pass
 
     relabel = AIG.relabel
+    simulator = AIG.simulator
+    simulate = AIG.simulate
 
     @property
     def latches(self) -> FrozenSet[str]:
@@ -81,25 +61,23 @@ class LazyAIG(metaclass=ABCMeta):
     @property
     def aig(self) -> AIG:
         """Return's flattened AIG represented by this LazyAIG."""
-        false = NodeAlgebra(ConstFalse())
+        false = ConstFalse()
         inputs = {i: Input(i) for i in self.inputs}
         latches = {i: LatchIn(i) for i in self.latches}
 
         def lift(obj):
-            if isinstance(obj, NodeAlgebra):
+            if isinstance(obj, Node):
                 return obj
-            elif isinstance(obj, bool):
-                return ~false if obj else false
-            assert isinstance(obj, (Input, LatchIn))
-            return NodeAlgebra(obj)
+            assert isinstance(obj, bool)
+            return ~false if obj else false
 
         node_map, latch_map = self(inputs, latches=latches, lift=lift)
         return AIG(
             comments=self.comments,
             inputs=self.inputs,
-            node_map={k: v.node for k, v in node_map.items()},
+            node_map=node_map,
             # TODO: change when these become PMaps.
-            latch_map=frozenset({(k, v.node) for k, v in latch_map.items()}),
+            latch_map=frozenset(latch_map.items()),
             latch2init=frozenset(self.latch2init.items()),
         )
 
@@ -125,7 +103,10 @@ class LazyAIG(metaclass=ABCMeta):
         - `renamer`: is a function from strings to strings which
            determines how to rename latches to avoid name collisions.
         """
-        return Cutlatches(self, renamer=renamer, latches=latches)
+        lcirc = CutLatches(self, renamer=renamer, cut=latches)
+        l2init = dict(self.latch2init)
+        lmap = {k: (lcirc.renamer(k), l2init[k]) for k in lcirc.cut_latches}
+        return lcirc, lmap
 
     def loopback(self, *wirings) -> LazyAIG:
         """Returns result of feeding outputs specified in `*wirings` to
@@ -142,7 +123,7 @@ class LazyAIG(metaclass=ABCMeta):
               'keep_output': bool,  # whether output is consumed by feedback.
             }
         """
-        return Loopback(self, wirings=wirings)
+        return LoopBack(self, wirings=wirings)
 
     def unroll(self, horizon, *, init=True, omit_latches=True,
                only_last_outputs=False) -> LazyAIG:
@@ -209,7 +190,7 @@ class Parallel(LazyAIG):
     def _merge_maps(self, key):
         map1, map2 = [pmap(getattr(c, key)) for c in (self.left, self.right)]
         return map1 + map2
-    
+
     @property
     def latch2init(self):
         return self._merge_maps('latch2init')
@@ -299,7 +280,7 @@ def convert_renamer(renamer):
 class CutLatches(LazyAIG):
     circ: AIG_Like
     renamer: Callable[[str], str] = attr.ib(converter=convert_renamer)
-    cut: Union[FrozenSet[str]] = None
+    cut: Optional[FrozenSet[str]] = None
 
     def __call__(self, inputs, latches=None, *, lift=None):
         if latches is None:
@@ -405,7 +386,7 @@ class Relabeled(LazyAIG):
         latches = _relabel_map(new2old_l, latches)
 
         omap, lmap = self.circ(inputs, latches=latches, lift=lift)
-        
+
         omap = _relabel_map(self.output_relabels, omap)
         lmap = _relabel_map(self.latch_relabels, lmap)
         return omap, lmap
@@ -440,7 +421,7 @@ class Unrolled(LazyAIG):
     def __call__(self, inputs, latches=None, *, lift=None):
         circ, omit_latches, init = self.circ, self.omit_latches, self.init
         horizon, only_last_outputs = self.horizon, self.only_last_outputs
-        
+
         if not omit_latches:
             assert (circ.latches & circ.outputs) == set()
 
@@ -488,7 +469,7 @@ class Unrolled(LazyAIG):
 
     @property
     def outputs(self):
-        start = horizon if self.only_last_outputs else 0
+        start = self.horizon if self.only_last_outputs else 0
         base = set() if self.omit_latches else self.circ.latches
         base |= self.circ.outputs
         return self._with_times(base, times=range(start, self.horizon + 1))
@@ -527,5 +508,5 @@ def lazy(circ: Union[AIG, LazyAIG]) -> LazyAIG:
     return Lifted(circ)
 
 
-__all__ = ['lazy', 'LazyAIG', 'Parallel', 'LoopBack', 'CutLatches', 'Cascading',
-           'Relabeled', 'Unrolled']
+__all__ = ['lazy', 'LazyAIG', 'Parallel', 'LoopBack', 'CutLatches',
+           'Cascading', 'Relabeled', 'Unrolled']
