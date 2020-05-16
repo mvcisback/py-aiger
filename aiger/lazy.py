@@ -5,7 +5,6 @@ Graphs.
 
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
 from typing import (Union, FrozenSet, Callable, Tuple,
                     Mapping, Sequence, Optional)
 
