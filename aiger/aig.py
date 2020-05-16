@@ -237,13 +237,21 @@ class AIG:
         import warnings
         warnings.warn("deprecated", DeprecationWarning)
 
-        def create_wire(iname, oname, lname, init):
+        def create_wire(val):
+            iname, oname, lname, init = val
             return {
                 'input': iname, 'output': oname, 'latch': lname, 'init': init,
                 'keep_output': keep_outputs
             }
 
-        vals = zip(inputs, outputs, initials, latches)
+        if initials is None:
+            initials = fn.repeat(False)
+
+        if latches is None:
+            assert (set(inputs) & self.latches) == set()
+            latches = inputs
+
+        vals = zip(inputs, outputs, latches, initials)
         return self.loopback(*map(create_wire, vals))
 
     def unroll(self, horizon, *, init=True, omit_latches=True,

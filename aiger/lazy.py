@@ -21,30 +21,28 @@ from aiger.aig import ConstFalse
 
 
 @attr.s(frozen=True, auto_attribs=True)
-class LazyAIG(metaclass=ABCMeta):
-    @abstractmethod
+class LazyAIG:
     def __call__(self, inputs, latches=None, *, lift=None):
         pass
 
     @property
-    @abstractmethod
     def latch2init(self):
         pass
 
     @property
-    @abstractmethod
     def inputs(self):
         pass
 
     @property
-    @abstractmethod
     def outputs(self):
         pass
 
     @property
-    @abstractmethod
     def comments(self):
         pass
+
+    def write(self, path):
+        self.aig.write(path)
 
     relabel = AIG.relabel
     simulator = AIG.simulator
@@ -76,9 +74,8 @@ class LazyAIG(metaclass=ABCMeta):
             comments=self.comments,
             inputs=self.inputs,
             node_map=node_map,
-            # TODO: change when these become PMaps.
-            latch_map=frozenset(latch_map.items()),
-            latch2init=frozenset(self.latch2init.items()),
+            latch_map=latch_map,
+            latch2init=self.latch2init,
         )
 
     def __rshift__(self, other: AIG_Like) -> LazyAIG:
@@ -389,7 +386,7 @@ class Relabeled(LazyAIG):
 
         omap = _relabel_map(self.output_relabels, omap)
         lmap = _relabel_map(self.latch_relabels, lmap)
-        return omap, lmap
+        return dict(omap), dict(lmap)
 
     @property
     def latch2init(self):
@@ -447,7 +444,9 @@ class Unrolled(LazyAIG):
                 if not self.omit_latches:
                     outputs.update(walk_keys(template.format, latches))
 
-        return outputs, latches
+        assert set(outputs.keys()) == self.outputs
+
+        return dict(outputs), {}
 
     @property
     def latch2init(self):
@@ -469,7 +468,7 @@ class Unrolled(LazyAIG):
 
     @property
     def outputs(self):
-        start = self.horizon if self.only_last_outputs else 0
+        start = self.horizon if self.only_last_outputs else 1
         base = set() if self.omit_latches else self.circ.latches
         base |= self.circ.outputs
         return self._with_times(base, times=range(start, self.horizon + 1))
@@ -509,4 +508,4 @@ def lazy(circ: Union[AIG, LazyAIG]) -> LazyAIG:
 
 
 __all__ = ['lazy', 'LazyAIG', 'Parallel', 'LoopBack', 'CutLatches',
-           'Cascading', 'Relabeled', 'Unrolled']
+           'Cascading', 'Relabeled', 'Unrolled', 'AIG_Like']
