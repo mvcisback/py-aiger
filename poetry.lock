@@ -171,6 +171,7 @@ hypothesis = "*"
 reference = "fee01c6d8c36f33501b71ff0e84b342829968ddf"
 type = "git"
 url = "git://github.com/mvcisback/hypothesis-cfg.git"
+
 [[package]]
 category = "dev"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -194,6 +195,22 @@ zipp = ">=0.5"
 [package.extras]
 docs = ["sphinx", "rst.linker"]
 testing = ["packaging", "importlib-resources"]
+
+[[package]]
+category = "dev"
+description = "A lens library for python"
+name = "lenses"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, <4"
+version = "0.5.0"
+
+[package.dependencies]
+singledispatch = "*"
+
+[package.extras]
+docs = ["sphinx"]
+optional = ["pyrsistent", "frozendict"]
+tests = ["pyrsistent", "frozendict", "pytest", "coverage", "pytest-coverage", "hypothesis", "mypy"]
 
 [[package]]
 category = "dev"
@@ -260,36 +277,18 @@ version = "1.8.1"
 
 [[package]]
 category = "dev"
-description = ""
-name = "py-aiger-cnf"
-optional = false
-python-versions = "^3.7"
-version = "4.0.0"
-
-[package.dependencies]
-bidict = "^0.18.0"
-funcy = "^1.12"
-py-aiger = "^5.1.0"
-
-[package.source]
-reference = "9c68399e9f5394ae08a04f4cbbf53f84daf5ecd6"
-type = "git"
-url = "git://github.com/mvcisback/py-aiger-cnf.git"
-[[package]]
-category = "dev"
-description = ""
+description = "Library for generating (p)ast (t)ense (l)inear (t)emporal"
 name = "py-aiger-ptltl"
 optional = false
-python-versions = "^3.6"
-version = "2.0.0"
+python-versions = "*"
+version = "0.0.0"
 
 [package.dependencies]
-py-aiger = "^5.0.0"
+funcy = "*"
+lenses = "*"
+parsimonious = "*"
+py-aiger = "*"
 
-[package.source]
-reference = "d6270a54e32d171f1b3a35ab8988b14c1645b2f7"
-type = "git"
-url = "git://github.com/mvcisback/py-aiger-past-ltl.git"
 [[package]]
 category = "dev"
 description = "Python style guide checker"
@@ -425,6 +424,17 @@ security = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)"]
 socks = ["PySocks (>=1.5.6,<1.5.7 || >1.5.7)", "win-inet-pton"]
 
 [[package]]
+category = "dev"
+description = "This library brings functools.singledispatch from Python 3.4 to Python 2.6-3.3."
+name = "singledispatch"
+optional = false
+python-versions = "*"
+version = "3.4.0.3"
+
+[package.dependencies]
+six = "*"
+
+[[package]]
 category = "main"
 description = "Python 2 and 3 compatibility utilities"
 name = "six"
@@ -483,7 +493,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "db0f3f2f17870d96d6cbbda22e4e83c176e79ecd6329144d4bca5e42fe053b87"
+content-hash = "01b4a07613d0dd9bc5a1320bca89b9181184bd5e8fe1541792b4932faeb5a874"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -577,6 +587,10 @@ importlib-metadata = [
     {file = "importlib_metadata-1.6.0-py2.py3-none-any.whl", hash = "sha256:2a688cbaa90e0cc587f1df48bdc97a6eadccdcd9c35fb3f976a09e3b5016d90f"},
     {file = "importlib_metadata-1.6.0.tar.gz", hash = "sha256:34513a8a0c4962bc66d35b359558fd8a5e10cd472d37aec5f66858addef32c1e"},
 ]
+lenses = [
+    {file = "lenses-0.5.0-py3-none-any.whl", hash = "sha256:5fa2892eaf6c1da230423e9b4db70348f8dc6d193f3546fce2f2fe6e9e608dcd"},
+    {file = "lenses-0.5.0.tar.gz", hash = "sha256:5b318173f2f2884c2c9933855dc5df3c014f7abe90b8ea78f29f809e919b604a"},
+]
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},
@@ -600,8 +614,9 @@ py = [
     {file = "py-1.8.1-py2.py3-none-any.whl", hash = "sha256:c20fdd83a5dbc0af9efd622bee9a5564e278f6380fffcacc43ba6f43db2813b0"},
     {file = "py-1.8.1.tar.gz", hash = "sha256:5e27081401262157467ad6e7f851b7aa402c5852dbcb3dae06768434de5752aa"},
 ]
-py-aiger-cnf = []
-py-aiger-ptltl = []
+py-aiger-ptltl = [
+    {file = "py-aiger-ptltl-0.0.0.tar.gz", hash = "sha256:97eafe14e001f02109a95b8b4b87a3600b12384ce15bcae14f942154cbb7fef1"},
+]
 pycodestyle = [
     {file = "pycodestyle-2.6.0-py2.py3-none-any.whl", hash = "sha256:2295e7b2f6b5bd100585ebcb1f616591b652db8a741695b3d8f5d28bdc934367"},
     {file = "pycodestyle-2.6.0.tar.gz", hash = "sha256:c58a7d2815e0e8d7972bf1803331fb0152f867bd89adf8a01dfd55085434192e"},
@@ -640,6 +655,10 @@ pytest-xdist = [
 requests = [
     {file = "requests-2.23.0-py2.py3-none-any.whl", hash = "sha256:43999036bfa82904b6af1d99e4882b560e5e2c68e5c4b0aa03b655f3d7d73fee"},
     {file = "requests-2.23.0.tar.gz", hash = "sha256:b3f43d496c6daba4493e7c431722aeb7dbc6288f52a6e04e7b6023b0247817e6"},
+]
+singledispatch = [
+    {file = "singledispatch-3.4.0.3-py2.py3-none-any.whl", hash = "sha256:833b46966687b3de7f438c761ac475213e53b306740f1abfaa86e1d1aae56aa8"},
+    {file = "singledispatch-3.4.0.3.tar.gz", hash = "sha256:5b06af87df13818d14f08a028e42f566640aef80805c3b50c5056b086e3c2b9c"},
 ]
 six = [
     {file = "six-1.14.0-py2.py3-none-any.whl", hash = "sha256:8f3cd2e254d8f793e7f3d6d9df77b92252b52637291d0f0da013c76ea2724b6c"},
