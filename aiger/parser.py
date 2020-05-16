@@ -159,7 +159,7 @@ class AAG(NamedTuple):
         if self.latches:
             latch_names, latch_lits = zip(*list(self.latches.items()))
 
-        out = f"aag " + " ".join(map(str, self.header)) + '\n'
+        out = "aag " + " ".join(map(str, self.header)) + '\n'
         if self.inputs:
             out += '\n'.join(map(str, input_lits)) + '\n'
         if self.latches:
@@ -266,7 +266,7 @@ def aig2aag(circ) -> AAG:
         {k: lit_map[cone] for k, cone in circ.node_map.items()}
     )
     latch2init = dict(circ.latch2init)
-    for name, cone in circ.latch_map:
+    for name, cone in circ.latch_map.items():
         latch = aig.LatchIn(name)
         if latch not in lit_map:
             lit = lit_map[latch] = 2 * max_idx

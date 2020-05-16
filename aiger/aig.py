@@ -12,6 +12,7 @@ from typing import Tuple, FrozenSet
 import attr
 import funcy as fn
 from pyrsistent import pmap
+from pyrsistent.typing import PMap
 
 import aiger as A
 from aiger import common as cmn
@@ -98,11 +99,9 @@ class ConstFalse(Node):
 @attr.s(frozen=True, slots=True, auto_attribs=True, repr=False)
 class AIG:
     inputs: FrozenSet[str] = frozenset()
-    node_map: FrozenSet[Tuple[str, Node]] = attr.ib(
-        default=pmap(), converter=pmap
-    )
-    latch_map: FrozenSet[Tuple[str, Node]] = frozenset()
-    latch2init: FrozenSet[Tuple[str, bool]] = frozenset()
+    node_map: PMap[str, Node] = attr.ib(default=pmap(), converter=pmap)
+    latch_map: PMap[str, Node] = attr.ib(default=pmap(), converter=pmap)
+    latch2init: PMap[str, bool] = attr.ib(default=pmap(), converter=pmap)
     comments: Tuple[str] = ()
 
     _to_aag = parser.aig2aag
@@ -146,7 +145,7 @@ class AIG:
 
     @property
     def latches(self):
-        return frozenset(fn.pluck(0, self.latch2init))
+        return frozenset(self.latch2init.keys())
 
     @property
     def cones(self):
@@ -154,7 +153,7 @@ class AIG:
 
     @property
     def latch_cones(self):
-        return frozenset(fn.pluck(1, self.latch_map))
+        return frozenset(self.latch_map.values())
 
     def __rshift__(self, other):
         return seq_compose(self, other)
