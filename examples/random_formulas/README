@@ -1,0 +1,9 @@
+This code serves as an example how to use py-aiger.
+
+This is a simple generator of random formulas. It comes also with a converter to tensorflow training examples. 
+
+Run this code as follows:
+
+    python3 generate_dataset.py  --num_examples=100 --target_directory=<path/to/write/output>
+
+Note: Parts of this code depend on py-aiger-sat (https://github.com/mvcisback/py-aiger-sat). The actual formula generator, however, only depends on the py-aiger core package.
