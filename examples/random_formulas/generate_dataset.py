@@ -53,7 +53,7 @@ def generate_example(converter) -> tf.train.Example:
   if minimized:
     minimized_word_pairs = ['%s %s' % x for x in sorted(minimized.items(), key=lambda x: x[0])]
     minimized_str = ' '.join(model_word_pairs)
-  print(minimized_str)
+  # print('Minimized model: %s' % minimized_str)
 
   features = {
     'formula_polish': polish,
@@ -62,7 +62,9 @@ def generate_example(converter) -> tf.train.Example:
     'minimized': minimized_str,
     # 'cnf': str(aig2cnf(expr.aig)),
   }
-  return converter.convert(features)
+  example = converter.convert(features)
+  # print(example)
+  return example
 
 
 def main():
