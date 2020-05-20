@@ -69,3 +69,4 @@ def to_expression(token_sequence):
   if elem == 'eq':
     return left == right
   raise ValueError('Should not reach this point')
+
