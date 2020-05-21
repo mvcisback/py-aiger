@@ -158,6 +158,7 @@ class LazyAIG:
 
     def reinit(self, latch2init) -> LazyAIG:
         """Update late initial values based on mapping provided."""
+        assert set(latch2init.keys()) <= self.latches
         return UpdatedLatchInits(circ=self, latch2init=latch2init)
 
 
