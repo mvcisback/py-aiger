@@ -52,7 +52,7 @@ def generate_example(converter) -> tf.train.Example:
   minimized_str = 'None'
   if minimized:
     minimized_word_pairs = ['%s %s' % x for x in sorted(minimized.items(), key=lambda x: x[0])]
-    minimized_str = ' '.join(model_word_pairs)
+    minimized_str = ' '.join(minimized_word_pairs)
   # print('Minimized model: %s' % minimized_str)
 
   features = {
