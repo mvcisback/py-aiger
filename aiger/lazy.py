@@ -156,6 +156,10 @@ class LazyAIG:
 
         return A.Relabeled(self, **{key: relabels})
 
+    def reinit(self, latch2init) -> LazyAIG:
+        """Update late initial values based on mapping provided."""
+        return UpdatedLatchInits(circ=self, latch2init=latch2init)
+
 
 AIG_Like = Union[AIG, LazyAIG]
 Labels = Mapping[str, str]
@@ -361,6 +365,35 @@ class Cascading(LazyAIG):
 
 def _relabel_map(relabels, mapping):
     return pmap(walk_keys(lambda x: relabels.get(x, x), mapping))
+
+
+@attr.s(frozen=True, auto_attribs=True)
+class UpdatedLatchInits(LazyAIG):
+    circ: AIG_Like
+    _latch2init: PMap[str, bool] = pmap()
+
+    def __call__(self, inputs, latches=None, *, lift=None):
+        if latches is None:
+            latches = pmap()
+
+        latches = dict(self.latch2init + latches)  # Override initial values.
+        return self.circ(inputs, latches=latches, lift=lift)
+
+    @property
+    def latch2init(self):
+        return self.circ.latch2init + self._latch2init
+
+    @property
+    def inputs(self):
+        return self.circ.inputs
+
+    @property
+    def outputs(self):
+        return self.circ.outputs
+
+    @property
+    def comments(self):
+        return self.circ.comments
 
 
 @attr.s(frozen=True, auto_attribs=True)

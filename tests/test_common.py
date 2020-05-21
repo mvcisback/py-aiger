@@ -336,3 +336,21 @@ def test_seq_compose(circ1, circ2, data):
 
     assert lmap12 == lmap12_expected
     assert omap12 == omap12_expected
+
+
+@given(aigh.Circuits, st.data())
+def test_reinit(circ1, data):
+    latch2init_1 = circ1.latch2init
+    latch2init_2 = {k: data.draw(st.booleans()) for k in circ1.latches}
+
+    circ2 = circ1.reinit(latch2init_2)
+    assert circ2.latch2init == latch2init_2
+
+    circ3 = circ2.reinit(latch2init_1)
+    assert circ1.latch2init == circ3.latch2init
+
+    circ4 = circ3.reinit(latch2init_1)
+    assert circ1.latch2init == circ4.latch2init
+
+    circ5 = circ3.reinit({})
+    assert circ1.latch2init == circ5.latch2init

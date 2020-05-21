@@ -265,6 +265,10 @@ class AIG:
         with open(path, 'w') as f:
             f.write(repr(self))
 
+    def reinit(self, latch2init):
+        """Update late initial values based on mapping provided."""
+        return self.lazy_aig.reinit(latch2init).aig
+
 
 def par_compose(aig1, aig2, check_precondition=True):
     return A.Parallel(aig1, aig2).aig
