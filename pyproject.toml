@@ -12,20 +12,20 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.7"
-attrs = "^19.3"
-bidict = "^0.18.0"
+attrs = "^20.0.0"
+bidict = "^0.21.0"
 funcy = "^1.12"
 parsimonious = "^0.8.1"
 toposort = "^1.5"
-pyrsistent = "^0.15.4"
+pyrsistent = "^0.17.0"
 
 [tool.poetry.dev-dependencies]
 hypothesis_cfg = {git = "git://github.com/mvcisback/hypothesis-cfg.git"}
-hypothesis = "^4.28"
+hypothesis = "^5.0.0"
 pytest-cov = "^2.7"
 pytest-flake8 = "^1.0"
-pytest-xdist = "^1.29"
-coverage = "^4.5"
+pytest-xdist = "^2.0.0"
+coverage = "^5.2.1"
 codecov = "^2.0"
 py-aiger-ptltl = {git = "git://github.com/mvcisback/py-aiger-past-ltl.git"}
 
