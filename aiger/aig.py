@@ -19,7 +19,7 @@ from aiger import common as cmn
 from aiger import parser
 
 
-@attr.s(frozen=True, auto_attribs=True)
+@attr.s(frozen=True, auto_attribs=True, eq=False)
 class Node(metaclass=ABCMeta):
     def __and__(self, other: Node) -> Node:
         if self.is_false or other.is_false:
@@ -49,7 +49,7 @@ class Node(metaclass=ABCMeta):
         pass
 
 
-@attr.s(frozen=True, slots=True, auto_attribs=True, cache_hash=True)
+@attr.s(frozen=True, auto_attribs=True, eq=False)
 class AndGate(Node):
     left: Node
     right: Node
@@ -59,7 +59,7 @@ class AndGate(Node):
         return (self.left, self.right)
 
 
-@attr.s(frozen=True, slots=True, auto_attribs=True, cache_hash=True)
+@attr.s(frozen=True, auto_attribs=True, eq=False)
 class Inverter(Node):
     input: Node
 
@@ -68,7 +68,7 @@ class Inverter(Node):
         return (self.input, )
 
 
-@attr.s(frozen=True, slots=True, auto_attribs=True)
+@attr.s(frozen=True, auto_attribs=True)
 class Input(Node):
     name: str
 
@@ -77,7 +77,7 @@ class Input(Node):
         return ()
 
 
-@attr.s(frozen=True, slots=True, auto_attribs=True)
+@attr.s(frozen=True, auto_attribs=True)
 class LatchIn(Node):
     name: str
 
@@ -86,7 +86,7 @@ class LatchIn(Node):
         return ()
 
 
-@attr.s(frozen=True, slots=True, auto_attribs=True)
+@attr.s(frozen=True, auto_attribs=True)
 class ConstFalse(Node):
     @property
     def children(self):
@@ -96,7 +96,7 @@ class ConstFalse(Node):
         return hash(False)
 
 
-@attr.s(frozen=True, slots=True, auto_attribs=True, repr=False)
+@attr.s(frozen=True, auto_attribs=True, repr=False)
 class AIG:
     inputs: FrozenSet[str] = frozenset()
     node_map: PMap[str, Node] = attr.ib(default=pmap(), converter=pmap)

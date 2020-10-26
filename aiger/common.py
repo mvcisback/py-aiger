@@ -177,30 +177,26 @@ def _dependency_graph(nodes):
     return deps
 
 
-def _omit_visited(func):
-    visited = set()
-
-    def wrapper(node):
-        if node in visited:
-            return
-        visited.add(node)
-        yield from func(node)
-
-    return wrapper
-
-
-def dfs(circ, omit_visited=True):
+def dfs(circ):
     """Generates nodes via depth first traversal in pre-order."""
+    emitted = set()
+    stack = list(circ.cones | circ.latch_cones)
 
-    def _dfs(node):
-        yield from fn.cat(map(_dfs, node.children))
-        yield node
+    while stack:
+        node = stack.pop()
 
-    if omit_visited:
-        _dfs = _omit_visited(_dfs)
+        if node in emitted:
+            continue
 
-    for node in circ.cones | circ.latch_cones:
-        yield from _dfs(node)
+        children = set(node.children)
+
+        if children <= emitted:
+            yield node
+            emitted.add(node)
+            continue
+
+        stack.append(node)  # Add to emit after children.
+        stack.extend(children - emitted)
 
 
 def eval_order(circ, *, concat: bool = True):

@@ -165,7 +165,9 @@ def test_relabel_undo_relabel(circ, kind):
     new_inputs = bidict({k: f'{k}#2' for k in getattr(circ, kind)})
     key = kind[0]
     circ2 = circ[key, new_inputs][key, new_inputs.inv]
-    assert circ == circ2
+    assert circ.inputs == circ2.inputs
+    assert circ.outputs == circ2.outputs
+    assert circ.latches == circ2.latches
 
 
 @given(aigh.Circuits, st.data())
