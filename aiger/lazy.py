@@ -101,7 +101,7 @@ class LazyAIG:
         """
         lcirc = CutLatches(self, renamer=renamer, cut=latches)
         l2init = dict(self.latch2init)
-        lmap = {k: (lcirc.renamer(k), l2init[k]) for k in lcirc.cut_latches}
+        lmap = {k: (lcirc.renamer(k), l2init[k]) for k in lcirc.cut}
         return lcirc, lmap
 
     def loopback(self, *wirings) -> LazyAIG:
@@ -283,19 +283,24 @@ class CutLatches(LazyAIG):
     renamer: Callable[[str], str] = attr.ib(converter=convert_renamer)
     cut: Optional[FrozenSet[str]] = None
 
+    def __attrs_post_init__(self):
+        if self.cut is None:
+            object.__setattr__(self, "cut", self.latches)
+
     def __call__(self, inputs, latches=None, *, lift=None):
+        inputs = dict(inputs)
         if latches is None:
             latches = pmap()
         latches = dict(self.latch2init + latches)  # Override initial values.
 
-        for latch in self.cut_latches:
+        for latch in self.cut:
             new_name = self.renamer(latch)
             latches[latch] = inputs[new_name]
             del inputs[new_name]
 
         omap, lmap = self.circ(inputs, latches=latches, lift=lift)
 
-        for latch in self.cut_latches:
+        for latch in self.cut:
             new_name = self.renamer(latch)
             omap[new_name] = lmap[latch]
             del lmap[latch]
@@ -303,20 +308,16 @@ class CutLatches(LazyAIG):
         return omap, lmap
 
     @property
-    def cut_latches(self):
-        return self.circ.latches if (self.cut is None) else self.cut
-
-    @property
     def latch2init(self):
-        return pmap(omit(self.circ.latch2init, self.cut_latches))
+        return pmap(omit(self.circ.latch2init, self.cut))
 
     @property
     def inputs(self):
-        return self.circ.inputs | set(map(self.renamer, self.cut_latches))
+        return self.circ.inputs | set(map(self.renamer, self.cut))
 
     @property
     def outputs(self):
-        return self.circ.outputs | set(map(self.renamer, self.cut_latches))
+        return self.circ.outputs | set(map(self.renamer, self.cut))
 
     @property
     def comments(self):
