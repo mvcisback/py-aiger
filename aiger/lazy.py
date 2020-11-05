@@ -285,7 +285,7 @@ class CutLatches(LazyAIG):
 
     def __attrs_post_init__(self):
         if self.cut is None:
-            object.__setattr__(self, "cut", self.latches)
+            object.__setattr__(self, "cut", self.circ.latches)
 
     def __call__(self, inputs, latches=None, *, lift=None):
         inputs = dict(inputs)

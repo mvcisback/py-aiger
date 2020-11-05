@@ -190,6 +190,19 @@ def test_cutlatches(aag1, data):
     assert latch_vals == latch_vals2
 
 
+@given(aigh.Circuits, st.data())
+def test_lazy_cutlatches(aag1, data):
+    aag2, lmap2 = aag1.cutlatches(renamer=lambda x: x)
+    aag3, lmap3 = aag1.lazy_aig.cutlatches(renamer=lambda x: x)
+
+    test_inputs = {i: data.draw(st.booleans()) for i in aag2.inputs}
+
+    out_vals2, _ = aag2(test_inputs)
+    out_vals3, _ = aag3(test_inputs)
+
+    assert out_vals2 == out_vals3
+
+
 @given(aigh.Circuits, st.integers(min_value=1, max_value=4), st.data())
 def test_unroll_simulate(aag1, horizon, data):
     # TODO
