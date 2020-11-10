@@ -271,21 +271,20 @@ class State:
     comments: Optional[List[str]] = None
 
     @property
-    def remaining_ands(self): 
+    def remaining_ands(self):
         return self.header.num_ands - len(self.ands)
 
     @property
-    def remaining_latches(self): 
+    def remaining_latches(self):
         return self.header.num_latches - len(self.latches)
 
     @property
-    def remaining_outputs(self): 
+    def remaining_outputs(self):
         return self.header.num_outputs - len(self.outputs)
 
     @property
-    def remaining_inputs(self): 
+    def remaining_inputs(self):
         return self.header.num_inputs - len(self.inputs)
-
 
 
 def parse_header(state, lines) -> bool:
@@ -332,7 +331,7 @@ def parse_output(state, line) -> bool:
     return True
 
 
-LATCH_PATTERN = re.compile("(\d+) (\d+)(?: (\d+))?\n")
+LATCH_PATTERN = re.compile(r"(\d+) (\d+)(?: (\d+))?\n")
 
 
 def parse_latch(state, line) -> bool:
@@ -341,19 +340,17 @@ def parse_latch(state, line) -> bool:
 
     match = LATCH_PATTERN.match(line)
     if match is None:
-        return False    
+        return False
     elems = match.groups()
 
     if elems[2] is None:
         elems = elems[:2] + (0,)
 
-    elems = fn.lmap(int, elems)
-    assert len(elems) == 3
-    state.latches.append(Latch(id=elems[0], input=elems[1], init=elems[2]))
+    state.latches.append(Latch(*map(int, elems)))
     return True
 
 
-AND_PATTERN = re.compile("(\d+) (\d+) (\d+)\n")
+AND_PATTERN = re.compile(r"(\d+) (\d+) (\d+)\n")
 
 
 def parse_and(state, line) -> bool:
@@ -362,14 +359,13 @@ def parse_and(state, line) -> bool:
 
     match = AND_PATTERN.match(line)
     if match is None:
-        return False    
-    elems = fn.lmap(int, match.groups())
+        return False
 
-    state.ands.append(And(id=elems[0], left=elems[1], right=elems[2]))
+    state.ands.append(And(*map(int, match.groups())))
     return True
 
 
-SYM_PATTERN = re.compile("([ilo])(\d+) (.*)\n")
+SYM_PATTERN = re.compile(r"([ilo])(\d+) (.*)\n")
 
 
 def parse_symbol(state, line) -> bool:
@@ -380,8 +376,8 @@ def parse_symbol(state, line) -> bool:
     kind, idx, name = match.groups()
 
     table = {
-        'i': state.symbols.inputs, 
-        'o': state.symbols.outputs, 
+        'i': state.symbols.inputs,
+        'o': state.symbols.outputs,
         'l': state.symbols.latches
     }.get(kind)
     table[int(idx)] = name

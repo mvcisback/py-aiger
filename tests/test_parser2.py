@@ -1,5 +1,3 @@
-import pytest
-
 from aiger import parser
 
 
@@ -52,7 +50,6 @@ def test_parser2_test2():
     aag = parser.parse(TEST2, to_aig=False)
     aag2 = parser.parse(str(aag), to_aig=False)
     assert TEST2 == str(aag) == str(aag2)
-
 
 
 TEST3 = """aag 1 1 0 1 0
