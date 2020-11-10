@@ -1,6 +1,6 @@
 import io
 import re
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from itertools import chain
 from typing import NamedTuple, Mapping, List, Tuple, Sequence, Optional
 
@@ -8,38 +8,9 @@ import attr
 import funcy as fn
 from bidict import bidict
 from toposort import toposort
+from uuid import uuid1
 
 from aiger import aig
-
-_Symbol = namedtuple('Symbol', ['kind', 'index', 'name'])
-_SymbolTable = namedtuple('SymbolTable', ['inputs', 'outputs', 'latches'])
-
-AAG_GRAMMAR = '''
-aag = header ios latches ios gates symbols comments?
-header = "aag" _ id _ id _ id _ id _ id EOL
-
-ios = io*
-;io = id EOL
-
-latch_or_gate = id _ id _ id EOL?
-
-latches = (latch / latch_or_gate)*
-latch = id _ id EOL
-
-gates = latch_or_gate*
-
-symbols = symbol*
-symbol =  symbol_kind id _ symbol_name EOL
-symbol_kind = ("i" / "o" / "l")
-symbol_name = (~r".")+
-
-comments = "c" EOL comment+
-comment = (~r".")* EOL?
-
-_ = ~r" "+
-id = ~r"\\d"+
-EOL = "\\n"
-'''
 
 
 def _to_idx(lit):
@@ -470,7 +441,7 @@ def parse(lines, to_aig: bool = True):
         outputs=finish_table(state.symbols.outputs, state.outputs),
         latches=finish_table(state.symbols.latches, state.latches),
         gates=state.ands,
-        comments=tuple(state.comments),
+        comments=tuple([] if state.comments is None else state.comments),
     )
     return aag._to_aig() if to_aig else aag
 

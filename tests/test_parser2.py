@@ -52,3 +52,30 @@ def test_parser2_test2():
     aag = parser.parse(TEST2, to_aig=False)
     aag2 = parser.parse(str(aag), to_aig=False)
     assert TEST2 == str(aag) == str(aag2)
+
+
+
+TEST3 = """aag 1 1 0 1 0
+2
+2
+i0 ap1
+c
+ap1
+"""
+
+TEST3_2 = """aag 1 1 0 1 0
+2
+2
+i0 ap1
+o0 {}
+c
+ap1
+"""
+
+
+def test_parser2_test3():
+    aag = parser.parse(TEST3, to_aig=False)
+    assert len(aag.outputs) == 1
+    out, *_ = aag.outputs
+    expected = TEST3_2.format(out)
+    assert str(aag) == expected
