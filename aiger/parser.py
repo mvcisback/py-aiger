@@ -1,6 +1,6 @@
 from collections import namedtuple
 from itertools import chain
-from typing import NamedTuple, Mapping, List, Tuple
+from typing import NamedTuple, Mapping, List, Tuple, Sequence
 
 import funcy as fn
 from bidict import bidict
@@ -136,10 +136,10 @@ def _polarity(i):
 
 class AAG(NamedTuple):
     inputs: Mapping[str, int]
-    latches: Mapping[str, Tuple[int]]
+    latches: Mapping[str, Tuple[int, int, int]]
     outputs: Mapping[str, int]
-    gates: List[Tuple[int]]
-    comments: Tuple[str]
+    gates: List[Tuple[int, int, int]]
+    comments: Sequence[str]
 
     @property
     def header(self):
