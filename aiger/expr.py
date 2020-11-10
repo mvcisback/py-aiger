@@ -63,6 +63,8 @@ class BoolExpr:
 
 
 def _binary_gate(gate, expr1, expr2):
+    if isinstance(expr2, (bool, int)):
+        expr2 = atom(expr2)
     aig = expr1._fresh_output().aig | expr2._fresh_output().aig
     aig >>= gate(inputs=aig.outputs, output=cmn._fresh())
     return type(expr1)(aig=aig)
