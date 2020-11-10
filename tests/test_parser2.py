@@ -1,9 +1,9 @@
 import pytest
 
-from aiger import parser2
+from aiger import parser
 
 
-TEST = """aag 14 2 2 2 10
+TEST1 = """aag 14 2 2 2 10
 4
 14
 2 26 0
@@ -32,8 +32,23 @@ Test 2
 """
 
 
-def test_parser2_smoke():
-    aag = parser2.parse(TEST)
-    aag2 = parser2.parse(str(aag))
-    assert TEST == str(aag) == str(aag2)
+def test_parser2_test1():
+    aag = parser.parse(TEST1, to_aig=False)
+    aag2 = parser.parse(str(aag), to_aig=False)
+    assert TEST1 == str(aag) == str(aag2)
 
+
+TEST2 = """aag 1 1 0 1 0
+2
+2
+i0 ap1
+o0 3aedbf54-22f7-11eb-97f0-f1c009e72b66
+c
+ap1
+"""
+
+
+def test_parser2_test2():
+    aag = parser.parse(TEST2, to_aig=False)
+    aag2 = parser.parse(str(aag), to_aig=False)
+    assert TEST2 == str(aag) == str(aag2)

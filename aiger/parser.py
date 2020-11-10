@@ -1,10 +1,12 @@
-from collections import namedtuple
+import io
+import re
+from collections import defaultdict, namedtuple
 from itertools import chain
-from typing import NamedTuple, Mapping, List, Tuple, Sequence
+from typing import NamedTuple, Mapping, List, Tuple, Sequence, Optional
 
+import attr
 import funcy as fn
 from bidict import bidict
-from parsimonious import Grammar, NodeVisitor
 from toposort import toposort
 
 from aiger import aig
@@ -12,12 +14,12 @@ from aiger import aig
 _Symbol = namedtuple('Symbol', ['kind', 'index', 'name'])
 _SymbolTable = namedtuple('SymbolTable', ['inputs', 'outputs', 'latches'])
 
-AAG_GRAMMAR = Grammar(u'''
+AAG_GRAMMAR = '''
 aag = header ios latches ios gates symbols comments?
 header = "aag" _ id _ id _ id _ id _ id EOL
 
 ios = io*
-io = id EOL
+;io = id EOL
 
 latch_or_gate = id _ id _ id EOL?
 
@@ -37,91 +39,7 @@ comment = (~r".")* EOL?
 _ = ~r" "+
 id = ~r"\\d"+
 EOL = "\\n"
-''')
-
-
-class AAGVisitor(NodeVisitor):
-    def generic_visit(self, _, children):
-        return children
-
-    def visit_id(self, node, children):
-        return int(node.text)
-
-    def visit_header(self, _, children):
-        return Header(*map(int, children[2::2]))
-
-    def visit_io(self, _, children):
-        return int(children[::2][0])
-
-    def visit_latches(self, _, children):
-        return list(fn.pluck(0, children))
-
-    def visit_latch_or_gate(self, _, children):
-        return list(map(int, children[::2]))
-
-    visit_latch = visit_latch_or_gate
-
-    def visit_aag(self, _, children):
-        header, ios1, lgs1, ios2, lgs2, symbols, comments = children
-        ios, lgs = ios1 + ios2, lgs1 + lgs2
-        assert len(ios) == header.num_inputs + header.num_outputs
-        inputs, outputs = ios[:header.num_inputs], ios[header.num_inputs:]
-        assert len(lgs) == header.num_ands + header.num_latches
-
-        latches, gates = lgs[:header.num_latches], lgs[header.num_latches:]
-
-        # TODO: need to allow for inputs, outputs, latches not in
-        # symbol table.
-        inputs = {
-            symbols.inputs.inv.get(idx, f'i{idx}'): i
-            for idx, i in enumerate(inputs)
-        }
-        outputs = {
-            symbols.outputs.inv.get(idx, f'o{idx}'): i
-            for idx, i in enumerate(outputs)
-        }
-
-        latches = {
-            symbols.latches.inv.get(idx, f'l{idx}'): tuple(i)
-            for idx, i in enumerate(latches)
-        }
-        latches = fn.walk_values(lambda l: (l + (0, ))[:3], latches)
-
-        if len(comments) > 0:
-            assert comments[0].startswith('c\n')
-            comments[0] = comments[0][2:]
-        return AAG(
-            inputs=inputs,
-            outputs=outputs,
-            latches=fn.walk_values(tuple, latches),
-            gates=fn.lmap(tuple, gates),
-            comments=tuple(comments))
-
-    def visit_symbols(self, node, children):
-        children = {(k, int(i), n) for k, i, n in children}
-
-        def to_dict(kind):
-            return bidict({n: i for k, i, n in children if k == kind})
-
-        return _SymbolTable(to_dict('i'), to_dict('o'), to_dict('l'))
-
-    def visit_symbol(self, node, children):
-        return _Symbol(children[0], int(children[1]), children[3])
-
-    def node_text(self, node, _):
-        return node.text
-
-    visit_symbol_kind = node_text
-    visit_symbol_name = node_text
-    visit_comments = node_text
-
-
-class Header(NamedTuple):
-    max_var_index: int
-    num_inputs: int
-    num_latches: int
-    num_outputs: int
-    num_ands: int
+'''
 
 
 def _to_idx(lit):
@@ -159,7 +77,7 @@ class AAG(NamedTuple):
         if self.latches:
             latch_names, latch_lits = zip(*list(self.latches.items()))
 
-        out = "aag " + " ".join(map(str, self.header)) + '\n'
+        out = str(self.header) + '\n'
         if self.inputs:
             out += '\n'.join(map(str, input_lits)) + '\n'
         if self.latches:
@@ -324,11 +242,239 @@ def _to_aag(gates, aag: AAG = None, *, max_idx=1, lit_map=None):
     return aag, max_idx, lit_map
 
 
-def parse(aag_str: str, rule: str = "aag", to_aig=True):
-    aag = AAGVisitor().visit(AAG_GRAMMAR[rule].parse(aag_str))
+NOT_DONE_PARSING_ERROR = "Lines exhausted before parsing ended!\n{}"
+DONE_PARSING_ERROR = "Lines exhausted before parsing ended!\n{}"
+
+
+@attr.s(auto_attribs=True, repr=False)
+class Header:
+    max_var_index: int
+    num_inputs: int
+    num_latches: int
+    num_outputs: int
+    num_ands: int
+
+    def __repr__(self):
+        return f"aag {self.max_var_index} {self.num_inputs} " \
+            f"{self.num_latches} {self.num_outputs} {self.num_ands}"
+
+
+class Latch(NamedTuple):
+    id: int
+    input: int
+    init: bool
+
+
+class And(NamedTuple):
+    id: int
+    left: int
+    right: int
+
+
+@attr.s(auto_attribs=True, frozen=True)
+class Symbol:
+    kind: str
+    name: str
+    index: int
+
+
+def fresh():
+    return str(uuid1())
+
+
+@attr.s(auto_attribs=True, frozen=True)
+class SymbolTable:
+    inputs: Mapping[int, str] = attr.ib(factory=lambda: defaultdict(fresh))
+    outputs: Mapping[int, str] = attr.ib(factory=lambda: defaultdict(fresh))
+    latches: Mapping[int, str] = attr.ib(factory=lambda: defaultdict(fresh))
+
+
+@attr.s(auto_attribs=True)
+class State:
+    header: Optional[Header] = None
+    inputs: List[int] = attr.ib(factory=list)
+    outputs: List[int] = attr.ib(factory=list)
+    ands: List[And] = attr.ib(factory=list)
+    latches: List[Latch] = attr.ib(factory=list)
+    symbols: SymbolTable = attr.ib(factory=SymbolTable)
+    comments: Optional[List[str]] = None
+
+    @property
+    def remaining_ands(self): 
+        return self.header.num_ands - len(self.ands)
+
+    @property
+    def remaining_latches(self): 
+        return self.header.num_latches - len(self.latches)
+
+    @property
+    def remaining_outputs(self): 
+        return self.header.num_outputs - len(self.outputs)
+
+    @property
+    def remaining_inputs(self): 
+        return self.header.num_inputs - len(self.inputs)
+
+
+
+def parse_header(state, lines) -> bool:
+    if state.header is not None:
+        return False
+
+    try:
+        kind, *ids = lines.split()
+        ids = fn.lmap(int, ids)
+
+        if any(x < 0 for x in ids):
+            raise ValueError("Indicies must be positive!")
+
+        max_idx, nin, nlatch, nout, nand = ids
+        if nin + nlatch + nand > max_idx:
+            raise ValueError("Sum of claimed indices greater than max.")
+
+        state.header = Header(
+            max_var_index=max_idx,
+            num_inputs=nin,
+            num_latches=nlatch,
+            num_outputs=nout,
+            num_ands=nand,
+        )
+
+    except ValueError as err:
+        raise ValueError(f"Failed parsing the header: {err}")
+    return True
+
+
+def parse_input(state, line) -> bool:
+    idx, *rest = line.split()
+    if rest or state.remaining_inputs <= 0:
+        return False
+    state.inputs.append(int(line))
+    return True
+
+
+def parse_output(state, line) -> bool:
+    idx, *rest = line.split()
+    if rest or state.remaining_outputs <= 0:
+        return False
+    state.outputs.append(int(line))
+    return True
+
+
+LATCH_PATTERN = re.compile("(\d+) (\d+)(?: (\d+))?\n")
+
+
+def parse_latch(state, line) -> bool:
+    if state.remaining_latches <= 0:
+        return False
+
+    match = LATCH_PATTERN.match(line)
+    if match is None:
+        return False    
+    elems = match.groups()
+
+    if elems[2] is None:
+        elems = elems[:2] + (0,)
+
+    elems = fn.lmap(int, elems)
+    assert len(elems) == 3
+    state.latches.append(Latch(id=elems[0], input=elems[1], init=elems[2]))
+    return True
+
+
+AND_PATTERN = re.compile("(\d+) (\d+) (\d+)\n")
+
+
+def parse_and(state, line) -> bool:
+    if state.header.num_ands <= 0:
+        return False
+
+    match = AND_PATTERN.match(line)
+    if match is None:
+        return False    
+    elems = fn.lmap(int, match.groups())
+
+    state.ands.append(And(id=elems[0], left=elems[1], right=elems[2]))
+    return True
+
+
+SYM_PATTERN = re.compile("([ilo])(\d+) (.*)\n")
+
+
+def parse_symbol(state, line) -> bool:
+    match = SYM_PATTERN.match(line)
+    if match is None:
+        return False
+
+    kind, idx, name = match.groups()
+
+    table = {
+        'i': state.symbols.inputs, 
+        'o': state.symbols.outputs, 
+        'l': state.symbols.latches
+    }.get(kind)
+    table[int(idx)] = name
+    return True
+
+
+def parse_comment(state, line) -> bool:
+    if state.comments is not None:
+        state.comments.append(line.rstrip())
+    elif line.rstrip() == 'c':
+        state.comments = []
+    else:
+        raise ValueError("Expected 'c' to start of comment section.")
+    return True
+
+
+def parse_seq():
+    yield parse_header
+    yield parse_input
+    yield parse_latch
+    yield parse_output
+    yield parse_and
+    yield parse_symbol
+    yield parse_comment
+
+
+def finish_table(table, keys):
+    assert len(table) <= len(keys)
+    return bidict({table[i]: key for i, key in enumerate(keys)})
+
+
+def parse(lines, to_aig: bool = True):
+    if isinstance(lines, str):
+        lines = io.StringIO(lines)
+
+    state = State()
+    parsers = parse_seq()
+    parser = next(parsers)
+
+    for line in lines:
+        while not parser(state, line):
+            parser = next(parsers)
+
+            if parser is None:
+                raise ValueError(NOT_DONE_PARSING_ERROR.format(state))
+
+    if parser not in (parse_comment, parse_symbol):
+        raise ValueError(DONE_PARSING_ERROR.format(state))
+
+    assert state.remaining_ands == 0
+    assert state.remaining_inputs == 0
+    assert state.remaining_outputs == 0
+    assert state.remaining_latches == 0
+
+    aag = AAG(
+        inputs=finish_table(state.symbols.inputs, state.inputs),
+        outputs=finish_table(state.symbols.outputs, state.outputs),
+        latches=finish_table(state.symbols.latches, state.latches),
+        gates=state.ands,
+        comments=tuple(state.comments),
+    )
     return aag._to_aig() if to_aig else aag
 
 
-def load(path: str, rule: str = "aag", to_aig=True):
+def load(path: str, to_aig: bool = True):
     with open(path, 'r') as f:
         return parse(''.join(f.readlines()), to_aig=to_aig)
