@@ -55,6 +55,21 @@ run:
 
 `$ poetry install`
 
+# Usage
+
+```
+import aiger
+
+x, y, z, w = aiger.atoms('x', 'y', 'z', 'w')
+
+expr1 = z.implies(x & y)
+expr2 = z & w
+
+circ1 = expr1.with_output('z') \      # Get AIG for expr1 with output 'z'.
+             .aig
+circ2 = circ1 >> circ2                # Feed outputs of circ1 into circ2.
+```
+
 # Boolean Expression DSL
 While powerful, when writing combinatorial circuits, the Sequential
 Circuit DSL can be somewhat clumsy. For this common usecase, we have
@@ -73,8 +88,8 @@ expr6 = ~x  # logical negation.
 expr7 = aiger.ite(x, y, z)  # if x then y else z.
 
 # Atoms can be constants.
-expr8 = x & aiger.atom(True)  # Equivalent to just x.
-expr9 = x & aiger.atom(False)  # Equivalent to const False.
+expr8 = x & True  # Equivalent to just x.
+expr9 = x & False # Equivalent to const False.
 
 # Specifying output name of boolean expression.
 # - Output is a long uuid otherwise.
@@ -196,28 +211,6 @@ aig4 = aig3 >> aiger.sink(['y'])
 
 # Create duplicate w of output y.
 aig4 = aig3 >> aiger.tee({'y': ['y', 'w']})
-
-# Make an AND gate.
-aiger.and_gate(['x', 'y'], out='name')
-
-# Make an OR gate.
-aiger.or_gate(['x', 'y'])  # Default output name is #or_output.
-
-# And outputs.
-aig1 >> aiger.and_gate(aig1.outputs) # Default output name is #and_output.
-
-# Or outputs.
-aig1 >> aiger.or_gate(inputs=aig1.outputs, output='my_output')
-
-# Flip outputs.
-aig1 >> aiger.bit_flipper(inputs=aig1.outputs)
-
-# Flip inputs.
-aiger.bit_flipper(inputs=aig1.inputs) >> aig1
-
-# ITE circuit
-# ['o1', 'o2'] = ['i1', 'i2'] if 'test' Else ['i3', 'i4'] 
-aiger.common.ite('test', ['i1', 'i2'], ['i3', 'i4'], outputs=['o1', 'o2'])
 ```
 
 # Extra
