@@ -179,7 +179,7 @@ def parse_and(state, line) -> bool:
     state.nodes[elems[0]] = deps
     for dep in deps:
         if dep & 1:
-            state.nodes[dep] = {dep ^ 1}        
+            state.nodes[dep] = {dep ^ 1}
     return True
 
 
