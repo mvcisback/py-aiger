@@ -26,12 +26,11 @@ def header(inputs, outputs, latchins, latchouts, inits, count):
 def footer(inputs, latches, outputs, comments):
     # Note: relies on the fact that dictionaries respect insertion order.
     buff = ""
-    if inputs:
-        buff += "\n".join(f"i{i} {k}" for i, k in enumerate(inputs)) + "\n"
-    if outputs:
-        buff += "\n".join(f"o{i} {k}" for i, k in enumerate(outputs)) + "\n"
-    if latches:
-        buff += "\n".join(f"l{i} {k}" for i, k in enumerate(latches)) + "\n"
+    for pre, elems in zip("iol", (inputs, outputs, latches)):
+        if not elems:
+            continue
+        elems = sorted(elems)
+        buff += "\n".join(f"{pre}{i} {k}" for i, k in enumerate(elems)) + "\n"
     if comments:
         buff += "c\n"
         buff += "\n".join(comments) + "\n"
