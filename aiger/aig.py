@@ -16,8 +16,8 @@ from pyrsistent.typing import PMap
 
 import aiger as A
 from aiger import common as cmn
-from aiger import aag
 from aiger import parser
+from aiger import writer
 
 
 @attr.s(frozen=True, auto_attribs=True, eq=False)
@@ -60,7 +60,7 @@ class AndGate(Node):
         return (self.left, self.right)
 
 
-@attr.s(frozen=True, auto_attribs=True, eq=False)
+@attr.s(frozen=True, auto_attribs=True)  # Allow Hashing.
 class Inverter(Node):
     input: Node
 
@@ -105,10 +105,8 @@ class AIG:
     latch2init: PMap[str, bool] = attr.ib(default=pmap(), converter=pmap)
     comments: Tuple[str] = ()
 
-    _to_aag = aag.aig2aag
-
     def __repr__(self):
-        return repr(self._to_aag())
+        return writer.dump(self)
 
     def __getitem__(self, others):
         return self.lazy_aig[others].aig

@@ -3,8 +3,6 @@ from tempfile import NamedTemporaryFile
 import hypothesis.strategies as st
 from hypothesis import given, settings
 
-import aiger
-from aiger import common
 from aiger import hypothesis as aigh
 from aiger import parser as aigp
 
@@ -32,31 +30,42 @@ def test_parse(circ, data):
     assert circ(test_input) == circ2(test_input)
 
 
-@given(aigh.Circuits, st.data())
-def test_aig_to_aag(circ, data):
-    circ2 = circ._to_aag()._to_aig()
-    assert circ.inputs == circ2.inputs
-    assert circ.outputs == circ2.outputs
-    test_input = {f'{i}': data.draw(st.booleans()) for i in circ.inputs}
-    assert circ(test_input) == circ2(test_input)
+TEST1 = """aag 5 1 2 1 1
+2
+6 9 0
+4 2 1
+9
+8 7 5
+i0 ap1
+o0 x
+l0 y
+l1 z
+c
+PZap1
+"""
 
 
-def test_sink_aag():
-    circ = aiger.common.sink(['x', 'y'])
-    assert len(circ._to_aag().inputs) != 0
-    assert len(circ._to_aag().outputs) == 0
-    assert len(circ._to_aag().latches) == 0
-    circ2 = circ._to_aag()._to_aig()
-    assert circ.inputs == circ2.inputs
-    assert circ.outputs == circ2.outputs
+@given(st.data())
+def test_smoke1(data):
+    circ1 = aigp.parse(TEST1)
+    circ2 = aigp.parse(str(circ1))
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ1.inputs}
+    assert circ1(test_input) == circ2(test_input)
 
 
-@given(aigh.Circuits, st.data())
-def test_dummylatches_aag(circ, ddata):
-    circ2 = circ.evolve(
-        latch2init={common._fresh(): False}
-    )
-    circ3 = circ._to_aag()._to_aig()
-    assert circ2.inputs == circ3.inputs
-    assert circ3.outputs == circ3.outputs
-    assert circ3.latches == circ3.latches
+TEST2 = """aag 2 1 0 1 0
+2
+3
+i0 ap1
+o0 x
+c
+~ap1
+"""
+
+
+@given(st.data())
+def test_smoke2(data):
+    circ1 = aigp.parse(TEST2)
+    circ2 = aigp.parse(str(circ1))
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ1.inputs}
+    assert circ1(test_input) == circ2(test_input)
