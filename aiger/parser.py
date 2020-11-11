@@ -148,7 +148,7 @@ def parse_latch(state, line) -> bool:
 
     match = LATCH_PATTERN.match(line)
     if match is None:
-        return False
+        raise ValueError("Expecting a latch: {line}")
     elems = fn.lmap(int, match.groups())
 
     if elems[2] is None:
