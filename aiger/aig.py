@@ -16,6 +16,7 @@ from pyrsistent.typing import PMap
 
 import aiger as A
 from aiger import common as cmn
+from aiger import aag
 from aiger import parser
 
 
@@ -104,7 +105,7 @@ class AIG:
     latch2init: PMap[str, bool] = attr.ib(default=pmap(), converter=pmap)
     comments: Tuple[str] = ()
 
-    _to_aag = parser.aig2aag
+    _to_aag = aag.aig2aag
 
     def __repr__(self):
         return repr(self._to_aag())

@@ -18,6 +18,7 @@ funcy = "^1.12"
 parsimonious = "^0.8.1"
 toposort = "^1.5"
 pyrsistent = "^0.17.0"
+sortedcontainers = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
 hypothesis_cfg = {git = "git://github.com/mvcisback/hypothesis-cfg.git"}
@@ -28,6 +29,8 @@ pytest-xdist = "^2.0.0"
 coverage = "^5.2.1"
 codecov = "^2.0"
 py-aiger-ptltl = {git = "git://github.com/mvcisback/py-aiger-past-ltl.git"}
+python-sat = {version = "0.1.6.*", allow-prereleases = true}
+py-aiger-sat = "^3"
 
 [build-system]
 requires = ["poetry>=0.12"]

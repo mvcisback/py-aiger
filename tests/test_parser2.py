@@ -31,8 +31,8 @@ Test 2
 
 
 def test_parser2_test1():
-    aag = parser.parse(TEST1, to_aig=False)
-    aag2 = parser.parse(str(aag), to_aig=False)
+    aag = parser2.parse(TEST1, to_aig=False)
+    aag2 = parser2.parse(str(aag), to_aig=False)
     assert TEST1 == str(aag) == str(aag2)
 
 
@@ -47,8 +47,8 @@ ap1
 
 
 def test_parser2_test2():
-    aag = parser.parse(TEST2, to_aig=False)
-    aag2 = parser.parse(str(aag), to_aig=False)
+    aag = parser2.parse(TEST2, to_aig=False)
+    aag2 = parser2.parse(str(aag), to_aig=False)
     assert TEST2 == str(aag) == str(aag2)
 
 
@@ -71,8 +71,27 @@ ap1
 
 
 def test_parser2_test3():
-    aag = parser.parse(TEST3, to_aig=False)
+    aag = parser2.parse(TEST3)
     assert len(aag.outputs) == 1
     out, *_ = aag.outputs
     expected = TEST3_2.format(out)
     assert str(aag) == expected
+
+
+TEST4 = """aag 4 1 2 1 1
+2
+8 7 1
+4 7 0
+8
+6 3 5
+i0 ap1
+o0 x
+l0 y
+l1 z
+c
+ZPap1
+"""
+
+
+def test_parser2_test4():
+    circ = parser.parse(TEST4)
