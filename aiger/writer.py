@@ -2,6 +2,7 @@ import funcy as fn
 
 import attr
 from bidict import bidict
+from sortedcontainers import SortedDict
 
 
 AAG_HEADER = "aag {} {} {} {} {}\n"
@@ -82,6 +83,7 @@ def dump(circ):
 
     # Interpret circ over Algebra.
     omap, lmap = circ(inputs=inputs, latches=latches, lift=lift)
+    omap = SortedDict(omap.get, omap)  # Force outputs to be ordered.
 
     # Add header and footer.
     head = header(inputs, omap, latches, lmap, circ.latch2init, count)
