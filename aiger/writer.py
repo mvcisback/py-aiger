@@ -30,7 +30,6 @@ def footer(inputs, latches, outputs, comments):
     for pre, elems in zip("iol", (inputs, outputs, latches)):
         if not elems:
             continue
-        elems = sorted(elems)
         buff += "\n".join(f"{pre}{i} {k}" for i, k in enumerate(elems)) + "\n"
     if comments:
         buff += "c\n"
