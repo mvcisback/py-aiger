@@ -17,7 +17,7 @@ def header(inputs, outputs, latchins, latchouts, inits, count):
 
     # Note: lits sorted for stable output order.
     if inputs:
-        buff += "\n".join(map(str, sorted(inputs.values()))) + "\n"
+        buff += "\n".join(map(str, inputs.values())) + "\n"
     for key in sorted(latchins, key=latchins.get):
         buff += f"{latchins[key]} {latchouts[key]} {int(inits[key])}\n"
     if outputs:
