@@ -14,12 +14,13 @@ def header(inputs, outputs, latchins, latchouts, inits, count):
 
     buff = AAG_HEADER.format(count, n_in, n_lin, n_out, n_and)
 
+    # Note: lits sorted for stable output order.
     if inputs:
-        buff += "\n".join(map(str, inputs.values())) + "\n"
-    for key in latchins:
+        buff += "\n".join(map(str, sorted(inputs.values()))) + "\n"
+    for key in sorted(latchins, key=latchins.get):
         buff += f"{latchins[key]} {latchouts[key]} {int(inits[key])}\n"
     if outputs:
-        buff += "\n".join(map(str, outputs.values())) + "\n"
+        buff += "\n".join(map(str, sorted(outputs.values()))) + "\n"
     return buff
 
 
@@ -83,7 +84,7 @@ def dump(circ):
     # Interpret circ over Algebra.
     omap, lmap = circ(inputs=inputs, latches=latches, lift=lift)
 
-    # Add header and footer
+    # Add header and footer.
     head = header(inputs, omap, latches, lmap, circ.latch2init, count)
     foot = footer(inputs, latches, omap, circ.comments)
 
