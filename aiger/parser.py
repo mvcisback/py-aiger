@@ -149,10 +149,11 @@ def parse_latch(state, line) -> bool:
     match = LATCH_PATTERN.match(line)
     if match is None:
         raise ValueError("Expecting a latch: {line}")
-    elems = fn.lmap(int, match.groups())
 
+    elems = match.groups()
     if elems[2] is None:
         elems = elems[:2] + (0,)
+    elems = fn.lmap(int, elems)
 
     state.latches.add(Latch(*elems))
     state.nodes[elems[0]] = set()  # Add latch in as source.
@@ -259,7 +260,9 @@ def parse(lines, to_aig: bool = True):
     latch_lits = {latch.id for latch in state.latches}
     lit2expr = {}
     for lit in toposort(state.nodes):
-        if lit in state.inputs:
+        if lit == 0:
+            lit2expr[lit] = A.atom(False)
+        elif lit in state.inputs:
             lit2expr[lit] = A.atom(inputs.inv[lit])
         elif lit in latch_lits:
             lit2expr[lit] = A.atom(None)

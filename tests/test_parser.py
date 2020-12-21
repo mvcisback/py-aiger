@@ -69,3 +69,7 @@ def test_smoke2(data):
     circ2 = aigp.parse(str(circ1))
     test_input = {f'{i}': data.draw(st.booleans()) for i in circ1.inputs}
     assert circ1(test_input) == circ2(test_input)
+
+
+def test_mutex_example():
+    circ = aigp.load('tests/mutex_converted.aag')
