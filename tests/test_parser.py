@@ -71,5 +71,5 @@ def test_smoke2(data):
     assert circ1(test_input) == circ2(test_input)
 
 
-def test_mutex_example():
-    circ = aigp.load('tests/mutex_converted.aag')
+def test_mutex_example_smoke():
+    aigp.load('tests/mutex_converted.aag')
