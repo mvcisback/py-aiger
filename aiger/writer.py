@@ -10,7 +10,7 @@ AAG_HEADER = "aag {} {} {} {} {}\n"
 
 def header(inputs, outputs, latchins, latchouts, inits, count):
     n_in, n_lin, n_out = len(inputs), len(latchins), len(outputs)
-    n_and = count - n_in - n_lin - 1
+    n_and = count - n_in - n_lin
     assert len(latchouts) == n_lin == len(inits)
 
     buff = AAG_HEADER.format(count, n_in, n_lin, n_out, n_and)
@@ -41,6 +41,7 @@ def footer(inputs, latches, outputs, comments):
 def dump(circ):
     # Create Algebra to write to a string buffer.
     buff = ""
+    count = 0
 
     @attr.s(auto_attribs=True, frozen=True, repr=False)
     class NodeAlg:
@@ -54,8 +55,9 @@ def dump(circ):
             nonlocal count
             nonlocal buff
 
-            new = NodeAlg(count << 1)
             count += 1
+            new = NodeAlg(count << 1)
+
             right, left = sorted([self.lit, other.lit])
             buff += f"{new} {left} {right}\n"
             return new
@@ -71,13 +73,15 @@ def dump(circ):
         raise NotImplementedError
 
     # Inputs and Latches are first indices.
-    count = 1
+
+    start = count + 1
     inputs = bidict(
-        {k: NodeAlg(i << 1) for i, k in enumerate(sorted(circ.inputs), count)}
+        {k: NodeAlg(i << 1) for i, k in enumerate(sorted(circ.inputs), start)}
     )
     count += len(inputs)
+    start = count + 1
     latches = bidict(
-        {k: NodeAlg(i << 1) for i, k in enumerate(sorted(circ.latches), count)}
+        {k: NodeAlg(i << 1) for i, k in enumerate(sorted(circ.latches), start)}
     )
     count += len(latches)
 
