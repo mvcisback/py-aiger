@@ -8,7 +8,7 @@ from typing import Mapping, List, Optional
 import attr
 import funcy as fn
 from bidict import bidict
-from toposort import toposort_flatten as toposort
+from toposort import toposort
 from uuid import uuid1
 from sortedcontainers import SortedSet, SortedDict
 
@@ -176,7 +176,7 @@ def parse_and(state, line) -> bool:
 
     elems = fn.lmap(int, match.groups())
     state.header.num_ands -= 1
-    deps = SortedSet(elems[1:])
+    deps = set(elems[1:])
     state.nodes[elems[0]] = deps
     for dep in deps:
         if dep & 1:
@@ -259,18 +259,19 @@ def parse(lines, to_aig: bool = True):
     # Create expression DAG.
     latch_lits = {latch.id for latch in state.latches}
     lit2expr = {}
-    for lit in toposort(state.nodes):
-        if lit == 0:
-            lit2expr[lit] = A.atom(False)
-        elif lit in state.inputs:
-            lit2expr[lit] = A.atom(inputs.inv[lit])
-        elif lit in latch_lits:
-            lit2expr[lit] = A.atom(None)
-        elif lit & 1:
-            lit2expr[lit] = ~lit2expr[lit & -2]
-        else:
-            exprs = (lit2expr[lit2] for lit2 in state.nodes[lit])
-            lit2expr[lit] = reduce(op.and_, exprs)
+    for lits in toposort(state.nodes):
+        for lit in sorted(lits):
+            if lit == 0:
+                lit2expr[lit] = A.atom(False)
+            elif lit in state.inputs:
+                lit2expr[lit] = A.atom(inputs.inv[lit])
+            elif lit in latch_lits:
+                lit2expr[lit] = A.atom(None)
+            elif lit & 1:
+                lit2expr[lit] = ~lit2expr[lit & -2]
+            else:
+                exprs = (lit2expr[lit2] for lit2 in state.nodes[lit])
+                lit2expr[lit] = reduce(op.and_, exprs)
 
     circ = A.sink(set(inputs))  # Make sure circ depends on all inputs.
 
