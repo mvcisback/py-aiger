@@ -1,6 +1,5 @@
 import io
 import re
-import operator as op
 from collections import defaultdict
 from functools import reduce
 from typing import Mapping, List, Optional
