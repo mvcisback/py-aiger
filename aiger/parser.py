@@ -8,7 +8,7 @@ from typing import Mapping, List, Optional
 import attr
 import funcy as fn
 from bidict import bidict
-from toposort import toposort
+from toposort import toposort_flatten
 from uuid import uuid1
 from sortedcontainers import SortedSet, SortedDict
 
@@ -257,47 +257,30 @@ def parse(lines, to_aig: bool = True):
     latches = bidict(finish_table(state.symbols.latches, state.latches))
 
     # Create expression DAG.
-    latch_lits = {latch.id for latch in state.latches}
+    latch_ids = {latch.id: name for name, latch in latches.items()}
     lit2expr = {}
-    for lits in toposort(state.nodes):
-        for lit in sorted(lits):
-            if lit == 0:
-                lit2expr[lit] = A.atom(False)
-            elif lit in state.inputs:
-                lit2expr[lit] = A.atom(inputs.inv[lit])
-            elif lit in latch_lits:
-                lit2expr[lit] = A.atom(None)
-            elif lit & 1:
-                lit2expr[lit] = ~lit2expr[lit & -2]
-            else:
-                exprs = (lit2expr[lit2] for lit2 in state.nodes[lit])
-                lit2expr[lit] = reduce(op.and_, exprs)
 
-    circ = A.sink(set(inputs))  # Make sure circ depends on all inputs.
+    for lit in toposort_flatten(state.nodes):
+        if lit == 0:
+            lit2expr[lit] = A.aig.ConstFalse()
+        elif lit in state.inputs:
+            lit2expr[lit] = A.aig.Input(inputs.inv[lit])
+        elif lit in latch_ids:
+            name = latch_ids[lit]
+            lit2expr[lit] = A.aig.LatchIn(name)
+        elif lit & 1:
+            lit2expr[lit] = A.aig.Inverter(lit2expr[lit & -2])
+        else:
+            nodes = [lit2expr[lit2] for lit2 in state.nodes[lit]]
+            lit2expr[lit] = reduce(A.aig.AndGate, nodes)
 
-    for name, lit in outputs.items():  # Add output cones.
-        lit2expr[lit] = lit2expr[lit].with_output(name)
-        circ |= lit2expr[lit].aig
-
-    for latch in state.latches:  # Mark latch outs cones.
-        if latch.input not in state.outputs:
-            circ |= lit2expr[latch.input].aig
-
-    # Make DAG cyclic via latch feedback.
-    wires = []
-    for latch in state.latches:
-        wires.append({
-            'input': fn.first(lit2expr[latch.id].inputs),
-            'output': lit2expr[latch.input].output,
-            'keep_output': True,
-            'init': latch.init,
-            'latch': latches.inv[latch]
-        })
-    circ = circ.loopback(*wires)
-    circ >>= A.sink(circ.outputs - set(outputs))  # Remove unused outputs.
-
-    comments = tuple(state.comments if state.comments else [])
-    return attr.evolve(circ, comments=comments)
+    return A.aig.AIG(
+        inputs=set(inputs),
+        node_map={n: lit2expr[lit] for n, lit in outputs.items()},
+        latch_map={n: lit2expr[latch.input] for n, latch in latches.items()},
+        latch2init={n: latch.init for n, latch in latches.items()},
+        comments=tuple(state.comments if state.comments else []),
+    )
 
 
 def load(path: str, to_aig: bool = True):
