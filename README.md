@@ -151,7 +151,7 @@ aig5 = aig1.loopback({
 aig6 = aig1.loopback({
   "input": "x", "output": "y",
 }, {
-  "input": "z", "output": "z", latch="z_latch",
+  "input": "z", "output": "z", "latch": "z_latch",
   "init": False, "keep_outputs": False
 })
 
