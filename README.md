@@ -243,17 +243,3 @@ aiger.to_aig(aig1)
 # Related Projects
 - [pyAig](https://github.com/sterin/pyaig): Another python library
   for working with AIGER circuits.
-
-
-# Citing
-
-```
-@misc{pyAiger,
-  author       = {Marcell Vazquez-Chanlatte},
-  title        = {mvcisback/py-aiger},
-  month        = aug,
-  year         = 2018,
-  doi          = {10.5281/zenodo.1326224},
-  url          = {https://doi.org/10.5281/zenodo.1326224}
-}
-```
