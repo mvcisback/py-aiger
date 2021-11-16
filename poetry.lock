@@ -1,12 +1,4 @@
 [[package]]
-name = "apipkg"
-version = "1.5"
-description = "apipkg: namespace control and lazy-import mechanism"
-category = "dev"
-optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-
-[[package]]
 name = "atomicwrites"
 version = "1.4.0"
 description = "Atomic file writes."
@@ -16,52 +8,48 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "attrs"
-version = "20.3.0"
+version = "21.2.0"
 description = "Classes Without Boilerplate"
 category = "main"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [package.extras]
-dev = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.interface", "furo", "sphinx", "pre-commit"]
-docs = ["furo", "sphinx", "zope.interface"]
-tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.interface"]
-tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six"]
+dev = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface", "furo", "sphinx", "sphinx-notfound-page", "pre-commit"]
+docs = ["furo", "sphinx", "zope.interface", "sphinx-notfound-page"]
+tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface"]
+tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins"]
 
 [[package]]
 name = "bidict"
-version = "0.21.2"
+version = "0.21.4"
 description = "The bidirectional mapping library for Python."
 category = "main"
 optional = false
 python-versions = ">=3.6"
 
-[package.extras]
-coverage = ["coverage (<6)", "pytest-cov (<3)"]
-dev = ["setuptools-scm", "hypothesis (<6)", "py (<2)", "pytest (<7)", "pytest-benchmark (>=3.2.0,<4)", "sortedcollections (<2)", "sortedcontainers (<3)", "Sphinx (<4)", "sphinx-autodoc-typehints (<2)", "coverage (<6)", "pytest-cov (<3)", "pre-commit (<3)", "tox (<4)"]
-docs = ["Sphinx (<4)", "sphinx-autodoc-typehints (<2)"]
-precommit = ["pre-commit (<3)"]
-test = ["hypothesis (<6)", "py (<2)", "pytest (<7)", "pytest-benchmark (>=3.2.0,<4)", "sortedcollections (<2)", "sortedcontainers (<3)", "Sphinx (<4)", "sphinx-autodoc-typehints (<2)"]
-
 [[package]]
 name = "certifi"
-version = "2020.12.5"
+version = "2021.10.8"
 description = "Python package for providing Mozilla's CA Bundle."
 category = "dev"
 optional = false
 python-versions = "*"
 
 [[package]]
-name = "chardet"
-version = "4.0.0"
-description = "Universal encoding detector for Python 2 and 3"
+name = "charset-normalizer"
+version = "2.0.7"
+description = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.5.0"
+
+[package.extras]
+unicode_backport = ["unicodedata2"]
 
 [[package]]
 name = "codecov"
-version = "2.1.11"
+version = "2.1.12"
 description = "Hosted coverage reports for GitHub, Bitbucket and Gitlab"
 category = "dev"
 optional = false
@@ -92,35 +80,32 @@ toml = ["toml"]
 
 [[package]]
 name = "execnet"
-version = "1.8.0"
+version = "1.9.0"
 description = "execnet: rapid multi-Python deployment"
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
-
-[package.dependencies]
-apipkg = ">=1.4"
 
 [package.extras]
 testing = ["pre-commit"]
 
 [[package]]
 name = "flake8"
-version = "3.8.4"
+version = "4.0.1"
 description = "the modular source code checker: pep8 pyflakes and co"
 category = "dev"
 optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"
+python-versions = ">=3.6"
 
 [package.dependencies]
-importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
+importlib-metadata = {version = "<4.3", markers = "python_version < \"3.8\""}
 mccabe = ">=0.6.0,<0.7.0"
-pycodestyle = ">=2.6.0a1,<2.7.0"
-pyflakes = ">=2.2.0,<2.3.0"
+pycodestyle = ">=2.8.0,<2.9.0"
+pyflakes = ">=2.4.0,<2.5.0"
 
 [[package]]
 name = "funcy"
-version = "1.15"
+version = "1.16"
 description = "A fancy and practical functional tools"
 category = "main"
 optional = false
@@ -175,15 +160,15 @@ resolved_reference = "fee01c6d8c36f33501b71ff0e84b342829968ddf"
 
 [[package]]
 name = "idna"
-version = "2.10"
+version = "3.3"
 description = "Internationalized Domain Names in Applications (IDNA)"
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = ">=3.5"
 
 [[package]]
 name = "importlib-metadata"
-version = "3.7.0"
+version = "4.2.0"
 description = "Read metadata from Python packages"
 category = "dev"
 optional = false
@@ -195,7 +180,7 @@ zipp = ">=0.5"
 
 [package.extras]
 docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
-testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "pytest-enabler", "packaging", "pep517", "pyfakefs", "flufl.flake8", "pytest-black (>=0.3.7)", "pytest-mypy", "importlib-resources (>=1.3)"]
+testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "packaging", "pep517", "pyfakefs", "flufl.flake8", "pytest-black (>=0.3.7)", "pytest-mypy", "importlib-resources (>=1.3)"]
 
 [[package]]
 name = "iniconfig"
@@ -215,14 +200,14 @@ python-versions = "*"
 
 [[package]]
 name = "packaging"
-version = "20.9"
+version = "21.2"
 description = "Core utilities for Python packages"
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = ">=3.6"
 
 [package.dependencies]
-pyparsing = ">=2.0.2"
+pyparsing = ">=2.0.2,<3"
 
 [[package]]
 name = "parsimonious"
@@ -237,29 +222,30 @@ six = ">=1.9.0"
 
 [[package]]
 name = "pluggy"
-version = "0.13.1"
+version = "1.0.0"
 description = "plugin and hook calling mechanisms for python"
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = ">=3.6"
 
 [package.dependencies]
 importlib-metadata = {version = ">=0.12", markers = "python_version < \"3.8\""}
 
 [package.extras]
 dev = ["pre-commit", "tox"]
+testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "py"
-version = "1.10.0"
+version = "1.11.0"
 description = "library with cross-python path, ini-parsing, io, code, log facilities"
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "py-aiger-cnf"
-version = "5.0.1"
+version = "5.0.2"
 description = "Python library to convert between AIGER and CNF"
 category = "dev"
 optional = false
@@ -290,32 +276,37 @@ resolved_reference = "76cede0ce8b8d4224f96db7af4d24f9b7d48c269"
 
 [[package]]
 name = "py-aiger-sat"
-version = "3.0.4"
+version = "3.0.3"
 description = "Pythonic interface between AIGs and SAT solvers."
 category = "dev"
 optional = false
-python-versions = ">=3.7,<4.0"
+python-versions = "^3.7"
+develop = false
 
 [package.dependencies]
-attrs = ">=20.0.0,<21.0.0"
-py-aiger = ">=6.0.0,<7.0.0"
-py-aiger-cnf = ">=5.0.0,<6.0.0"
-python-sat = ">=0.1.0,<0.2.0"
+attrs = "^21.0.0"
+py-aiger = "^6.0.0"
+py-aiger-cnf = "^5.0.0"
+python-sat = "0.1.6.*"
 
 [package.extras]
 bitvector = ["py-aiger-bv (>=4.0.0,<5.0.0)"]
 
+[package.source]
+type = "directory"
+url = "../sat"
+
 [[package]]
 name = "pycodestyle"
-version = "2.6.0"
+version = "2.8.0"
 description = "Python style guide checker"
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "pyflakes"
-version = "2.2.0"
+version = "2.4.0"
 description = "passive checker of Python programs"
 category = "dev"
 optional = false
@@ -339,7 +330,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "pytest"
-version = "6.2.2"
+version = "6.2.5"
 description = "pytest: simple powerful testing with Python"
 category = "dev"
 optional = false
@@ -352,7 +343,7 @@ colorama = {version = "*", markers = "sys_platform == \"win32\""}
 importlib-metadata = {version = ">=0.12", markers = "python_version < \"3.8\""}
 iniconfig = "*"
 packaging = "*"
-pluggy = ">=0.12,<1.0.0a1"
+pluggy = ">=0.12,<2.0"
 py = ">=1.8.2"
 toml = "*"
 
@@ -361,7 +352,7 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "requests", "xm
 
 [[package]]
 name = "pytest-cov"
-version = "2.11.1"
+version = "2.12.1"
 description = "Pytest plugin for measuring coverage."
 category = "dev"
 optional = false
@@ -370,9 +361,10 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 [package.dependencies]
 coverage = ">=5.2.1"
 pytest = ">=4.6"
+toml = "*"
 
 [package.extras]
-testing = ["fields", "hunter", "process-tests (==2.0.2)", "six", "pytest-xdist", "virtualenv"]
+testing = ["fields", "hunter", "process-tests", "six", "pytest-xdist", "virtualenv"]
 
 [[package]]
 name = "pytest-flake8"
@@ -400,11 +392,11 @@ pytest = ">=3.10"
 
 [[package]]
 name = "pytest-xdist"
-version = "2.2.1"
+version = "2.4.0"
 description = "pytest xdist plugin for distributed testing and loop-on-failing modes"
 category = "dev"
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.6"
 
 [package.dependencies]
 execnet = ">=1.1"
@@ -413,11 +405,12 @@ pytest-forked = "*"
 
 [package.extras]
 psutil = ["psutil (>=3.0)"]
+setproctitle = ["setproctitle"]
 testing = ["filelock"]
 
 [[package]]
 name = "python-sat"
-version = "0.1.6.dev12"
+version = "0.1.7.dev12"
 description = "A Python library for prototyping with SAT oracles"
 category = "dev"
 optional = false
@@ -432,25 +425,25 @@ pblib = ["pypblib (>=0.0.3)"]
 
 [[package]]
 name = "requests"
-version = "2.25.1"
+version = "2.26.0"
 description = "Python HTTP for Humans."
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 
 [package.dependencies]
 certifi = ">=2017.4.17"
-chardet = ">=3.0.2,<5"
-idna = ">=2.5,<3"
+charset-normalizer = {version = ">=2.0.0,<2.1.0", markers = "python_version >= \"3\""}
+idna = {version = ">=2.5,<4", markers = "python_version >= \"3\""}
 urllib3 = ">=1.21.1,<1.27"
 
 [package.extras]
-security = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)"]
 socks = ["PySocks (>=1.5.6,!=1.5.7)", "win-inet-pton"]
+use_chardet_on_py3 = ["chardet (>=3.0.2,<5)"]
 
 [[package]]
 name = "six"
-version = "1.15.0"
+version = "1.16.0"
 description = "Python 2 and 3 compatibility utilities"
 category = "main"
 optional = false
@@ -458,7 +451,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "sortedcontainers"
-version = "2.3.0"
+version = "2.4.0"
 description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
 category = "main"
 optional = false
@@ -474,23 +467,23 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "toposort"
-version = "1.6"
-description = "Implements a topological sort algorithm."
+version = "1.7"
+description = "\"Implements a topological sort algorithm.\""
 category = "main"
 optional = false
 python-versions = "*"
 
 [[package]]
 name = "typing-extensions"
-version = "3.7.4.3"
-description = "Backported and Experimental Type Hints for Python 3.5+"
+version = "4.0.0"
+description = "Backported and Experimental Type Hints for Python 3.6+"
 category = "dev"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6"
 
 [[package]]
 name = "urllib3"
-version = "1.26.3"
+version = "1.26.7"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 category = "dev"
 optional = false
@@ -503,50 +496,46 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
 name = "zipp"
-version = "3.4.0"
+version = "3.6.0"
 description = "Backport of pathlib-compatible object wrapper for zip files"
 category = "dev"
 optional = false
 python-versions = ">=3.6"
 
 [package.extras]
-docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
-testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "jaraco.test (>=3.2.0)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
+docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
+testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "6ee582d39ca1ef37bdfa8b642f71dc3bfe31f6b0e8cae170433ce3f30656ca69"
+content-hash = "623653bf55a0d41bcaacc6e7b93e961fe4d7d793b76b9e48cbfb64fc12dac5e9"
 
 [metadata.files]
-apipkg = [
-    {file = "apipkg-1.5-py2.py3-none-any.whl", hash = "sha256:58587dd4dc3daefad0487f6d9ae32b4542b185e1c36db6993290e7c41ca2b47c"},
-    {file = "apipkg-1.5.tar.gz", hash = "sha256:37228cda29411948b422fae072f57e31d3396d2ee1c9783775980ee9c9990af6"},
-]
 atomicwrites = [
     {file = "atomicwrites-1.4.0-py2.py3-none-any.whl", hash = "sha256:6d1784dea7c0c8d4a5172b6c620f40b6e4cbfdf96d783691f2e1302a7b88e197"},
     {file = "atomicwrites-1.4.0.tar.gz", hash = "sha256:ae70396ad1a434f9c7046fd2dd196fc04b12f9e91ffb859164193be8b6168a7a"},
 ]
 attrs = [
-    {file = "attrs-20.3.0-py2.py3-none-any.whl", hash = "sha256:31b2eced602aa8423c2aea9c76a724617ed67cf9513173fd3a4f03e3a929c7e6"},
-    {file = "attrs-20.3.0.tar.gz", hash = "sha256:832aa3cde19744e49938b91fea06d69ecb9e649c93ba974535d08ad92164f700"},
+    {file = "attrs-21.2.0-py2.py3-none-any.whl", hash = "sha256:149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1"},
+    {file = "attrs-21.2.0.tar.gz", hash = "sha256:ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"},
 ]
 bidict = [
-    {file = "bidict-0.21.2-py2.py3-none-any.whl", hash = "sha256:929d056e8d0d9b17ceda20ba5b24ac388e2a4d39802b87f9f4d3f45ecba070bf"},
-    {file = "bidict-0.21.2.tar.gz", hash = "sha256:4fa46f7ff96dc244abfc437383d987404ae861df797e2fd5b190e233c302be09"},
+    {file = "bidict-0.21.4-py3-none-any.whl", hash = "sha256:3ac67daa353ecf853a1df9d3e924f005e729227a60a8dbada31a4c31aba7f654"},
+    {file = "bidict-0.21.4.tar.gz", hash = "sha256:42c84ffbe6f8de898af6073b4be9ea7ccedcd78d3474aa844c54e49d5a079f6f"},
 ]
 certifi = [
-    {file = "certifi-2020.12.5-py2.py3-none-any.whl", hash = "sha256:719a74fb9e33b9bd44cc7f3a8d94bc35e4049deebe19ba7d8e108280cfd59830"},
-    {file = "certifi-2020.12.5.tar.gz", hash = "sha256:1a4995114262bffbc2413b159f2a1a480c969de6e6eb13ee966d470af86af59c"},
+    {file = "certifi-2021.10.8-py2.py3-none-any.whl", hash = "sha256:d62a0163eb4c2344ac042ab2bdf75399a71a2d8c7d47eac2e2ee91b9d6339569"},
+    {file = "certifi-2021.10.8.tar.gz", hash = "sha256:78884e7c1d4b00ce3cea67b44566851c4343c120abd683433ce934a68ea58872"},
 ]
-chardet = [
-    {file = "chardet-4.0.0-py2.py3-none-any.whl", hash = "sha256:f864054d66fd9118f2e67044ac8981a54775ec5b67aed0441892edb553d21da5"},
-    {file = "chardet-4.0.0.tar.gz", hash = "sha256:0d6f53a15db4120f2b08c94f11e7d93d2c911ee118b6b30a04ec3ee8310179fa"},
+charset-normalizer = [
+    {file = "charset-normalizer-2.0.7.tar.gz", hash = "sha256:e019de665e2bcf9c2b64e2e5aa025fa991da8720daa3c1138cadd2fd1856aed0"},
+    {file = "charset_normalizer-2.0.7-py3-none-any.whl", hash = "sha256:f7af805c321bfa1ce6714c51f254e0d5bb5e5834039bc17db7ebe3a4cec9492b"},
 ]
 codecov = [
-    {file = "codecov-2.1.11-py2.py3-none-any.whl", hash = "sha256:ba8553a82942ce37d4da92b70ffd6d54cf635fc1793ab0a7dc3fecd6ebfb3df8"},
-    {file = "codecov-2.1.11-py3.8.egg", hash = "sha256:e95901d4350e99fc39c8353efa450050d2446c55bac91d90fcfd2354e19a6aef"},
-    {file = "codecov-2.1.11.tar.gz", hash = "sha256:6cde272454009d27355f9434f4e49f238c0273b216beda8472a65dc4957f473b"},
+    {file = "codecov-2.1.12-py2.py3-none-any.whl", hash = "sha256:585dc217dc3d8185198ceb402f85d5cb5dbfa0c5f350a5abcdf9e347776a5b47"},
+    {file = "codecov-2.1.12-py3.8.egg", hash = "sha256:782a8e5352f22593cbc5427a35320b99490eb24d9dcfa2155fd99d2b75cfb635"},
+    {file = "codecov-2.1.12.tar.gz", hash = "sha256:a0da46bb5025426da895af90938def8ee12d37fcbcbbbc15b6dc64cf7ebc51c1"},
 ]
 colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
@@ -607,16 +596,16 @@ coverage = [
     {file = "coverage-5.5.tar.gz", hash = "sha256:ebe78fe9a0e874362175b02371bdfbee64d8edc42a044253ddf4ee7d3c15212c"},
 ]
 execnet = [
-    {file = "execnet-1.8.0-py2.py3-none-any.whl", hash = "sha256:7a13113028b1e1cc4c6492b28098b3c6576c9dccc7973bfe47b342afadafb2ac"},
-    {file = "execnet-1.8.0.tar.gz", hash = "sha256:b73c5565e517f24b62dea8a5ceac178c661c4309d3aa0c3e420856c072c411b4"},
+    {file = "execnet-1.9.0-py2.py3-none-any.whl", hash = "sha256:a295f7cc774947aac58dde7fdc85f4aa00c42adf5d8f5468fc630c1acf30a142"},
+    {file = "execnet-1.9.0.tar.gz", hash = "sha256:8f694f3ba9cc92cab508b152dcfe322153975c29bda272e2fd7f3f00f36e47c5"},
 ]
 flake8 = [
-    {file = "flake8-3.8.4-py2.py3-none-any.whl", hash = "sha256:749dbbd6bfd0cf1318af27bf97a14e28e5ff548ef8e5b1566ccfb25a11e7c839"},
-    {file = "flake8-3.8.4.tar.gz", hash = "sha256:aadae8761ec651813c24be05c6f7b4680857ef6afaae4651a4eccaef97ce6c3b"},
+    {file = "flake8-4.0.1-py2.py3-none-any.whl", hash = "sha256:479b1304f72536a55948cb40a32dce8bb0ffe3501e26eaf292c7e60eb5e0428d"},
+    {file = "flake8-4.0.1.tar.gz", hash = "sha256:806e034dda44114815e23c16ef92f95c91e4c71100ff52813adf7132a6ad870d"},
 ]
 funcy = [
-    {file = "funcy-1.15-py2.py3-none-any.whl", hash = "sha256:c247c3d085e03a89974e0c9e8331e9a79db3768a263556ba896d6c92d665bba2"},
-    {file = "funcy-1.15.tar.gz", hash = "sha256:65b746fed572b392d886810a98d56939c6e0d545abb750527a717c21ced21008"},
+    {file = "funcy-1.16-py2.py3-none-any.whl", hash = "sha256:1d3fc5d42cf7564a6b2be04042d0df7a50c77903cf760a34786d0c9ebd659b25"},
+    {file = "funcy-1.16.tar.gz", hash = "sha256:2775409b7dc9106283f1224d97e6df5f2c02e7291c8caed72764f5a115dffb50"},
 ]
 hypothesis = [
     {file = "hypothesis-5.49.0-py3-none-any.whl", hash = "sha256:e91111f2f01abf2566041c4c86366aa7f08bfd5b3d858cc77a545fcf67df335e"},
@@ -624,12 +613,12 @@ hypothesis = [
 ]
 hypothesis-cfg = []
 idna = [
-    {file = "idna-2.10-py2.py3-none-any.whl", hash = "sha256:b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0"},
-    {file = "idna-2.10.tar.gz", hash = "sha256:b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6"},
+    {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
+    {file = "idna-3.3.tar.gz", hash = "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"},
 ]
 importlib-metadata = [
-    {file = "importlib_metadata-3.7.0-py3-none-any.whl", hash = "sha256:c6af5dbf1126cd959c4a8d8efd61d4d3c83bddb0459a17e554284a077574b614"},
-    {file = "importlib_metadata-3.7.0.tar.gz", hash = "sha256:24499ffde1b80be08284100393955842be4a59c7c16bbf2738aad0e464a8e0aa"},
+    {file = "importlib_metadata-4.2.0-py3-none-any.whl", hash = "sha256:057e92c15bc8d9e8109738a48db0ccb31b4d9d5cfbee5a8670879a30be66304b"},
+    {file = "importlib_metadata-4.2.0.tar.gz", hash = "sha256:b7e52a1f8dec14a75ea73e0891f3060099ca1d8e6a462a4dff11c3e119ea1b31"},
 ]
 iniconfig = [
     {file = "iniconfig-1.1.1-py2.py3-none-any.whl", hash = "sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3"},
@@ -640,36 +629,33 @@ mccabe = [
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},
 ]
 packaging = [
-    {file = "packaging-20.9-py2.py3-none-any.whl", hash = "sha256:67714da7f7bc052e064859c05c595155bd1ee9f69f76557e21f051443c20947a"},
-    {file = "packaging-20.9.tar.gz", hash = "sha256:5b327ac1320dc863dca72f4514ecc086f31186744b84a230374cc1fd776feae5"},
+    {file = "packaging-21.2-py3-none-any.whl", hash = "sha256:14317396d1e8cdb122989b916fa2c7e9ca8e2be9e8060a6eff75b6b7b4d8a7e0"},
+    {file = "packaging-21.2.tar.gz", hash = "sha256:096d689d78ca690e4cd8a89568ba06d07ca097e3306a4381635073ca91479966"},
 ]
 parsimonious = [
     {file = "parsimonious-0.8.1.tar.gz", hash = "sha256:3add338892d580e0cb3b1a39e4a1b427ff9f687858fdd61097053742391a9f6b"},
 ]
 pluggy = [
-    {file = "pluggy-0.13.1-py2.py3-none-any.whl", hash = "sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d"},
-    {file = "pluggy-0.13.1.tar.gz", hash = "sha256:15b2acde666561e1298d71b523007ed7364de07029219b604cf808bfa1c765b0"},
+    {file = "pluggy-1.0.0-py2.py3-none-any.whl", hash = "sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3"},
+    {file = "pluggy-1.0.0.tar.gz", hash = "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159"},
 ]
 py = [
-    {file = "py-1.10.0-py2.py3-none-any.whl", hash = "sha256:3b80836aa6d1feeaa108e046da6423ab8f6ceda6468545ae8d02d9d58d18818a"},
-    {file = "py-1.10.0.tar.gz", hash = "sha256:21b81bda15b66ef5e1a777a21c4dcd9c20ad3efd0b3f817e7a809035269e1bd3"},
+    {file = "py-1.11.0-py2.py3-none-any.whl", hash = "sha256:607c53218732647dff4acdfcd50cb62615cedf612e72d1724fb1a0cc6405b378"},
+    {file = "py-1.11.0.tar.gz", hash = "sha256:51c75c4126074b472f746a24399ad32f6053d1b34b68d2fa41e558e6f4a98719"},
 ]
 py-aiger-cnf = [
-    {file = "py-aiger-cnf-5.0.1.tar.gz", hash = "sha256:85c1446e6cad0353716df7eb1a902eb4487ce27691c4a1e16a3c9699ed733276"},
-    {file = "py_aiger_cnf-5.0.1-py3-none-any.whl", hash = "sha256:bdbc46b548ae8f1b496e4fef2d911c0c8e2ce1fb793db89ce96be43840e0051e"},
+    {file = "py-aiger-cnf-5.0.2.tar.gz", hash = "sha256:6349a4ca1c6b0fa2ab2b94ea8e1fe742376a50339dd27dcc53aabc8a9bd83211"},
+    {file = "py_aiger_cnf-5.0.2-py3-none-any.whl", hash = "sha256:c456761d3333af8b168f348c44c036d7c78339bc4be502abb2d4120bb675c62a"},
 ]
 py-aiger-ptltl = []
-py-aiger-sat = [
-    {file = "py-aiger-sat-3.0.4.tar.gz", hash = "sha256:e01fac80bbe5dfacc6b087a396189c5f5901d74aa239ec1b2a964c8a652664d6"},
-    {file = "py_aiger_sat-3.0.4-py3-none-any.whl", hash = "sha256:0742cf5cfa2d2ee41b222318d9825339b35a4765ed0cbc38cb1b4063792f513c"},
-]
+py-aiger-sat = []
 pycodestyle = [
-    {file = "pycodestyle-2.6.0-py2.py3-none-any.whl", hash = "sha256:2295e7b2f6b5bd100585ebcb1f616591b652db8a741695b3d8f5d28bdc934367"},
-    {file = "pycodestyle-2.6.0.tar.gz", hash = "sha256:c58a7d2815e0e8d7972bf1803331fb0152f867bd89adf8a01dfd55085434192e"},
+    {file = "pycodestyle-2.8.0-py2.py3-none-any.whl", hash = "sha256:720f8b39dde8b293825e7ff02c475f3077124006db4f440dcbc9a20b76548a20"},
+    {file = "pycodestyle-2.8.0.tar.gz", hash = "sha256:eddd5847ef438ea1c7870ca7eb78a9d47ce0cdb4851a5523949f2601d0cbbe7f"},
 ]
 pyflakes = [
-    {file = "pyflakes-2.2.0-py2.py3-none-any.whl", hash = "sha256:0d94e0e05a19e57a99444b6ddcf9a6eb2e5c68d3ca1e98e90707af8152c90a92"},
-    {file = "pyflakes-2.2.0.tar.gz", hash = "sha256:35b2d75ee967ea93b55750aa9edbbf72813e06a66ba54438df2cfac9e3c27fc8"},
+    {file = "pyflakes-2.4.0-py2.py3-none-any.whl", hash = "sha256:3bb3a3f256f4b7968c9c788781e4ff07dce46bdf12339dcda61053375426ee2e"},
+    {file = "pyflakes-2.4.0.tar.gz", hash = "sha256:05a85c2872edf37a4ed30b0cce2f6093e1d0581f8c19d7393122da7e25b2b24c"},
 ]
 pyparsing = [
     {file = "pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b"},
@@ -679,12 +665,12 @@ pyrsistent = [
     {file = "pyrsistent-0.17.3.tar.gz", hash = "sha256:2e636185d9eb976a18a8a8e96efce62f2905fea90041958d8cc2a189756ebf3e"},
 ]
 pytest = [
-    {file = "pytest-6.2.2-py3-none-any.whl", hash = "sha256:b574b57423e818210672e07ca1fa90aaf194a4f63f3ab909a2c67ebb22913839"},
-    {file = "pytest-6.2.2.tar.gz", hash = "sha256:9d1edf9e7d0b84d72ea3dbcdfd22b35fb543a5e8f2a60092dd578936bf63d7f9"},
+    {file = "pytest-6.2.5-py3-none-any.whl", hash = "sha256:7310f8d27bc79ced999e760ca304d69f6ba6c6649c0b60fb0e04a4a77cacc134"},
+    {file = "pytest-6.2.5.tar.gz", hash = "sha256:131b36680866a76e6781d13f101efb86cf674ebb9762eb70d3082b6f29889e89"},
 ]
 pytest-cov = [
-    {file = "pytest-cov-2.11.1.tar.gz", hash = "sha256:359952d9d39b9f822d9d29324483e7ba04a3a17dd7d05aa6beb7ea01e359e5f7"},
-    {file = "pytest_cov-2.11.1-py2.py3-none-any.whl", hash = "sha256:bdb9fdb0b85a7cc825269a4c56b48ccaa5c7e365054b6038772c32ddcdc969da"},
+    {file = "pytest-cov-2.12.1.tar.gz", hash = "sha256:261ceeb8c227b726249b376b8526b600f38667ee314f910353fa318caa01f4d7"},
+    {file = "pytest_cov-2.12.1-py2.py3-none-any.whl", hash = "sha256:261bb9e47e65bd099c89c3edf92972865210c36813f80ede5277dceb77a4a62a"},
 ]
 pytest-flake8 = [
     {file = "pytest-flake8-1.0.7.tar.gz", hash = "sha256:f0259761a903563f33d6f099914afef339c085085e643bee8343eb323b32dd6b"},
@@ -695,67 +681,73 @@ pytest-forked = [
     {file = "pytest_forked-1.3.0-py2.py3-none-any.whl", hash = "sha256:dc4147784048e70ef5d437951728825a131b81714b398d5d52f17c7c144d8815"},
 ]
 pytest-xdist = [
-    {file = "pytest-xdist-2.2.1.tar.gz", hash = "sha256:718887296892f92683f6a51f25a3ae584993b06f7076ce1e1fd482e59a8220a2"},
-    {file = "pytest_xdist-2.2.1-py3-none-any.whl", hash = "sha256:2447a1592ab41745955fb870ac7023026f20a5f0bfccf1b52a879bd193d46450"},
+    {file = "pytest-xdist-2.4.0.tar.gz", hash = "sha256:89b330316f7fc475f999c81b577c2b926c9569f3d397ae432c0c2e2496d61ff9"},
+    {file = "pytest_xdist-2.4.0-py3-none-any.whl", hash = "sha256:7b61ebb46997a0820a263553179d6d1e25a8c50d8a8620cd1aa1e20e3be99168"},
 ]
 python-sat = [
-    {file = "python-sat-0.1.6.dev12.tar.gz", hash = "sha256:8c29e8c0f69d9faa4207283dfd591f77b6a20688473e355c65fc9f50a592ff25"},
-    {file = "python_sat-0.1.6.dev12-cp27-cp27m-macosx_11_2_x86_64.whl", hash = "sha256:c56ee38f6d12301d39db0292a2964b051959f880ca82af714cca63b494a3f5f7"},
-    {file = "python_sat-0.1.6.dev12-cp27-cp27m-manylinux1_i686.whl", hash = "sha256:a7159049fa32ee3807df87b478cbc13ebf38920382b0c1545f1c4235e4552680"},
-    {file = "python_sat-0.1.6.dev12-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:34d47c86e24170335f01ae7ebd5a715e993bfe1e4583cac3c9bf0a0607c5df0c"},
-    {file = "python_sat-0.1.6.dev12-cp27-cp27mu-manylinux1_i686.whl", hash = "sha256:7f2a448bdd1a541f1d4f591cca3a552b04698dfddc97012b9cf13147dcb11166"},
-    {file = "python_sat-0.1.6.dev12-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:eb420120634a1430d1c0ed125c372d0ac7e17d9f09c267533d0a98e58d54f8dc"},
-    {file = "python_sat-0.1.6.dev12-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:8398c41546a4907492490473f86bbf96b1da542aa4b1d91468ec33f4c0640017"},
-    {file = "python_sat-0.1.6.dev12-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:daca2e6e578367d0dc4753492e3342084a1cd3d3ac9371201e6ee9094211ae1a"},
-    {file = "python_sat-0.1.6.dev12-cp35-cp35m-manylinux2010_x86_64.whl", hash = "sha256:2b0af205ea304d2b7c3f869dbd30e1a8fe9422e7437c8f61abd2265683f46f25"},
-    {file = "python_sat-0.1.6.dev12-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:c5e08d6f17b0fbb4294faa1c3b3b4a0cc7ee5ba8bfa7fff4711d7f6e0d9a946d"},
-    {file = "python_sat-0.1.6.dev12-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:3e449600347a1a16d649a45eea1578be3d457f9c82cf8ef4994b496167a094b1"},
-    {file = "python_sat-0.1.6.dev12-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:aa0166a9f23a13c47f6a2baf6f27442846ee0895be446a45fec7310173551a66"},
-    {file = "python_sat-0.1.6.dev12-cp36-cp36m-win_amd64.whl", hash = "sha256:4fef64f5bcb8ff1724a63f6576e57d0ee0f7cb6582d8b23977accbc26a5a64eb"},
-    {file = "python_sat-0.1.6.dev12-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:8fcd4cd397df6237387d33de6b234c15ae3a3c4f08b6b7514c182376a102258d"},
-    {file = "python_sat-0.1.6.dev12-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:b39f90b08dc87d01f69426c8a2ae7d5f4099c7bce6e8a8ef4265d0c498604d81"},
-    {file = "python_sat-0.1.6.dev12-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:5d7ebf51eae4eaf2e0f7b7a3aaecbf461f3e9e003b66a1d9109ae16f2195875e"},
-    {file = "python_sat-0.1.6.dev12-cp37-cp37m-win_amd64.whl", hash = "sha256:1a19693b2a503d2fada2adfbaf169469a4c87e94529171c0d9f793e5fb364477"},
-    {file = "python_sat-0.1.6.dev12-cp38-cp38-manylinux1_i686.whl", hash = "sha256:97db1364f7e988e2c23634de7742932057aad77b9a09f8b4b6cdf0b67de3844c"},
-    {file = "python_sat-0.1.6.dev12-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:c817fc20cdcf9223c01d12a99080a101cfb754b897b4c39107f18e508eb8f428"},
-    {file = "python_sat-0.1.6.dev12-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:470659f93ecaadd02749ff8bb6049c2844093171c0f6455fddf210dee3a3b778"},
-    {file = "python_sat-0.1.6.dev12-cp38-cp38-win_amd64.whl", hash = "sha256:9c436aaf277bf8c36a97a5bb2c135ee7c148b09df57d5715c3d53be0e865a3dc"},
-    {file = "python_sat-0.1.6.dev12-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:a5d475ed8c0ae381f2b943f7dfabdc4fb77c0fa9ed02ee17a81c5f12f1b0be26"},
-    {file = "python_sat-0.1.6.dev12-cp39-cp39-manylinux1_i686.whl", hash = "sha256:997cd015c35c0cae3bb622306ec0d1a9acb5f22eac92925289ac3548922a4b1f"},
-    {file = "python_sat-0.1.6.dev12-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:7b0018467b4c4e110e4dde892f1b31b961c5929505a815be4e74993b795cab3b"},
-    {file = "python_sat-0.1.6.dev12-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:2eeff50c35e308c676d96157afffb4b157e1e2371cd8874e6209d534ff6ea1ad"},
-    {file = "python_sat-0.1.6.dev12-cp39-cp39-win_amd64.whl", hash = "sha256:c2013885a24b002d611185c49bc48d3d6b8d22728ee7089202da205f265e9e63"},
+    {file = "python-sat-0.1.7.dev12.tar.gz", hash = "sha256:22dc277882a1d8ca57f186f8d83ba72307ec08896494dcdb2108df1e1ebbac5d"},
+    {file = "python_sat-0.1.7.dev12-cp27-cp27m-manylinux1_i686.whl", hash = "sha256:e4b202b65f759355cc158cb8c9c9e9f0678a13681cbe8d9646b7b7e008ece962"},
+    {file = "python_sat-0.1.7.dev12-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:b855dfdc398e4b74e92a6fae75bad1d6e8fedfbce8e99752daf4b076cc66bce1"},
+    {file = "python_sat-0.1.7.dev12-cp27-cp27mu-manylinux1_i686.whl", hash = "sha256:319372fe529f084de3ce228104facc927833df98a50ee718a66a8926f82adf1a"},
+    {file = "python_sat-0.1.7.dev12-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:9f053008b44101b4b7ff6e56b3b8e28884af3237bfd567f7eedd0588abf241b7"},
+    {file = "python_sat-0.1.7.dev12-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:57c02482698ffb16a7e9db74f17347a712870e128c5944271ec831b4b82f90de"},
+    {file = "python_sat-0.1.7.dev12-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:80c12f63b6d62207250f3e0e21c6fabd44ebd6e30d2f5c2718c6301a6924c2ba"},
+    {file = "python_sat-0.1.7.dev12-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:73091b2fbc02aa0120346b621a4bb0806efced97b1d2cc2970145ffc2f9fa4a2"},
+    {file = "python_sat-0.1.7.dev12-cp35-cp35m-manylinux2010_x86_64.whl", hash = "sha256:0bdaab7e034f8229b3e0f6e41c1cc475a3cb4e519375d3d1224fa9c52773068a"},
+    {file = "python_sat-0.1.7.dev12-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:25565530e392a0fc8abe63530196dfec123ad8db84f21b72bf6a80d046cb298b"},
+    {file = "python_sat-0.1.7.dev12-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:cd8cf90e86749e169cf703bff70ee0bb5d186e75429148678a3a8013f3054937"},
+    {file = "python_sat-0.1.7.dev12-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:bc8050376255f5b68801ab8ca8acdbd0aab3e3375558e0b844519c55482d7927"},
+    {file = "python_sat-0.1.7.dev12-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f8a31648c27ff5603a6da549422bb727596e0a9e90e45549f96f407131007d48"},
+    {file = "python_sat-0.1.7.dev12-cp36-cp36m-win_amd64.whl", hash = "sha256:e80be9e35161d3213fec272ea4454c758c1fe301ab23db528b425eb40559df91"},
+    {file = "python_sat-0.1.7.dev12-cp37-cp37m-macosx_11_0_x86_64.whl", hash = "sha256:2637cbd8745077d3d06e2098795446988c8412abf47491894bbcdefc4b651c65"},
+    {file = "python_sat-0.1.7.dev12-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:fb52827ff50847bb5e9153668952da32ff336fbd43cd2cee4c6da3a3edab726a"},
+    {file = "python_sat-0.1.7.dev12-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:23caec8aafa4a7b796bbca49684c88e07241329584cf8f53e1b4a3701fa4b403"},
+    {file = "python_sat-0.1.7.dev12-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:87b1fe87b1700575f9528971aca8465ef3ebcaf12012d58ef9a8497c0c30ee96"},
+    {file = "python_sat-0.1.7.dev12-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b2caae17c49ecf343903bfb917bf84b132050cdb736febcb0576ff975c8e439b"},
+    {file = "python_sat-0.1.7.dev12-cp37-cp37m-win_amd64.whl", hash = "sha256:dcfdb9f5038f491545022bdd40e34f7b05a6b34207d5e8c71f90e63b3488a4a9"},
+    {file = "python_sat-0.1.7.dev12-cp38-cp38-macosx_11_0_x86_64.whl", hash = "sha256:c79387727530214ea6f9d8d334af0a3be8b8a7a67ca89c10a80bb7a29089335c"},
+    {file = "python_sat-0.1.7.dev12-cp38-cp38-manylinux1_i686.whl", hash = "sha256:49f2cd92d82b269e16aa6dc3413871e4194b10b35e4546d122f2497c99c6b5c7"},
+    {file = "python_sat-0.1.7.dev12-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:ba0c2d556c04d7307af6648f858442927e69a413c499e8f2dd5ac71c0bb764e1"},
+    {file = "python_sat-0.1.7.dev12-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:cadbd16933ae971c4433d75cdbd976b3fed4d86e8677eb8f16145c090377e7eb"},
+    {file = "python_sat-0.1.7.dev12-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:93856ab70c3aec27170b5e310418d3340bc82b553b738c9ffc95af9d6bb90963"},
+    {file = "python_sat-0.1.7.dev12-cp38-cp38-win_amd64.whl", hash = "sha256:62c53a31a0e6ea100c23c77b448de12237ad7103d9eca08d4555ff669dc8d4b5"},
+    {file = "python_sat-0.1.7.dev12-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:99261a22d6f69d5da9ccb7144d02c9508b9d31650e40ab3d4c722c7ce1fe7629"},
+    {file = "python_sat-0.1.7.dev12-cp39-cp39-manylinux1_i686.whl", hash = "sha256:86a0e6e66a847899c840dba9ea20da6fdfd842adc871d8653f1c73a52466a5ab"},
+    {file = "python_sat-0.1.7.dev12-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:7e43c8d124f83977e567f939739fcaf8460a6fd984d67b3ec00b5f8b717ea62f"},
+    {file = "python_sat-0.1.7.dev12-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:856d858b8a8a64b344326a254d4fe06c3dcaf6a0b157e8a67bffdd3df43310c7"},
+    {file = "python_sat-0.1.7.dev12-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:927efbd61bd321eed429b7009f741605d2cb9edfc2025a51b98eea79db4e2c7d"},
+    {file = "python_sat-0.1.7.dev12-cp39-cp39-win_amd64.whl", hash = "sha256:8a17eb2e3efb7e482f477fcba109d36a5e2c80b0e0bfec59a1b5db2946a3cfa4"},
+    {file = "python_sat-0.1.7.dev12-pp37-pypy37_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:afe3792db88a8697383fbfefdcddd0d90169b44e5e0da4fe6bdcc69ba55ecd37"},
 ]
 requests = [
-    {file = "requests-2.25.1-py2.py3-none-any.whl", hash = "sha256:c210084e36a42ae6b9219e00e48287def368a26d03a048ddad7bfee44f75871e"},
-    {file = "requests-2.25.1.tar.gz", hash = "sha256:27973dd4a904a4f13b263a19c866c13b92a39ed1c964655f025f3f8d3d75b804"},
+    {file = "requests-2.26.0-py2.py3-none-any.whl", hash = "sha256:6c1246513ecd5ecd4528a0906f910e8f0f9c6b8ec72030dc9fd154dc1a6efd24"},
+    {file = "requests-2.26.0.tar.gz", hash = "sha256:b8aa58f8cf793ffd8782d3d8cb19e66ef36f7aba4353eec859e74678b01b07a7"},
 ]
 six = [
-    {file = "six-1.15.0-py2.py3-none-any.whl", hash = "sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced"},
-    {file = "six-1.15.0.tar.gz", hash = "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259"},
+    {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
+    {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
 sortedcontainers = [
-    {file = "sortedcontainers-2.3.0-py2.py3-none-any.whl", hash = "sha256:37257a32add0a3ee490bb170b599e93095eed89a55da91fa9f48753ea12fd73f"},
-    {file = "sortedcontainers-2.3.0.tar.gz", hash = "sha256:59cc937650cf60d677c16775597c89a960658a09cf7c1a668f86e1e4464b10a1"},
+    {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
+    {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
 ]
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
     {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
 ]
 toposort = [
-    {file = "toposort-1.6-py2.py3-none-any.whl", hash = "sha256:2ade83028dd067a1d43c142469cbaf4136b92fdc1c4303f16c40f126442fdaf3"},
-    {file = "toposort-1.6.tar.gz", hash = "sha256:a7428f56ef844f5055bb9e9e44b343983773ae6dce0fe5b101e08e27ffbd50ac"},
+    {file = "toposort-1.7-py2.py3-none-any.whl", hash = "sha256:8ed8e109e96ae30bf66da2d2155e4eb9989d9c5c743c837e37d9774a4eddd804"},
+    {file = "toposort-1.7.tar.gz", hash = "sha256:ddc2182c42912a440511bd7ff5d3e6a1cabc3accbc674a3258c8c41cbfbb2125"},
 ]
 typing-extensions = [
-    {file = "typing_extensions-3.7.4.3-py2-none-any.whl", hash = "sha256:dafc7639cde7f1b6e1acc0f457842a83e722ccca8eef5270af2d74792619a89f"},
-    {file = "typing_extensions-3.7.4.3-py3-none-any.whl", hash = "sha256:7cb407020f00f7bfc3cb3e7881628838e69d8f3fcab2f64742a5e76b2f841918"},
-    {file = "typing_extensions-3.7.4.3.tar.gz", hash = "sha256:99d4073b617d30288f569d3f13d2bd7548c3a7e4c8de87db09a9d29bb3a4a60c"},
+    {file = "typing_extensions-4.0.0-py3-none-any.whl", hash = "sha256:829704698b22e13ec9eaf959122315eabb370b0884400e9818334d8b677023d9"},
+    {file = "typing_extensions-4.0.0.tar.gz", hash = "sha256:2cdf80e4e04866a9b3689a51869016d36db0814d84b8d8a568d22781d45d27ed"},
 ]
 urllib3 = [
-    {file = "urllib3-1.26.3-py2.py3-none-any.whl", hash = "sha256:1b465e494e3e0d8939b50680403e3aedaa2bc434b7d5af64dfd3c958d7f5ae80"},
-    {file = "urllib3-1.26.3.tar.gz", hash = "sha256:de3eedaad74a2683334e282005cd8d7f22f4d55fa690a2a1020a416cb0a47e73"},
+    {file = "urllib3-1.26.7-py2.py3-none-any.whl", hash = "sha256:c4fdf4019605b6e5423637e01bc9fe4daef873709a7973e195ceba0a62bbc844"},
+    {file = "urllib3-1.26.7.tar.gz", hash = "sha256:4987c65554f7a2dbf30c18fd48778ef124af6fab771a377103da0585e2336ece"},
 ]
 zipp = [
-    {file = "zipp-3.4.0-py3-none-any.whl", hash = "sha256:102c24ef8f171fd729d46599845e95c7ab894a4cf45f5de11a44cc7444fb1108"},
-    {file = "zipp-3.4.0.tar.gz", hash = "sha256:ed5eee1974372595f9e416cc7bbeeb12335201d8081ca8a0743c954d4446e5cb"},
+    {file = "zipp-3.6.0-py3-none-any.whl", hash = "sha256:9fe5ea21568a0a70e50f273397638d39b03353731e6cbbb3fd8502a33fec40bc"},
+    {file = "zipp-3.6.0.tar.gz", hash = "sha256:71c644c5369f4a6e07636f0aa966270449561fcea2e3d6747b8d23efaa9d7832"},
 ]
