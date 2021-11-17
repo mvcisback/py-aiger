@@ -20,7 +20,7 @@ from aiger import parser
 from aiger import writer
 
 
-@attr.s(frozen=True, auto_attribs=True, eq=False)
+@attr.frozen
 class Node(metaclass=ABCMeta):
     def __and__(self, other: Node) -> Node:
         if self.is_false or other.is_false:
@@ -50,7 +50,7 @@ class Node(metaclass=ABCMeta):
         pass
 
 
-@attr.s(frozen=True, auto_attribs=True, eq=False)
+@attr.frozen(cache_hash=True)
 class AndGate(Node):
     left: Node
     right: Node
@@ -60,7 +60,8 @@ class AndGate(Node):
         return (self.left, self.right)
 
 
-@attr.s(frozen=True, auto_attribs=True)  # Allow Hashing.
+
+@attr.frozen
 class Inverter(Node):
     input: Node
 
@@ -69,7 +70,7 @@ class Inverter(Node):
         return (self.input, )
 
 
-@attr.s(frozen=True, auto_attribs=True)
+@attr.frozen
 class Input(Node):
     name: str
 
@@ -78,7 +79,7 @@ class Input(Node):
         return ()
 
 
-@attr.s(frozen=True, auto_attribs=True)
+@attr.frozen
 class LatchIn(Node):
     name: str
 
@@ -87,7 +88,7 @@ class LatchIn(Node):
         return ()
 
 
-@attr.s(frozen=True, auto_attribs=True)
+@attr.frozen
 class ConstFalse(Node):
     @property
     def children(self):
@@ -97,7 +98,7 @@ class ConstFalse(Node):
         return hash(False)
 
 
-@attr.s(frozen=True, auto_attribs=True, repr=False)
+@attr.frozen(repr=False)
 class AIG:
     inputs: FrozenSet[str] = frozenset()
     node_map: PMap[str, Node] = attr.ib(default=pmap(), converter=pmap)
