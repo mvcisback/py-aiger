@@ -94,7 +94,10 @@ class ConstFalse(Node):
     def children(self):
         return ()
 
-    def __hash__(self):
+    def __eq__(self, other) -> bool:
+        return isinstance(other, ConstFalse) 
+
+    def __hash__(self) -> int:
         return hash(False)
 
 

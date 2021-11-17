@@ -80,3 +80,13 @@ def test_with_output():
     x, y, z = map(atom, 'xyz')
     expr = ite(x, y, z).with_output('xyz')
     assert expr.with_output('xyz')
+
+
+def test_hash_stability():
+    x = atom('x')
+    y = atom('y')
+
+    expr1 = x | y
+    expr2 = (~~expr1).with_output(expr1.output)
+
+    assert hash(expr2) == hash(expr1)
