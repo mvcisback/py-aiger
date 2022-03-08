@@ -27,8 +27,9 @@ pytest-cov = "^2.7"
 pytest-flake8 = "^1.0"
 pytest-xdist = "^2.0.0"
 coverage = "^6"
-py-aiger-ptltl = {git = "git://github.com/mvcisback/py-aiger-past-ltl.git"}
-py-aiger-sat = {git = "git://github.com/mvcisback/py-aiger-sat.git", branch = "main"}
+# py-aiger-ptltl = {git = "git://github.com/mvcisback/py-aiger-past-ltl.git"}
+# py-aiger-sat = {git = "git://github.com/mvcisback/py-aiger-sat.git", branch = "main"}
+py-aiger-ptltl = "^3.1.0"
 
 [build-system]
 requires = ["poetry>=0.12"]

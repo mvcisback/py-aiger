@@ -496,9 +496,10 @@ class Unrolled(LazyAIG):
 
     @property
     def inputs(self):
-        base = set() if self.init else self.circ.latches
-        base |= self.circ.inputs
-        return self._with_times(base, times=range(self.horizon))
+        inputs = self._with_times(self.circ.inputs, times=range(self.horizon))
+        if not self.init:
+            inputs |= self._with_times(self.circ.latches, times=[0])
+        return inputs
 
     @property
     def outputs(self):
