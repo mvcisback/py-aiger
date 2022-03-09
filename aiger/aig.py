@@ -60,7 +60,6 @@ class AndGate(Node):
         return (self.left, self.right)
 
 
-
 @attr.frozen
 class Inverter(Node):
     input: Node
@@ -95,7 +94,7 @@ class ConstFalse(Node):
         return ()
 
     def __eq__(self, other) -> bool:
-        return isinstance(other, ConstFalse) 
+        return isinstance(other, ConstFalse)
 
     def __hash__(self) -> int:
         return hash(False)

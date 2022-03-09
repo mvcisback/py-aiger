@@ -459,9 +459,13 @@ class Unrolled(LazyAIG):
         if not init:
             assert (circ.latches & circ.inputs) == set()
 
-        latches = circ.latch2init if init else project(inputs, circ.inputs)
         if init:
-            inputs = omit(inputs, circ.inputs)
+            latches = circ.latch2init
+        else:
+            try:
+                latches = {n: inputs[f'{n}##time_0'] for n in circ.latches}
+            except KeyError:
+                raise ValueError('not init, but missing latches from inputs.')
 
         outputs = {}
         for time in range(horizon):

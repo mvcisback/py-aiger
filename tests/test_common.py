@@ -230,6 +230,25 @@ def test_unroll_simulate(aag1, horizon, data):
     assert sum1 == sum2
 
 
+def test_unroll_without_init():
+    circ = aiger.parse('''aag 3 1 1 1 1
+2
+4 6 1
+6
+6 4 2
+i0 x
+o0 x
+l0 y
+''')
+    circ2 = circ.unroll(2, init=False)
+    assert circ2.inputs == {'x##time_0', 'x##time_1', 'y##time_0'}
+    assert circ2.outputs == {'x##time_1', 'x##time_2'}
+    out, _ = circ2({'x##time_0': 1, 'x##time_1': 1, 'y##time_0': 1})
+    assert out['x##time_2'] and out['x##time_1']
+    out, _ = circ2({'x##time_0': 1, 'x##time_1': 1, 'y##time_0': 0})
+    assert not out['x##time_2'] and not out['x##time_1']
+
+
 @given(aigh.Circuits, st.data())
 def test_feedback_then_cut(circ, data):
     def renamer(_):
