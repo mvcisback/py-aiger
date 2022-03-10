@@ -222,7 +222,7 @@ class AIG:
             inputs = yield outputs, latches
 
     def simulate(self, input_seq, latches=None):
-        sim = self.simulator()
+        sim = self.simulator(latches)
         next(sim)
         return [sim.send(inputs) for inputs in input_seq]
 
