@@ -73,3 +73,19 @@ def test_smoke2(data):
 
 def test_mutex_example_smoke():
     aigp.load('tests/mutex_converted.aag')
+
+
+def test_degenerate_smoke():
+    import aiger as A
+    expr = A.BoolExpr(A.parse("""aag 0 0 0 1 0
+0
+"""))
+    assert expr({}) is False
+    expr = A.BoolExpr(A.parse("""aag 0 0 0 1 0
+1
+"""))
+    assert expr({}) is True
+    circ = A.parse("""aag 0 0 0 0 0
+""")
+    assert len(circ.node_map) == 0
+    assert circ.inputs == circ.outputs == circ.latches == set()

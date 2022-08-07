@@ -130,7 +130,6 @@ def parse_output(state, line) -> bool:
     match = IO_PATTERN.match(line)
     if match is None or state.remaining_outputs <= 0:
         return False
-
     lit = int(line)
     state.outputs.add(lit)
     if lit & 1:
@@ -237,12 +236,12 @@ def parse(lines, to_aig: bool = True):
 
     for line in lines:
         while not parser(state, line):
-            parser = next(parsers)
+            parser = next(parsers, None)
 
             if parser is None:
                 raise ValueError(NOT_DONE_PARSING_ERROR.format(state))
 
-    if parser not in (parse_comment, parse_symbol):
+    if parser not in (parse_header, parse_output, parse_comment, parse_symbol):
         raise ValueError(DONE_PARSING_ERROR.format(state))
 
     assert state.header.num_ands == 0
@@ -257,11 +256,10 @@ def parse(lines, to_aig: bool = True):
 
     # Create expression DAG.
     latch_ids = {latch.id: name for name, latch in latches.items()}
-    lit2expr = {}
-
+    lit2expr = {0: A.aig.ConstFalse()}
     for lit in toposort_flatten(state.nodes):
         if lit == 0:
-            lit2expr[lit] = A.aig.ConstFalse()
+            continue
         elif lit in state.inputs:
             lit2expr[lit] = A.aig.Input(inputs.inv[lit])
         elif lit in latch_ids:
