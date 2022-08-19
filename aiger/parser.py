@@ -9,7 +9,7 @@ import funcy as fn
 from bidict import bidict
 from toposort import toposort_flatten
 from uuid import uuid1
-from sortedcontainers import SortedSet, SortedDict
+from sortedcontainers import SortedList, SortedSet, SortedDict
 
 import aiger as A
 
@@ -60,7 +60,7 @@ class SymbolTable:
 class State:
     header: Optional[Header] = None
     inputs: SortedSet = attr.ib(factory=SortedSet)
-    outputs: SortedSet = attr.ib(factory=SortedSet)
+    outputs: SortedList = attr.ib(factory=SortedList)
     latches: SortedSet = attr.ib(factory=SortedSet)
     symbols: SymbolTable = attr.ib(factory=SymbolTable)
     comments: Optional[List[str]] = None
@@ -223,7 +223,7 @@ def parse_seq():
 
 def finish_table(table, keys):
     assert len(table) <= len(keys)
-    return bidict({table[i]: key for i, key in enumerate(keys)})
+    return {table[i]: key for i, key in enumerate(keys)}
 
 
 def parse(lines, to_aig: bool = True):

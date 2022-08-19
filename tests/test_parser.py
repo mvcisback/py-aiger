@@ -77,6 +77,7 @@ def test_mutex_example_smoke():
 
 def test_degenerate_smoke():
     import aiger as A
+
     expr = A.BoolExpr(A.parse("""aag 0 0 0 1 0
 0
 """))
@@ -89,3 +90,9 @@ def test_degenerate_smoke():
 """)
     assert len(circ.node_map) == 0
     assert circ.inputs == circ.outputs == circ.latches == set()
+
+    circ = A.parse("""aag 0 0 0 2 0
+0
+0
+""")
+    assert not any(circ({})[0].values())
