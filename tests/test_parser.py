@@ -96,3 +96,56 @@ def test_degenerate_smoke():
 0
 """)
     assert not any(circ({})[0].values())
+
+
+def test_io_order():
+    import aiger as A
+
+    circ1 = A.parse("""aag 2 2 0 2 0
+2  
+4  
+4  
+2  
+i0 a
+i1 b
+o0 ob
+o1 oa
+""")
+    circ2 = A.parse("""aag 2 2 0 2 0
+2  
+4  
+2  
+4  
+i0 a
+i1 b
+o0 oa
+o1 ob
+""")
+    circ3 = A.parse("""aag 2 2 0 2 0
+4  
+2  
+2  
+4  
+i0 b
+i1 a
+o1 ob
+o0 oa
+""")
+    circ4 = A.parse("""aag 2 2 0 2 0
+4  
+2  
+4  
+2  
+i0 b
+i1 a
+o0 ob
+o1 oa
+""")
+
+
+    data = {'a': False, 'b': True}
+    assert circ1(data) \
+        == circ2(data) \
+        == circ3(data) \
+        == circ4(data)
+

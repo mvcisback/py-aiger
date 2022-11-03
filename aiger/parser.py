@@ -27,7 +27,7 @@ class Header:
             f"{self.num_latches} {self.num_outputs} {self.num_ands}"
 
 
-NOT_DONE_PARSING_ERROR = "Lines exhausted before parsing ended!\n{}"
+NOT_DONE_PARSING_ERROR = "Parsing rules exhausted at line {}!\n{}"
 DONE_PARSING_ERROR = "Lines exhausted before parsing ended!\n{}"
 
 
@@ -59,9 +59,9 @@ class SymbolTable:
 @attr.s(auto_attribs=True)
 class State:
     header: Optional[Header] = None
-    inputs: SortedSet = attr.ib(factory=SortedSet)
-    outputs: list = attr.ib(factory=list)
-    latches: SortedSet = attr.ib(factory=SortedSet)
+    inputs: List[str] = attr.ib(factory=list)
+    outputs: List[str] = attr.ib(factory=list)
+    latches: List[str] = attr.ib(factory=list)
     symbols: SymbolTable = attr.ib(factory=SymbolTable)
     comments: Optional[List[str]] = None
     nodes: SortedDict = attr.ib(factory=SortedDict)
@@ -113,15 +113,16 @@ def parse_header(state, line) -> bool:
     return True
 
 
-IO_PATTERN = re.compile(r"(\d+)\n")
+IO_PATTERN = re.compile(r"(\d+)\s*\n")
 
 
 def parse_input(state, line) -> bool:
     match = IO_PATTERN.match(line)
+
     if match is None or state.remaining_inputs <= 0:
         return False
     lit = int(line)
-    state.inputs.add(lit)
+    state.inputs.append(lit)
     state.nodes[lit] = set()
     return True
 
@@ -153,7 +154,7 @@ def parse_latch(state, line) -> bool:
         elems = elems[:2] + (0,)
     elems = fn.lmap(int, elems)
 
-    state.latches.add(Latch(*elems))
+    state.latches.append(Latch(*elems))
     state.nodes[elems[0]] = set()  # Add latch in as source.
     lit = elems[1]  # Add latchout to dependency graph.
     if lit & 1:
@@ -161,7 +162,7 @@ def parse_latch(state, line) -> bool:
     return True
 
 
-AND_PATTERN = re.compile(r"(\d+) (\d+) (\d+)\n")
+AND_PATTERN = re.compile(r"(\d+) (\d+) (\d+)\s*\n")
 
 
 def parse_and(state, line) -> bool:
@@ -182,7 +183,7 @@ def parse_and(state, line) -> bool:
     return True
 
 
-SYM_PATTERN = re.compile(r"([ilo])(\d+) (.*)\n")
+SYM_PATTERN = re.compile(r"([ilo])(\d+) (.*)\s*\n")
 
 
 def parse_symbol(state, line) -> bool:
@@ -234,12 +235,12 @@ def parse(lines, to_aig: bool = True):
     parsers = parse_seq()
     parser = next(parsers)
 
-    for line in lines:
+    for i, line in enumerate(lines):
         while not parser(state, line):
             parser = next(parsers, None)
 
             if parser is None:
-                raise ValueError(NOT_DONE_PARSING_ERROR.format(state))
+                raise ValueError(NOT_DONE_PARSING_ERROR.format(i + 1, state))
 
     if parser not in (parse_header, parse_output, parse_comment, parse_symbol):
         raise ValueError(DONE_PARSING_ERROR.format(state))
@@ -248,6 +249,9 @@ def parse(lines, to_aig: bool = True):
     assert state.remaining_inputs == 0
     assert state.remaining_outputs == 0
     assert state.remaining_latches == 0
+
+    if len(state.inputs) != len(set(state.inputs)):
+        raise ValueError("Duplicated inputs detected.")
 
     # Complete Symbol Table.
     inputs = bidict(finish_table(state.symbols.inputs, state.inputs))
