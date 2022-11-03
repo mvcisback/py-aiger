@@ -60,7 +60,7 @@ class SymbolTable:
 class State:
     header: Optional[Header] = None
     inputs: SortedSet = attr.ib(factory=SortedSet)
-    outputs: SortedList = attr.ib(factory=SortedList)
+    outputs: list = attr.ib(factory=list)
     latches: SortedSet = attr.ib(factory=SortedSet)
     symbols: SymbolTable = attr.ib(factory=SymbolTable)
     comments: Optional[List[str]] = None
@@ -131,7 +131,7 @@ def parse_output(state, line) -> bool:
     if match is None or state.remaining_outputs <= 0:
         return False
     lit = int(line)
-    state.outputs.add(lit)
+    state.outputs.append(lit)
     if lit & 1:
         state.nodes[lit] = {lit ^ 1}
     return True
