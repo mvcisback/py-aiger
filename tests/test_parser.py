@@ -149,6 +149,23 @@ o1 oa
            == circ4(data)
 
 
+TEST_NO_SYMBOL_TABLE = """aag 4 2 1 1 1
+2
+4
+6 2
+8
+8 7 5
+"""
+
+
+@given(st.data())
+def test_no_symbol_table(data):
+    circ1 = aigp.parse(TEST_NO_SYMBOL_TABLE)
+    circ2 = aigp.parse(str(circ1))
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ1.inputs}
+    assert circ1(test_input) == circ2(test_input)
+
+
 # ----------- BINARY FILE PARSER TESTS ----------------
 
 @given(st.data())
