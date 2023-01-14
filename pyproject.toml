@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "py-aiger"
 readme="README.md"
-version = "6.1.26"
+version = "6.2.0"
 repository = "https://github.com/mvcisback/py-aiger"
 description = "A python library for manipulating sequential and-inverter gates."
 authors = ["Marcell Vazquez-Chanlatte <marcell.vc@eecs.berkeley.edu>"]

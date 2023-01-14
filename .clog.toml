@@ -1,0 +1,5 @@
+[clog]
+repository = "https://github.com/mvcisback/py-aiger"
+changelog = "changelog.md"
+from-latest-tag = true
+link-style = "github"
