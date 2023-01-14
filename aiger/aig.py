@@ -284,7 +284,7 @@ def to_aig(circ, *, allow_lazy=False) -> AIG:
     if isinstance(circ, pathlib.Path) and circ.is_file():
         circ = parser.load(circ)
     elif isinstance(circ, str):
-        if circ.startswith('aag '):
+        if circ.startswith('aag ') or circ.startswith('aig '):
             circ = parser.parse(circ)  # Assume it is an AIGER string.
         else:
             circ = parser.load(circ)  # Assume it is a file path.
