@@ -40,6 +40,13 @@ class Latch:
 
 
 @attr.s(auto_attribs=True, frozen=True)
+class And:
+    lhs: int
+    rhs0: int
+    rhs1: int
+
+
+@attr.s(auto_attribs=True, frozen=True)
 class Symbol:
     kind: str
     name: str
@@ -60,9 +67,10 @@ class SymbolTable:
 @attr.s(auto_attribs=True)
 class State:
     header: Optional[Header] = None
-    inputs: List[str] = attr.ib(factory=list)
-    outputs: List[str] = attr.ib(factory=list)
-    latches: List[str] = attr.ib(factory=list)
+    inputs: List[int] = attr.ib(factory=list)
+    outputs: List[int] = attr.ib(factory=list)
+    latches: List[Latch] = attr.ib(factory=list)
+    ands: List[And] = attr.ib(factory=list)
     symbols: SymbolTable = attr.ib(factory=SymbolTable)
     comments: Optional[List[str]] = None
     nodes: SortedDict = attr.ib(factory=SortedDict)
@@ -78,6 +86,10 @@ class State:
     @property
     def remaining_inputs(self):
         return self.header.num_inputs - len(self.inputs)
+
+    @property
+    def remaining_ands(self):
+        return self.header.num_ands - len(self.ands)
 
 
 def _consume_stream(stream, delim) -> str:
@@ -225,40 +237,38 @@ def _read_delta(data):
 
 
 def _add_and(state, elems):
-    elems = fn.lmap(int, elems)
-    state.header.num_ands -= 1
-    deps = set(elems[1:])
-    state.nodes[elems[0]] = deps
+    lhs, rhs0, rhs1 = fn.lmap(int, elems)
+    state.ands.append(And(lhs, rhs0, rhs1))
+    deps = {rhs0, rhs1}
+    state.nodes[lhs] = deps
     for dep in deps:
         if dep & 1:
             state.nodes[dep] = {dep ^ 1}
 
 
 def parse_and(state, stream) -> bool:
-    if state.header.num_ands <= 0:
+    if state.remaining_ands <= 0:
         return False
 
     if state.header.binary_mode:
-        lhs = 2 * (state.header.num_inputs + state.header.num_latches)
-        for i in range(state.header.num_ands):
-            lhs += 2
-            delta = _read_delta(stream)
-            if delta > lhs:
-                raise ValueError(f"Invalid lhs {lhs} or delta {delta}")
-            rhs0 = lhs - delta
-            delta = _read_delta(stream)
-            if delta > rhs0:
-                raise ValueError(f"Invalid rhs0 {rhs0} or delta {delta}")
-            rhs1 = rhs0 - delta
-            _add_and(state, (lhs, rhs0, rhs1))
-
+        idx = state.header.num_inputs + state.header.num_latches + len(state.ands) + 1
+        lhs = 2 * idx
+        delta = _read_delta(stream)
+        if delta > lhs:
+            raise ValueError(f"Invalid lhs {lhs} or delta {delta}")
+        rhs0 = lhs - delta
+        delta = _read_delta(stream)
+        if delta > rhs0:
+            raise ValueError(f"Invalid rhs0 {rhs0} or delta {delta}")
+        rhs1 = rhs0 - delta
     else:
         line = _consume_stream(stream, '\n')
         match = AND_PATTERN.match(line)
         if match is None:
             raise ValueError(f"Expecting an and: {line}")
+        lhs, rhs0, rhs1 = match.groups()
 
-        _add_and(state, match.groups())
+    _add_and(state, (lhs, rhs0, rhs1))
     return True
 
 
@@ -334,7 +344,7 @@ def parse(stream):
     if parser not in (parse_header, parse_output, parse_comment, parse_symbol):
         raise ValueError(DONE_PARSING_ERROR.format(state))
 
-    assert state.header.num_ands == 0
+    assert state.remaining_ands == 0
     assert state.remaining_inputs == 0
     assert state.remaining_outputs == 0
     assert state.remaining_latches == 0
@@ -349,6 +359,7 @@ def parse(stream):
 
     # Create expression DAG.
     latch_ids = {latch.id: name for name, latch in latches.items()}
+    and_ids = {and_.lhs: and_ for and_ in state.ands}
     lit2expr = {0: A.aig.ConstFalse()}
     for lit in toposort_flatten(state.nodes):
         if lit == 0:
@@ -361,6 +372,7 @@ def parse(stream):
         elif lit & 1:
             lit2expr[lit] = A.aig.Inverter(lit2expr[lit & -2])
         else:
+            assert lit in and_ids
             nodes = [lit2expr[lit2] for lit2 in state.nodes[lit]]
             lit2expr[lit] = reduce(A.aig.AndGate, nodes)
 
