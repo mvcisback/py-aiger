@@ -341,7 +341,10 @@ def parse(stream):
             if parser is None:
                 raise ValueError(NOT_DONE_PARSING_ERROR.format(i, state))
 
-    if parser not in (parse_header, parse_output, parse_comment, parse_symbol):
+    done = state.remaining_ands == 0
+    done |= parser in (parse_header, parse_output, parse_comment, parse_symbol)
+
+    if not done:
         raise ValueError(DONE_PARSING_ERROR.format(state))
 
     assert state.remaining_ands == 0
