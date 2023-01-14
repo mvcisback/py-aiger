@@ -142,10 +142,45 @@ o0 ob
 o1 oa
 """)
 
-
     data = {'a': False, 'b': True}
     assert circ1(data) \
-        == circ2(data) \
-        == circ3(data) \
-        == circ4(data)
+           == circ2(data) \
+           == circ3(data) \
+           == circ4(data)
 
+
+# ----------- BINARY FILE PARSER TESTS ----------------
+
+@given(st.data())
+def test_smoke1_aig(data):
+    circ1 = aigp.parse(TEST1)
+    circ2 = aigp.load("tests/aig/test1.aig")
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ1.inputs}
+    assert circ1(test_input) == circ2(test_input)
+
+
+@given(st.data())
+def test_smoke2_aig(data):
+    circ1 = aigp.parse(TEST2)
+    circ2 = aigp.load("tests/aig/test2.aig")
+    test_input = {f'{i}': data.draw(st.booleans()) for i in circ1.inputs}
+    assert circ1(test_input) == circ2(test_input)
+
+
+def test_mutex_example_smoke_aig():
+    aigp.load('tests/aig/mutex_converted.aig')
+
+
+def test_degenerate_smoke_aig():
+    import aiger as A
+
+    expr = A.BoolExpr(A.load("tests/aig/test_degenerate1.aig"))
+    assert expr({}) is False
+    expr = A.BoolExpr(A.load("tests/aig/test_degenerate2.aig"))
+    assert expr({}) is True
+    circ = A.load("tests/aig/test_degenerate3.aig")
+    assert len(circ.node_map) == 0
+    assert circ.inputs == circ.outputs == circ.latches == set()
+
+    circ = A.load("tests/aig/test_degenerate4.aig")
+    assert not any(circ({})[0].values())
