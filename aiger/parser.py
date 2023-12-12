@@ -1,7 +1,6 @@
 import re
 from collections import defaultdict
 from functools import reduce
-from graphlib import TopologicalSorter
 from typing import Mapping, List, Optional
 from uuid import uuid1
 
@@ -11,6 +10,7 @@ from bidict import bidict
 from sortedcontainers import SortedDict
 
 import aiger as A
+from aiger.common import topsort
 
 
 @attr.s(auto_attribs=True, repr=False)
@@ -364,7 +364,7 @@ def parse(stream):
     latch_ids = {latch.id: name for name, latch in latches.items()}
     and_ids = {and_.lhs: and_ for and_ in state.ands}
     lit2expr = {0: A.aig.ConstFalse()}
-    for lit in TopologicalSorter(state.nodes).static_order():
+    for lit in topsort(state.nodes):
         if lit == 0:
             continue
         elif lit in state.inputs:
