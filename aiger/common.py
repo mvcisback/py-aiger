@@ -1,11 +1,11 @@
 import operator as op
 from collections import defaultdict
-from itertools import starmap
 from functools import reduce
+from graphlib import TopologicalSorter
+from itertools import starmap
 from uuid import uuid1
 
 import funcy as fn
-from toposort import toposort
 
 from aiger import aig
 
@@ -199,7 +199,6 @@ def dfs(circ):
         stack.extend(children - emitted)
 
 
-def eval_order(circ, *, concat: bool = True):
+def eval_order(circ):
     """Return topologically sorted nodes in AIG."""
-    order = toposort(_dependency_graph(circ.cones | circ.latch_cones))
-    return fn.lcat(order) if concat else order
+    return list(TopologicalSorter(_dependency_graph(circ.cones | circ.latch_cones)).static_order())

@@ -15,7 +15,6 @@ python = "^3.7"
 attrs = "^23"
 bidict = "^0.22.0"
 funcy = "^1.12"
-toposort = "^1.5"
 pyrsistent = "^0.19.0"
 sortedcontainers = "^2.3.0"
 
