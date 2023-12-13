@@ -8,9 +8,9 @@ import attr
 import funcy as fn
 from bidict import bidict
 from sortedcontainers import SortedDict
-from toposort import toposort_flatten
 
 import aiger as A
+from aiger.common import topsort
 
 
 @attr.s(auto_attribs=True, repr=False)
@@ -364,7 +364,7 @@ def parse(stream):
     latch_ids = {latch.id: name for name, latch in latches.items()}
     and_ids = {and_.lhs: and_ for and_ in state.ands}
     lit2expr = {0: A.aig.ConstFalse()}
-    for lit in toposort_flatten(state.nodes):
+    for lit in topsort(state.nodes):
         if lit == 0:
             continue
         elif lit in state.inputs:

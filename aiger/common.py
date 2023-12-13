@@ -1,11 +1,10 @@
 import operator as op
-from collections import defaultdict
-from itertools import starmap
+from collections import defaultdict, deque
 from functools import reduce
+from itertools import starmap
 from uuid import uuid1
 
 import funcy as fn
-from toposort import toposort
 
 from aiger import aig
 
@@ -199,7 +198,28 @@ def dfs(circ):
         stack.extend(children - emitted)
 
 
-def eval_order(circ, *, concat: bool = True):
+def topsort(data):
+    """Topological-sort of a graph.
+    Dependencies are represented in a dictionary with keys being the node and
+    values being an iterable of the node's dependencies. The return value is an
+    iterable over the nodes in topological order.
+    """
+    data_t = defaultdict(list)  # transposed graph
+    for node, deps in data.items():
+        for dep in deps:
+            data_t[dep].append(node)
+    nodes = set(data) | set(data_t)
+    in_deg = ({node: len(data.get(node, ())) for node in nodes})
+    queue = deque(node for node, deg in in_deg.items() if deg == 0)
+    while queue:
+        node = queue.popleft()
+        yield node
+        for child in data_t.get(node, ()):
+            in_deg[child] -= 1
+            if in_deg[child] == 0:
+                queue.append(child)
+
+
+def eval_order(circ):
     """Return topologically sorted nodes in AIG."""
-    order = toposort(_dependency_graph(circ.cones | circ.latch_cones))
-    return fn.lcat(order) if concat else order
+    return list(topsort(_dependency_graph(circ.cones | circ.latch_cones)))
