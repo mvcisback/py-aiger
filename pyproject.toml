@@ -12,7 +12,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.7"
-attrs = "^23"
+attrs = ">=23"
 bidict = "^0.22.0"
 funcy = "^1.12"
 pyrsistent = "^0.19.0"
