@@ -50,7 +50,7 @@ class Node(metaclass=ABCMeta):
         pass
 
 
-@attr.frozen(cache_hash=True)
+@attr.frozen(auto_detect=True)
 class AndGate(Node):
     left: Node
     right: Node
@@ -59,14 +59,26 @@ class AndGate(Node):
     def children(self):
         return (self.left, self.right)
 
+    def __eq__(self, other) -> bool:
+        return id(self) == id(other)  # Allow for duplication.
 
-@attr.frozen
+    def __hash__(self) -> int:
+        return hash(id(self))
+
+
+@attr.frozen(auto_detect=True)
 class Inverter(Node):
     input: Node
 
     @property
     def children(self):
         return (self.input, )
+
+    def __eq__(self, other) -> bool:
+        return id(self) == id(other)  # Allow for duplication.
+
+    def __hash__(self) -> int:
+        return hash(id(self))
 
 
 @attr.frozen
@@ -77,6 +89,12 @@ class Input(Node):
     def children(self):
         return ()
 
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Input) and (self.name == other.name)
+
+    def __hash__(self) -> int:
+        return hash(("input", self.name))
+
 
 @attr.frozen
 class LatchIn(Node):
@@ -85,6 +103,12 @@ class LatchIn(Node):
     @property
     def children(self):
         return ()
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, LatchIn) and (self.name == other.name)
+
+    def __hash__(self) -> int:
+        return hash(("latch", self.name))
 
 
 @attr.frozen

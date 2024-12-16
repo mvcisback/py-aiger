@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "py-aiger"
 readme="README.md"
-version = "6.2.3"
+version = "7.0.0"
 repository = "https://github.com/mvcisback/py-aiger"
 description = "A python library for manipulating sequential and-inverter gates."
 authors = ["Marcell Vazquez-Chanlatte <marcell.vc@eecs.berkeley.edu>"]
@@ -24,6 +24,9 @@ hypothesis = "^6"
 pytest-xdist = "^3"
 py-aiger-ptltl = "^3.1.0"
 parsimonious = "^0.10"
+
+[tool.poetry.group.dev.dependencies]
+pytest-timeout = "^2.3.1"
 
 [build-system]
 requires = ["poetry>=0.12"]
