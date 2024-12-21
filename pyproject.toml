@@ -22,7 +22,7 @@ sortedcontainers = "^2.3.0"
 hypothesis_cfg = {git = "https://github.com/mvcisback/hypothesis-cfg.git"}
 hypothesis = "^6"
 pytest-xdist = "^3"
-py-aiger-ptltl = "^3.1.0"
+py-aiger-ptltl = {git = "https://github.com/mvcisback/py-aiger-past-ltl.git"}
 parsimonious = "^0.10"
 
 [tool.poetry.group.dev.dependencies]
