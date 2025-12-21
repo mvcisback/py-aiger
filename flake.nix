@@ -55,7 +55,7 @@
         devShells.default = pkgs.mkShell {
           packages = [
             pkgs.uv
-            pkgs.clog-cli
+            pkgs.commitizen
             venv
           ];
         };

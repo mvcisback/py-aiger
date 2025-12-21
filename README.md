@@ -72,6 +72,14 @@ In a Nix shell give `uv` access to the locked environment via:
 nix develop --command bash -c "uv run pytest"
 ```
 
+### Updating the changelog
+
+Commitizen is bundled in the Nix dev shell so `cz bump` is available inside the locked environment. Run:
+
+```
+$ cz bump
+```
+
 # Usage
 
 Commands shown here assume you're executing Python through `uv run` (e.g., `uv run python` or via `nix develop --command bash -c "uv run python"`) so the locked dependencies are used.
