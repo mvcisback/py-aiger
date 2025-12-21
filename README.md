@@ -17,6 +17,7 @@
 
 - [About PyAiger](#about-pyaiger)
 - [Installation](#installation)
+- [Development workflow](#development-workflow)
 - [Boolean Expression DSL](#boolean-expression-dsl)
 - [Sequential Circuit DSL](#sequential-circuit-dsl)
     - [Sequential composition](#sequential-composition)
@@ -44,16 +45,36 @@
 
 If you just need to use `aiger`, you can just run:
 
-`$ pip install py-aiger`
+```
+$ pip install py-aiger
+```
 
-For developers, note that this project uses the
-[poetry](https://poetry.eustace.io/) python package/dependency
-management tool. Please familarize yourself with it and then
-run:
+For developers, see the [Development workflow](#development-workflow) section below.
 
-`$ poetry install`
+# Development workflow
+
+Development uses `uv` for reproducible dependency and workspace management.
+
+```
+$ uv install
+```
+
+Commit the resulting `uv.lock` whenever dependencies change, and use
+`uv run <command>` for recurring tasks such as:
+
+```
+$ uv run pytest
+```
+
+In a Nix shell give `uv` access to the locked environment via:
+
+```
+nix develop --command bash -c "uv run pytest"
+```
 
 # Usage
+
+Commands shown here assume you're executing Python through `uv run` (e.g., `uv run python` or via `nix develop --command bash -c "uv run python"`) so the locked dependencies are used.
 
 ```
 import aiger
