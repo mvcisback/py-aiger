@@ -1,6 +1,6 @@
 [project]
 name = "py-aiger"
-version = "8.0.0"
+version = "8.1.0"
 description = "A python library for manipulating sequential and-inverter gates."
 authors = [{ name = "Marcell Vazquez-Chanlatte", email = "marcell.vc@eecs.berkeley.edu" }]
 requires-python = ">=3.11,<4"
@@ -34,6 +34,13 @@ hypothesis_cfg = { git = "https://github.com/mvcisback/hypothesis-cfg.git" }
 py-aiger-ptltl = { git = "https://github.com/mvcisback/py-aiger-past-ltl.git" }
 
 
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "uv"
+update_changelog_on_bump = true
 [build-system]
 requires = ["uv_build>=0.8.6,<0.9.0"]
 build-backend = "uv_build"
