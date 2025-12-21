@@ -1,6 +1,6 @@
 [project]
 name = "py-aiger"
-version = "7.0.0"
+version = "8.0.0"
 description = "A python library for manipulating sequential and-inverter gates."
 authors = [{ name = "Marcell Vazquez-Chanlatte", email = "marcell.vc@eecs.berkeley.edu" }]
 requires-python = ">=3.11,<4"
@@ -8,9 +8,9 @@ readme = "README.md"
 license = "MIT"
 dependencies = [
     "attrs>=23",
-    "bidict>=0.22.0,<0.23",
-    "funcy>=1.12,<2",
-    "pyrsistent>=0.19.0,<0.20",
+    "bidict>=0.22.0,<1",
+    "funcy>=2,<3",
+    "pyrsistent>=0.19.0,<1",
     "sortedcontainers>=2.3.0,<3",
 ]
 
@@ -23,7 +23,7 @@ dev = [
     "hypothesis>=6,<7",
     "pytest-xdist>=3,<4",
     "py-aiger-ptltl",
-    "parsimonious>=0.10,<0.11",
+    "parsimonious>=0.10,<0.12",
     "pytest-timeout>=2.3.1,<3",
 ]
 
