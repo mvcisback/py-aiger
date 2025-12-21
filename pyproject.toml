@@ -3,7 +3,7 @@ name = "py-aiger"
 version = "7.0.0"
 description = "A python library for manipulating sequential and-inverter gates."
 authors = [{ name = "Marcell Vazquez-Chanlatte", email = "marcell.vc@eecs.berkeley.edu" }]
-requires-python = ">=3.7,<4"
+requires-python = ">=3.11,<4"
 readme = "README.md"
 license = "MIT"
 dependencies = [
